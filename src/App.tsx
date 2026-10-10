@@ -34,6 +34,7 @@ import {
   saveComments,
   loadSavedChecklist,
   saveChecklist,
+  resetSavedChecklist,
   loadSavedBudget,
   saveBudget,
   loadSavedCompanions,
@@ -407,6 +408,18 @@ export default function App() {
     saveChecklist(updated);
   };
 
+  const handleResetChecklist = () => {
+    const restored = resetSavedChecklist(INITIAL_CHECKLIST);
+    setChecklist(restored);
+    setToastMessage('🎒 준비물 체크리스트가 최신 추천 필수품(36개 항목)으로 복원되었습니다.');
+  };
+
+  const handleToggleAllChecklist = (completed: boolean) => {
+    const updated = checklist.map((item) => ({ ...item, completed }));
+    setChecklist(updated);
+    saveChecklist(updated);
+  };
+
   // Budget
   const handleAddBudgetItem = (item: Omit<BudgetItem, 'id'>) => {
     const newItem: BudgetItem = {
@@ -485,6 +498,11 @@ export default function App() {
         days={days}
         onStartTrip={handleTriggerFlightAndStart}
         onOpenMap={handleTriggerFlightAndOpenMap}
+        onOpenChecklist={() => {
+          setShowLandingPage(false);
+          setBudgetModalView('checklist');
+          setIsBudgetChecklistOpen(true);
+        }}
       />
     );
   }
@@ -826,6 +844,8 @@ export default function App() {
         onToggleCheckItem={handleToggleCheckItem}
         onAddCheckItem={handleAddCheckItem}
         onDeleteCheckItem={handleDeleteCheckItem}
+        onResetChecklist={handleResetChecklist}
+        onToggleAllChecklist={handleToggleAllChecklist}
         budget={budget}
         onAddBudgetItem={handleAddBudgetItem}
         onDeleteBudgetItem={handleDeleteBudgetItem}

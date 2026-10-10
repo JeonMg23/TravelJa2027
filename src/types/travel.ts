@@ -95,10 +95,21 @@ export interface SpotComment {
   timestamp: string;
 }
 
+export type ChecklistCategory =
+  | '필수준비'
+  | '의류/잡화'
+  | '세면/위생'
+  | '상비약'
+  | '전자기기'
+  | '교통/통신'
+  | '예약확인'
+  | '여행꿀템'
+  | '짐싸기';
+
 export interface ChecklistItem {
   id: string;
   text: string;
-  category: '필수준비' | '교통/통신' | '예약확인' | '짐싸기';
+  category: ChecklistCategory;
   completed: boolean;
 }
 
