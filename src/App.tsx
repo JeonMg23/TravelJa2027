@@ -434,7 +434,7 @@ export default function App() {
   const handleResetChecklist = () => {
     const restored = resetSavedChecklist(INITIAL_CHECKLIST);
     setChecklist(restored);
-    setToastMessage('🎒 준비물 체크리스트가 최신 추천 필수품(36개 항목)으로 복원되었습니다.');
+    setToastMessage(`🎒 준비물 체크리스트가 최신 추천 필수품(목도리·장갑 포함 ${INITIAL_CHECKLIST.length}개 항목)으로 복원되었습니다.`);
   };
 
   const handleToggleAllChecklist = (completed: boolean) => {

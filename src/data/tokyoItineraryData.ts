@@ -1118,21 +1118,23 @@ export const INITIAL_COMMENTS: SpotComment[] = [
 
 export const INITIAL_CHECKLIST: ChecklistItem[] = [
   // 1. 필수준비 (서류 & 금융)
-  { id: 'chk-1', text: '여권 (유효기간 6개월 이상 확인 & 사본 캡처)', category: '필수준비', completed: true },
-  { id: 'chk-2', text: '비짓 재팬 웹 (Visit Japan Web) 입국 심사 QR 등록', category: '필수준비', completed: true },
-  { id: 'chk-10', text: '엔화 현금 환전 & 동전지갑 (가챠, 자판기, 신사, 현금 노포 대비)', category: '필수준비', completed: true },
-  { id: 'chk-11', text: '해외 결제 카드 (트래블로그 / 트래블월렛 / 비상용 신용카드)', category: '필수준비', completed: true },
-  { id: 'chk-12', text: '항공권 E-티켓 & 호텔 예약 확인서 (오프라인 사진 저장)', category: '필수준비', completed: true },
+  { id: 'chk-1', text: '여권 (유효기간 6개월 이상 확인 & 사본 캡처)', category: '필수준비', completed: false },
+  { id: 'chk-2', text: '비짓 재팬 웹 (Visit Japan Web) 입국 심사 QR 등록', category: '필수준비', completed: false },
+  { id: 'chk-10', text: '엔화 현금 환전 & 동전지갑 (가챠, 자판기, 신사, 현금 노포 대비)', category: '필수준비', completed: false },
+  { id: 'chk-11', text: '해외 결제 카드 (트래블로그 / 트래블월렛 / 비상용 신용카드)', category: '필수준비', completed: false },
+  { id: 'chk-12', text: '항공권 E-티켓 & 호텔 예약 확인서 (오프라인 사진 저장)', category: '필수준비', completed: false },
 
-  // 2. 의류/잡화 (속옷, 양말, 모자, 썬글라스, 운동화 등)
+  // 2. 의류/잡화 (속옷, 양말, 목도리, 장갑, 모자, 썬글라스, 운동화 등)
   { id: 'chk-13', text: '속옷 (일정 + 여유분 포함 5~6벌)', category: '의류/잡화', completed: false },
   { id: 'chk-14', text: '양말 (하루 2만보 도보 대비 두툼하고 푹신한 양말 5~6켤레)', category: '의류/잡화', completed: false },
-  { id: 'chk-9', text: '오래 걸어도 편한 운동화 / 러닝화 (물집 방지 필수!)', category: '의류/잡화', completed: true },
+  { id: 'chk-40', text: '목도리 / 머플러 (겨울철 야외 도보 및 야경 감상 칼바람 대비 보온)', category: '의류/잡화', completed: false },
+  { id: 'chk-41', text: '장갑 (스마트폰 터치 가능한 방한 장갑 / 손 시림 방지)', category: '의류/잡화', completed: false },
+  { id: 'chk-9', text: '오래 걸어도 편한 운동화 / 러닝화 (물집 방지 필수!)', category: '의류/잡화', completed: false },
   { id: 'chk-15', text: '모자 (햇빛 차단 볼캡 또는 체온 유지 비니)', category: '의류/잡화', completed: false },
   { id: 'chk-16', text: '썬글라스 (자외선 차단 & 전망대/야외 도보 눈부심 방지)', category: '의류/잡화', completed: false },
-  { id: 'chk-17', text: '여벌 외투 & 가벼운 방한 패딩 / 바람막이', category: '의류/잡화', completed: true },
+  { id: 'chk-17', text: '여벌 외투 & 가벼운 방한 패딩 / 바람막이', category: '의류/잡화', completed: false },
   { id: 'chk-18', text: '편안한 잠옷 & 숙소 실내복', category: '의류/잡화', completed: false },
-  { id: 'chk-19', text: '휴대용 슬링백 / 미니 크로스백 (여권·지갑·핸드폰 휴대)', category: '의류/잡화', completed: true },
+  { id: 'chk-19', text: '휴대용 슬링백 / 미니 크로스백 (여권·지갑·핸드폰 휴대)', category: '의류/잡화', completed: false },
 
   // 3. 세면/위생 (칫솔, 치약, 화장품, 썬크림 등)
   { id: 'chk-20', text: '칫솔 & 치약 세트 (휴대용 케이스 포함)', category: '세면/위생', completed: false },
@@ -1142,7 +1144,7 @@ export const INITIAL_CHECKLIST: ChecklistItem[] = [
   { id: 'chk-24', text: '립밤 & 보습 핸드크림 (건조한 기내 및 겨울 바람 대비)', category: '세면/위생', completed: false },
   { id: 'chk-25', text: '면도기 & 쉐이빙 젤', category: '세면/위생', completed: false },
   { id: 'chk-26', text: '인공눈물 & 렌즈용품 (세척액, 보관 케이스, 여분 렌즈)', category: '세면/위생', completed: false },
-  { id: 'chk-27', text: '휴대용 물티슈 & 포켓 티슈 (식사 및 이동 시 유용)', category: '세면/위생', completed: true },
+  { id: 'chk-27', text: '휴대용 물티슈 & 포켓 티슈 (식사 및 이동 시 유용)', category: '세면/위생', completed: false },
 
   // 4. 상비약 (비상약, 진통제, 소화제, 파스 등)
   { id: 'chk-28', text: '종합 감기약 & 해열진통제 (타이레놀 / 이부프로펜)', category: '상비약', completed: false },
@@ -1158,13 +1160,13 @@ export const INITIAL_CHECKLIST: ChecklistItem[] = [
   { id: 'chk-35', text: '유심 핀(SIM 이젝트 핀) & 여분 유심 보관 케이스', category: '전자기기', completed: false },
 
   // 6. 교통/통신
-  { id: 'chk-3', text: '일본 eSIM 또는 포켓 와이파이 예약 (사전 등록 QR)', category: '교통/통신', completed: true },
+  { id: 'chk-3', text: '일본 eSIM 또는 포켓 와이파이 예약 (사전 등록 QR)', category: '교통/통신', completed: false },
   { id: 'chk-4', text: '스이카(Suica) 또는 파스모(Pasmo) 모바일 교통카드 등록/충전', category: '교통/통신', completed: false },
 
   // 7. 예약확인
-  { id: 'chk-5', text: '도쿄 디즈니씨 티켓 및 공식 앱 결제수단 등록', category: '예약확인', completed: true },
-  { id: 'chk-6', text: '워너 브라더스 해리포터 스튜디오 투어 입장권 예매', category: '예약확인', completed: true },
-  { id: 'chk-7', text: '시부야 스카이 일몰 시간대(17시대) 전망대 예약', category: '예약확인', completed: true },
+  { id: 'chk-5', text: '도쿄 디즈니씨 티켓 및 공식 앱 결제수단 등록', category: '예약확인', completed: false },
+  { id: 'chk-6', text: '워너 브라더스 해리포터 스튜디오 투어 입장권 예매', category: '예약확인', completed: false },
+  { id: 'chk-7', text: '시부야 스카이 일몰 시간대(17시대) 전망대 예약', category: '예약확인', completed: false },
 
   // 8. 여행꿀템 (편의/쇼핑)
   { id: 'chk-36', text: '3단 접이식 초경량 우산 (갑작스러운 도쿄 비 대비)', category: '여행꿀템', completed: false },

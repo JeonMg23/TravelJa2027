@@ -280,7 +280,7 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
                     <button
                       onClick={onResetChecklist}
                       className="px-2 py-1 rounded-lg text-[10px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors flex items-center gap-1 cursor-pointer"
-                      title="추천 필수 항목 36개로 초기화"
+                      title="추천 필수 항목(목도리·장갑 포함)으로 복원"
                     >
                       <RotateCcw className="w-3 h-3" />
                       <span>기본 목록 복원</span>
