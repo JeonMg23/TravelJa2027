@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>개구쟁이들의 일본여행 - 우당탕탕 도쿄 5박 6일 탐험기</title>
+    <meta name="description" content="개구쟁이 소년들의 유쾌하고 장난기 넘치는 도쿄 5박 6일 일본여행 실시간 동선 & 스마트 플래너" />
+    <meta property="og:title" content="개구쟁이들의 일본여행 - 우당탕탕 도쿄 5박 6일 탐험기" />
+    <meta property="og:description" content="개구쟁이 소년들의 유쾌하고 장난기 넘치는 도쿄 5박 6일 일본여행 실시간 동선 & 스마트 플래너" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      // Safeguard for browser extensions attempting to overwrite window.fetch
+      try {
+        let _currentFetch = window.fetch;
+        Object.defineProperty(window, 'fetch', {
+          get: function() { return _currentFetch; },
+          set: function(newFetch) { _currentFetch = newFetch; },
+          configurable: true,
+          enumerable: true
+        });
+      } catch (e) {
+        // Ignore if already configurable
+      }
+    </script>
+  </head>
+  <body class="bg-slate-50 text-slate-900 antialiased selection:bg-indigo-500 selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

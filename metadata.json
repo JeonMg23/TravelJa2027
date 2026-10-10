@@ -1,0 +1,8 @@
+{
+  "name": "Remix 개구쟁이들의 일본여행",
+  "description": "실시간 친구 공유와 동선 시각화를 지원하는 반응형 도쿄 5박 6일 스마트 여행 일정 플래너",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
