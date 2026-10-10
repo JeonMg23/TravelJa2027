@@ -83,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Wallet className="w-4 h-4 text-indigo-600" />
-            공동 경비
+            공동 경비 & 가계부
           </button>
           <button
             onClick={() => onSelectTab('checklist')}

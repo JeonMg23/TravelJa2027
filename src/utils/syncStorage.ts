@@ -3,7 +3,7 @@ import { TripDay, SpotComment, ChecklistItem, BudgetItem, FriendCompanion } from
 const STORAGE_KEY_DAYS = 'tokyo_trip_days_v7';
 const STORAGE_KEY_COMMENTS = 'tokyo_trip_comments_v1';
 const STORAGE_KEY_CHECKLIST = 'tokyo_trip_checklist_v3';
-const STORAGE_KEY_BUDGET = 'tokyo_trip_budget_v5';
+const STORAGE_KEY_BUDGET = 'tokyo_trip_budget_v6';
 const STORAGE_KEY_COMPANIONS = 'tokyo_trip_companions_v1';
 
 // Cross-tab real-time sync channel
@@ -204,7 +204,19 @@ export function saveChecklist(items: ChecklistItem[]): void {
 export function loadSavedBudget(defaultBudget: BudgetItem[]): BudgetItem[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_BUDGET);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Ensure items have proper structure
+        return parsed.map((item: any) => ({
+          ...item,
+          type: item.type || 'EXPENSE',
+          paymentMethod: item.paymentMethod || (item.paidBy === '공동경비' || item.paidBy?.includes('현금') ? 'CASH' : 'CARD'),
+          scope: item.scope || (item.paidBy === '공동경비' || item.paidBy?.includes('현금') ? 'SHARED' : 'HYEONWOO'),
+          paidBy: item.paidBy || '공동경비(현금)'
+        }));
+      }
+    }
   } catch {
     // fallback
   }
@@ -218,6 +230,41 @@ export function saveBudget(budget: BudgetItem[]): void {
   } catch {
     // fallback
   }
+  try {
+    const passcode = localStorage.getItem('tokyo_budget_passcode');
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (passcode) headers['x-budget-password'] = passcode;
+    fetch('/api/budget/sync', {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ items: budget })
+    }).catch(() => {
+      // offline or dev fallback
+    });
+  } catch {
+    // ignore
+  }
+}
+
+export function resetSavedBudget(defaultBudget: BudgetItem[]): BudgetItem[] {
+  try {
+    localStorage.setItem(STORAGE_KEY_BUDGET, JSON.stringify(defaultBudget));
+    broadcastSync({ type: 'BUDGET_UPDATE', data: defaultBudget, timestamp: Date.now() });
+  } catch {
+    // fallback
+  }
+  try {
+    fetch('/api/budget/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ defaultItems: defaultBudget })
+    }).catch(() => {
+      // offline or dev fallback
+    });
+  } catch {
+    // ignore
+  }
+  return defaultBudget;
 }
 
 export function loadSavedCompanions(defaultCompanions: FriendCompanion[]): FriendCompanion[] {

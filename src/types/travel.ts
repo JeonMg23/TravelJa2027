@@ -112,14 +112,33 @@ export interface ChecklistItem {
   category: ChecklistCategory;
   completed: boolean;
 }
+export type PaymentMethod = 'CASH' | 'CARD';
+export type ExpenseScope = 'SHARED' | 'HYEONWOO' | 'SEHYEON'; // 공동 vs 현우가족 vs 세현가족
+export type FamilyName = '현우가족' | '세현가족';
+export type BudgetCategory =
+  | '식비'
+  | '교통'
+  | '숙박'
+  | '입장료'
+  | '쇼핑'
+  | '카페/디저트'
+  | '이자카야/주류'
+  | '기타';
 
 export interface BudgetItem {
   id: string;
-  day: number;
+  type?: 'EXPENSE' | 'DEPOSIT'; // 'EXPENSE' (지출) | 'DEPOSIT' (현금 공동경비 모금/입금)
+  day: number; // 0: 사전준비, 1..6: 일차
+  date?: string; // e.g. "1월 13일"
   title: string;
-  category: '교통' | '숙박' | '식비' | '입장료' | '쇼핑';
+  category: BudgetCategory;
   amountJPY: number;
-  paidBy: string;
+  paymentMethod?: PaymentMethod; // 'CASH' (현금 공동경비 차감) | 'CARD' (카드)
+  scope?: ExpenseScope; // 'SHARED' (공동 사용) | 'HYEONWOO' (현우가족) | 'SEHYEON' (세현가족)
+  paidBy: string; // '공동경비(현금)' | '현우가족' | '세현가족'
+  location?: string; // 어디서 사용했는지 (예: '긴시초', '디즈니씨', '우에노')
+  note?: string; // 메모
+  timestamp?: number;
 }
 
 export interface DayWeather {

@@ -37,6 +37,7 @@ import {
   resetSavedChecklist,
   loadSavedBudget,
   saveBudget,
+  resetSavedBudget,
   loadSavedCompanions,
   saveCompanions,
   subscribeToSync
@@ -50,9 +51,17 @@ import { CollaborationDrawer } from './components/CollaborationDrawer';
 import { SpotDetailModal } from './components/SpotDetailModal';
 import { AddSpotModal } from './components/AddSpotModal';
 import { BudgetChecklistModal } from './components/BudgetChecklistModal';
+import { BudgetReceiptModal } from './components/BudgetReceiptModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { LandingHeroPage } from './components/LandingHeroPage';
 import { FlightTransition } from './components/FlightTransition';
+import {
+  fetchBudgetFromDB,
+  addBudgetItemToDB,
+  updateBudgetItemInDB,
+  deleteBudgetItemFromDB,
+  resetBudgetInDB
+} from './services/budgetApi';
 import {
   Sparkles,
   MapPin,
@@ -127,6 +136,13 @@ export default function App() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isBudgetChecklistOpen, setIsBudgetChecklistOpen] = useState(false);
   const [budgetModalView, setBudgetModalView] = useState<'budget' | 'checklist'>('checklist');
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [receiptTargetFamily, setReceiptTargetFamily] = useState<'ALL' | '현우가족' | '세현가족'>('ALL');
+
+  const handleOpenReceipt = (family: 'ALL' | '현우가족' | '세현가족' = 'ALL') => {
+    setReceiptTargetFamily(family);
+    setIsReceiptOpen(true);
+  };
 
   // Floating Toast notification for route additions
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -186,6 +202,22 @@ export default function App() {
     });
 
     return unsubscribe;
+  }, []);
+
+  // Fetch initial budget from backend DB to guarantee cross-device & cross-family data sharing
+  useEffect(() => {
+    fetchBudgetFromDB().then((dbItems) => {
+      if (dbItems && dbItems.length > 0) {
+        setBudget(dbItems);
+      } else {
+        // If DB has no items yet, initialize backend DB with current budget
+        fetch('/api/budget/sync', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: budget })
+        }).catch(() => {});
+      }
+    });
   }, []);
 
   // Save changes to storage whenever state updates
@@ -452,12 +484,32 @@ export default function App() {
     const updated = [...budget, newItem];
     setBudget(updated);
     saveBudget(updated);
+    addBudgetItemToDB(newItem);
+    setToastMessage(`💾 [DB 저장 완료] ${item.type === 'DEPOSIT' ? '공동경비 입금' : '경비 지출'} '${item.title}' 내역이 두 가족 공유 DB에 등록되었습니다.`);
+  };
+
+  const handleUpdateBudgetItem = (id: string, updates: Partial<BudgetItem>) => {
+    const updated = budget.map((b) => (b.id === id ? { ...b, ...updates } : b));
+    setBudget(updated);
+    saveBudget(updated);
+    updateBudgetItemInDB(id, updates);
+    setToastMessage(`✏️ [DB 수정 완료] 가계부 내역이 업데이트되었습니다.`);
   };
 
   const handleDeleteBudgetItem = (id: string) => {
+    const target = budget.find((b) => b.id === id);
     const updated = budget.filter((b) => b.id !== id);
     setBudget(updated);
     saveBudget(updated);
+    deleteBudgetItemFromDB(id);
+    setToastMessage(`🗑️ '${target?.title || '항목'}' 내역이 두 가족 공유 DB에서 삭제되었습니다.`);
+  };
+
+  const handleResetBudget = () => {
+    const restored = resetSavedBudget(INITIAL_BUDGET);
+    setBudget(restored);
+    resetBudgetInDB(INITIAL_BUDGET);
+    setToastMessage('💰 2가족(현우가족·세현가족) 추천 공동 경비 및 가계부 내역으로 공유 DB가 초기화 복원되었습니다.');
   };
 
   // Header Nav tab handler
@@ -904,7 +956,17 @@ export default function App() {
         onToggleAllChecklist={handleToggleAllChecklist}
         budget={budget}
         onAddBudgetItem={handleAddBudgetItem}
+        onUpdateBudgetItem={handleUpdateBudgetItem}
         onDeleteBudgetItem={handleDeleteBudgetItem}
+        onResetBudget={handleResetBudget}
+        onOpenReceipt={handleOpenReceipt}
+      />
+
+      <BudgetReceiptModal
+        isOpen={isReceiptOpen}
+        onClose={() => setIsReceiptOpen(false)}
+        budget={budget}
+        initialFamily={receiptTargetFamily}
       />
     </div>
   );

@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { ChecklistItem, BudgetItem, ChecklistCategory } from '../types/travel';
+import { BudgetLedgerView } from './BudgetLedgerView';
 import {
   X,
   CheckSquare,
@@ -27,7 +28,10 @@ interface BudgetChecklistModalProps {
   onToggleAllChecklist?: (completed: boolean) => void;
   budget: BudgetItem[];
   onAddBudgetItem: (item: Omit<BudgetItem, 'id'>) => void;
+  onUpdateBudgetItem?: (id: string, updates: Partial<BudgetItem>) => void;
   onDeleteBudgetItem: (id: string) => void;
+  onResetBudget?: () => void;
+  onOpenReceipt?: (targetFamily?: 'ALL' | '현우가족' | '세현가족') => void;
 }
 
 const CATEGORY_STYLES: Record<
@@ -69,7 +73,10 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
   onToggleAllChecklist,
   budget,
   onAddBudgetItem,
-  onDeleteBudgetItem
+  onUpdateBudgetItem,
+  onDeleteBudgetItem,
+  onResetBudget,
+  onOpenReceipt
 }) => {
   // Checklist UI filter & search states
   const [selectedCategory, setSelectedCategory] = useState<string>('전체');
@@ -79,14 +86,6 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
   const [newCheckText, setNewCheckText] = useState('');
   const [newCheckCategory, setNewCheckCategory] =
     useState<ChecklistItem['category']>('의류/잡화');
-
-  // Budget form states
-  const [expenseTitle, setExpenseTitle] = useState('');
-  const [expenseCategory, setExpenseCategory] =
-    useState<BudgetItem['category']>('식비');
-  const [expenseAmount, setExpenseAmount] = useState('');
-  const [expenseDay, setExpenseDay] = useState(1);
-  const [expensePaidBy, setExpensePaidBy] = useState('공동경비');
 
   if (!isOpen) return null;
 
@@ -122,16 +121,6 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
     return acc;
   }, {});
 
-  // Budget stats (100 JPY approx = 920 KRW)
-  const totalJPY = budget.reduce((acc, curr) => acc + curr.amountJPY, 0);
-  const totalKRW = Math.round(totalJPY * 9.2);
-
-  // Category breakdown for budget
-  const categoryTotals: Record<string, number> = {};
-  budget.forEach((b) => {
-    categoryTotals[b.category] = (categoryTotals[b.category] || 0) + b.amountJPY;
-  });
-
   const handleAddChecklist = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCheckText.trim()) return;
@@ -139,25 +128,15 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
     setNewCheckText('');
   };
 
-  const handleAddExpense = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!expenseTitle.trim() || !expenseAmount) return;
-    onAddBudgetItem({
-      title: expenseTitle.trim(),
-      category: expenseCategory,
-      amountJPY: parseInt(expenseAmount, 10) || 0,
-      day: expenseDay,
-      paidBy: expensePaidBy
-    });
-    setExpenseTitle('');
-    setExpenseAmount('');
-  };
-
   return (
-    <div className="fixed inset-0 z-[1200] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-2xs animate-in fade-in duration-150">
-      <div className="bg-white w-full max-w-3xl rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-[1200] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-2xs animate-in fade-in duration-150">
+      <div
+        className={`bg-white w-full ${
+          activeView === 'budget' ? 'max-w-4xl' : 'max-w-3xl'
+        } rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]`}
+      >
         {/* Header with Switcher Tabs */}
-        <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 shrink-0">
+        <div className="p-3 sm:p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 shrink-0">
           <div className="flex items-center gap-1.5 p-1 bg-slate-200/70 rounded-xl">
             <button
               onClick={() => onSwitchView('checklist')}
@@ -459,122 +438,27 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
           </div>
         )}
 
-        {/* View 2: Budget Manager */}
+        {/* View 2: Budget Manager (2 Families Smart Ledger) */}
         {activeView === 'budget' && (
-          <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
-            {/* Total Summary Strip */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-                <div className="text-[11px] font-semibold text-indigo-700">
-                  총 지출 합계 (일본 엔화)
-                </div>
-                <div className="text-xl sm:text-2xl font-bold font-mono text-indigo-950 mt-1">
-                  ¥{totalJPY.toLocaleString()}
-                </div>
-              </div>
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                <div className="text-[11px] font-semibold text-slate-600">
-                  원화 환산 예상 (약 920원 기준)
-                </div>
-                <div className="text-xl sm:text-2xl font-bold font-mono text-slate-900 mt-1">
-                  약 ₩{totalKRW.toLocaleString()}
-                </div>
-              </div>
-            </div>
-
-            {/* Category breakdown bar */}
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap gap-2 text-xs">
-              {Object.entries(categoryTotals).map(([cat, amount]) => (
-                <div key={cat} className="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-lg border border-slate-200 text-[11px]">
-                  <span className="font-semibold text-slate-600">{cat}:</span>
-                  <span className="font-mono font-bold text-slate-900">¥{amount.toLocaleString()}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Expense records */}
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-              {budget.map((item) => (
-                <div
-                  key={item.id}
-                  className="p-3 rounded-xl border border-slate-200/90 bg-white flex items-center justify-between text-xs"
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-900">{item.title}</span>
-                      <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded font-medium">
-                        Day {item.day} · {item.category}
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">
-                      결제자: {item.paidBy}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono font-bold text-sm text-slate-900">
-                      ¥{item.amountJPY.toLocaleString()}
-                    </span>
-                    <button
-                      onClick={() => onDeleteBudgetItem(item.id)}
-                      className="text-slate-300 hover:text-rose-500 transition-colors p-1 cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Add expense form */}
-            <form onSubmit={handleAddExpense} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-              <div className="text-xs font-bold text-slate-700">새 지출 내역 기록</div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <input
-                  type="text"
-                  placeholder="항목 (예: 디즈니 간식)"
-                  value={expenseTitle}
-                  onChange={(e) => setExpenseTitle(e.target.value)}
-                  className="px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white text-slate-900 col-span-2"
-                />
-                <input
-                  type="number"
-                  placeholder="금액 (¥ JPY)"
-                  value={expenseAmount}
-                  onChange={(e) => setExpenseAmount(e.target.value)}
-                  className="px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white text-slate-900 font-mono"
-                />
-                <select
-                  value={expenseCategory}
-                  onChange={(e) => setExpenseCategory(e.target.value as BudgetItem['category'])}
-                  className="px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white text-slate-900"
-                >
-                  <option value="식비">식비</option>
-                  <option value="교통">교통</option>
-                  <option value="입장료">입장료</option>
-                  <option value="숙박">숙박</option>
-                  <option value="쇼핑">쇼핑</option>
-                </select>
-              </div>
-              <div className="flex justify-end pt-1">
-                <button
-                  type="submit"
-                  disabled={!expenseTitle.trim() || !expenseAmount}
-                  className="px-3.5 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 disabled:opacity-40 transition-colors cursor-pointer"
-                >
-                  지출 등록
-                </button>
-              </div>
-            </form>
+          <div className="p-3 sm:p-5 overflow-y-auto flex-1">
+            <BudgetLedgerView
+              budget={budget}
+              onAddBudgetItem={onAddBudgetItem}
+              onUpdateBudgetItem={onUpdateBudgetItem}
+              onDeleteBudgetItem={onDeleteBudgetItem}
+              onResetBudget={onResetBudget}
+              onOpenReceipt={onOpenReceipt}
+            />
           </div>
         )}
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
+        <div className="p-3.5 sm:p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
           <div className="text-[11px] text-slate-500">
             {activeView === 'checklist' ? (
               <span>💡 항목을 탭하여 체크/해제할 수 있으며 브라우저에 자동 저장됩니다.</span>
             ) : (
-              <span>💡 실시간 N빵 경비가 저장되며 팀원들과 공유됩니다.</span>
+              <span>💡 현금 공동경비 자동 차감 및 카드 공동/가족별 분리 정산이 실시간 동기화됩니다.</span>
             )}
           </div>
           <button
