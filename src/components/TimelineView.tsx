@@ -191,9 +191,17 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                             <span>🏨 오늘의 종착지 · 숙소 복귀</span>
                           </span>
                         )}
-                        {(spot.categoryLabel === '숙소 출발' || spot.name.includes('오픈런 출발')) && (
+                        {(spot.categoryLabel === '숙소 출발' || spot.name.includes('오픈런 출발') || spot.name.includes('숙소 출발')) && (
                           <span className="text-[11px] font-black text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full shadow-2xs flex items-center gap-1">
-                            <span>🌅 오전 07:00 도착 목표 · 호텔 출발</span>
+                            <span>
+                              {spot.name.includes('디즈니') || spot.openStatus.includes('07:00')
+                                ? '🌅 오전 07:00 도착 목표 · 디즈니씨 오픈런'
+                                : spot.name.includes('해리포터') || spot.openStatus.includes('08:40')
+                                ? '🧙 오전 08:40 도착 목표 · 해리포터 스튜디오'
+                                : spot.name.includes('쓰키지') || spot.openStatus.includes('09:00') || spot.openStatus.includes('08:25')
+                                ? '🐟 오전 09:00 도착 목표 · 쓰키지 장외시장'
+                                : '🌅 오전 숙소 출발'}
+                            </span>
                           </span>
                         )}
                       </div>
@@ -320,9 +328,20 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                 {spot.recommendedFoods && spot.recommendedFoods.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-slate-100">
                     <div className="flex items-center justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
-                        <Utensils className="w-3.5 h-3.5 text-rose-500" />
-                        <span>추천 맛집 & 대표 메뉴</span>
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                        {spot.categoryLabel === '숙소 복귀' || spot.name.includes('숙소 복귀') ? (
+                          <>
+                            <span className="text-sm">🍺</span>
+                            <span className="text-amber-900 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-md">
+                              숙소 도착 후 시원한 밤맥주 & 선술집 추천 (도보 1~3분)
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <Utensils className="w-3.5 h-3.5 text-rose-500" />
+                            <span>추천 맛집 & 대표 메뉴</span>
+                          </>
+                        )}
                       </div>
                       <span className="text-[11px] font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md flex items-center gap-1">
                         <span>클릭 시 동선 추가 · 재클릭 시 삭제</span>

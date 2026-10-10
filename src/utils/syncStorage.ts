@@ -1,6 +1,6 @@
 import { TripDay, SpotComment, ChecklistItem, BudgetItem, FriendCompanion } from '../types/travel';
 
-const STORAGE_KEY_DAYS = 'tokyo_trip_days_v6';
+const STORAGE_KEY_DAYS = 'tokyo_trip_days_v7';
 const STORAGE_KEY_COMMENTS = 'tokyo_trip_comments_v1';
 const STORAGE_KEY_CHECKLIST = 'tokyo_trip_checklist_v2';
 const STORAGE_KEY_BUDGET = 'tokyo_trip_budget_v5';
@@ -63,7 +63,10 @@ export function broadcastSync(payload: SyncPayload): void {
 
 export function loadSavedDays(defaultDays: TripDay[]): TripDay[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY_DAYS) || localStorage.getItem('tokyo_trip_days_v5');
+    const raw =
+      localStorage.getItem(STORAGE_KEY_DAYS) ||
+      localStorage.getItem('tokyo_trip_days_v6') ||
+      localStorage.getItem('tokyo_trip_days_v5');
     if (raw) {
       const parsed: TripDay[] = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
