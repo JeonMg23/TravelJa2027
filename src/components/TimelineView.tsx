@@ -329,7 +329,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
                       {spot.recommendedFoods.map((food, fIdx) => {
                         const isAdded = currentDay.spots.some(
                           (s) => s.name === food.name || (s.name.includes(food.name) && s.category === 'food')
@@ -359,6 +359,11 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                             <div className="flex items-start justify-between gap-2">
                               <div className="font-bold text-slate-800 group-hover:text-blue-700 transition-colors flex items-center gap-1.5 flex-wrap">
                                 <span>{food.name}</span>
+                                {(food.name.includes('선술집') || food.name.includes('이자카야') || food.name.includes('주점') || food.menu.includes('생맥주')) && (
+                                  <span className="text-[10px] text-amber-900 font-extrabold bg-amber-200/90 px-1.5 py-0.5 rounded border border-amber-400 flex items-center gap-0.5 shadow-2xs">
+                                    🍺 밤맥주 선술집
+                                  </span>
+                                )}
                                 {food.rating && (
                                   <span className="text-[10px] text-amber-700 font-extrabold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-300">
                                     ★{food.rating.toFixed(1)}

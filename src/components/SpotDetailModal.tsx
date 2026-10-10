@@ -221,6 +221,11 @@ export const SpotDetailModal: React.FC<SpotDetailModalProps> = ({
                       <div className="font-bold text-slate-800 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="group-hover:text-blue-700 transition-colors">{f.name}</span>
+                          {(f.name.includes('선술집') || f.name.includes('이자카야') || f.name.includes('주점') || f.menu.includes('생맥주')) && (
+                            <span className="text-[10px] text-amber-900 font-extrabold bg-amber-200/90 px-1.5 py-0.5 rounded border border-amber-400 flex items-center gap-0.5 shadow-2xs">
+                              🍺 밤맥주 선술집
+                            </span>
+                          )}
                           {f.rating && (
                             <span className="text-[10px] text-amber-700 font-extrabold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-300">
                               ★{f.rating.toFixed(1)}

@@ -1,6 +1,6 @@
 import { TripDay, SpotComment, ChecklistItem, BudgetItem, FriendCompanion } from '../types/travel';
 
-const STORAGE_KEY_DAYS = 'tokyo_trip_days_v5';
+const STORAGE_KEY_DAYS = 'tokyo_trip_days_v6';
 const STORAGE_KEY_COMMENTS = 'tokyo_trip_comments_v1';
 const STORAGE_KEY_CHECKLIST = 'tokyo_trip_checklist_v2';
 const STORAGE_KEY_BUDGET = 'tokyo_trip_budget_v5';
@@ -63,10 +63,40 @@ export function broadcastSync(payload: SyncPayload): void {
 
 export function loadSavedDays(defaultDays: TripDay[]): TripDay[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY_DAYS);
+    const raw = localStorage.getItem(STORAGE_KEY_DAYS) || localStorage.getItem('tokyo_trip_days_v5');
     if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      const parsed: TripDay[] = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Merge newest default spots (including new izakayas and tips) while retaining user likes and custom spots
+        const merged = defaultDays.map((defaultDay) => {
+          const userDay = parsed.find((p) => p.dayNumber === defaultDay.dayNumber);
+          if (!userDay) return defaultDay;
+
+          const defaultSpotIds = new Set(defaultDay.spots.map((s) => s.id));
+          // Preserve any custom spots the user added to this day
+          const userCustomSpots = userDay.spots.filter((s) => !defaultSpotIds.has(s.id));
+
+          // For default spots, update to newest tips & recommendedFoods (izakayas) while preserving user likes/notes
+          const updatedDefaultSpots = defaultDay.spots.map((defaultSpot) => {
+            const userSpot = userDay.spots.find((us) => us.id === defaultSpot.id);
+            if (!userSpot) return defaultSpot;
+            return {
+              ...defaultSpot,
+              likes: userSpot.likes ?? defaultSpot.likes,
+              hasLiked: userSpot.hasLiked ?? defaultSpot.hasLiked,
+              userNotes: userSpot.userNotes || defaultSpot.userNotes
+            };
+          });
+
+          return {
+            ...defaultDay,
+            spots: [...updatedDefaultSpots, ...userCustomSpots]
+          };
+        });
+
+        localStorage.setItem(STORAGE_KEY_DAYS, JSON.stringify(merged));
+        return merged;
+      }
     }
   } catch {
     // fallback

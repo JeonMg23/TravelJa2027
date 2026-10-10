@@ -63,6 +63,7 @@ import {
   HelpCircle,
   CheckCircle2,
   Navigation,
+  Columns2,
   X
 } from 'lucide-react';
 
@@ -95,7 +96,29 @@ export default function App() {
 
   // Active view for mobile & desktop header tabs
   const [activeHeaderTab, setActiveHeaderTab] = useState<'timeline' | 'map' | 'budget' | 'checklist'>('timeline');
-  const [mobileView, setMobileView] = useState<'timeline' | 'map'>('timeline');
+  // Active view for mobile, foldable & desktop layout ('split' for side-by-side Z-Fold/PC, 'timeline', 'map')
+  const [mobileView, setMobileView] = useState<'timeline' | 'map' | 'split'>(() => {
+    if (typeof window !== 'undefined') {
+      // Auto-detect wide foldable (Galaxy Z Fold unfolded width >= 640px) or PC
+      return window.innerWidth >= 640 ? 'split' : 'timeline';
+    }
+    return 'split';
+  });
+
+  // Automatically adapt if user unfolds or rotates their Galaxy Z Fold device
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== 'undefined') {
+        const isWideFoldOrDesktop = window.innerWidth >= 640;
+        // If unfolded from narrow cover screen to wide inner screen
+        if (isWideFoldOrDesktop && mobileView === 'timeline') {
+          setMobileView('split');
+        }
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [mobileView]);
 
   // Modals
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -532,45 +555,74 @@ export default function App() {
       />
 
       {/* Main View Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-        {/* Mobile & Tablet View Toggle Bar (Visible on mobile & tablet < lg) */}
-        <div className="lg:hidden flex items-center justify-center p-1 bg-slate-200/90 rounded-xl mb-4">
-          <button
-            onClick={() => {
-              setMobileView('timeline');
-              setActiveHeaderTab('timeline');
-            }}
-            className={`flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              mobileView === 'timeline'
-                ? 'bg-white text-indigo-700 shadow-xs'
-                : 'text-slate-600'
-            }`}
-          >
-            <Calendar className="w-3.5 h-3.5" />
-            <span>일정 타임라인</span>
-          </button>
-          <button
-            onClick={() => {
-              setMobileView('map');
-              setActiveHeaderTab('map');
-            }}
-            className={`flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              mobileView === 'map'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600'
-            }`}
-          >
-            <Compass className="w-3.5 h-3.5" />
-            <span>🗺️ 구글 동선 지도 보기</span>
-          </button>
+      <main className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 md:p-6 lg:p-8">
+        {/* Mobile, Foldable & Desktop View Selector Bar */}
+        <div className="flex items-center justify-between gap-2 p-1.5 bg-slate-200/90 rounded-2xl mb-4 shadow-2xs">
+          <div className="flex items-center gap-1.5 flex-1">
+            <button
+              onClick={() => {
+                setMobileView('timeline');
+                setActiveHeaderTab('timeline');
+              }}
+              className={`flex-1 py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                mobileView === 'timeline'
+                  ? 'bg-white text-indigo-700 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>일정 타임라인</span>
+            </button>
+            <button
+              onClick={() => {
+                setMobileView('map');
+                setActiveHeaderTab('map');
+              }}
+              className={`flex-1 py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                mobileView === 'map'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span>동선 지도</span>
+            </button>
+            <button
+              onClick={() => {
+                setMobileView('split');
+              }}
+              className={`flex-1 py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${
+                mobileView === 'split'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-700 hover:text-slate-900'
+              }`}
+              title="갤럭시 Z폴드 및 태블릿, PC처럼 좌우로 분할하여 타임라인과 지도를 동시에 봅니다"
+            >
+              <Columns2 className="w-3.5 h-3.5" />
+              <span>좌우 분할</span>
+              <span className="text-[10px] font-black bg-amber-400 text-black px-1.5 py-0.2 rounded-md shadow-2xs">
+                Z폴드·PC
+              </span>
+            </button>
+          </div>
         </div>
 
-        {/* 2-Column Responsive Split */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* 2-Column Responsive Split (Foldable & PC side-by-side) */}
+        <div
+          className={`grid gap-4 sm:gap-6 items-start ${
+            mobileView === 'split'
+              ? 'grid-cols-1 min-[640px]:grid-cols-12'
+              : 'grid-cols-1 lg:grid-cols-12'
+          }`}
+        >
           {/* Left Column: Itinerary Timeline List */}
           <div
-            className={`lg:col-span-7 xl:col-span-7 space-y-4 ${
-              mobileView === 'map' ? 'hidden lg:block' : 'block'
+            className={`space-y-4 ${
+              mobileView === 'split'
+                ? 'min-[640px]:col-span-6 lg:col-span-7 block'
+                : mobileView === 'map'
+                ? 'hidden lg:block'
+                : 'block lg:col-span-7'
             }`}
           >
             {currentDay ? (
@@ -709,8 +761,12 @@ export default function App() {
 
           {/* Right Column: Interactive Leaflet Route Map */}
           <div
-            className={`lg:col-span-5 xl:col-span-5 lg:sticky lg:top-24 isolate z-0 ${
-              mobileView === 'timeline' ? 'hidden lg:block' : 'block'
+            className={`isolate z-0 ${
+              mobileView === 'split'
+                ? 'min-[640px]:col-span-6 lg:col-span-5 min-[640px]:sticky min-[640px]:top-20 block'
+                : mobileView === 'timeline'
+                ? 'hidden lg:block'
+                : 'block lg:col-span-5 lg:sticky lg:top-24'
             }`}
           >
             <div className="space-y-3">
@@ -721,8 +777,8 @@ export default function App() {
                 onSelectSpot={(spot) => {
                   handleSelectSpot(spot);
                 }}
-                isVisible={mobileView === 'map'}
-                className="h-[520px] sm:h-[600px] md:h-[680px] lg:h-[calc(100vh-10.5rem)] min-h-[440px] w-full"
+                isVisible={mobileView === 'map' || mobileView === 'split'}
+                className="h-[520px] sm:h-[580px] md:h-[640px] lg:h-[calc(100vh-10.5rem)] min-h-[420px] w-full"
               />
 
               {/* Selected Spot Quick Info Card below map on desktop */}
@@ -765,7 +821,7 @@ export default function App() {
         currentView={mobileView}
         onSelectView={(v) => {
           setMobileView(v);
-          setActiveHeaderTab(v);
+          setActiveHeaderTab(v === 'split' ? 'timeline' : v);
         }}
         onOpenShare={() => setIsShareOpen(true)}
         onOpenBudget={() => {
@@ -836,7 +892,7 @@ export default function App() {
         isOpen={isBudgetChecklistOpen}
         onClose={() => {
           setIsBudgetChecklistOpen(false);
-          setActiveHeaderTab(mobileView);
+          setActiveHeaderTab(mobileView === 'split' ? 'timeline' : mobileView);
         }}
         activeView={budgetModalView}
         onSwitchView={(v) => setBudgetModalView(v)}

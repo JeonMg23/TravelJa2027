@@ -2,8 +2,8 @@ import React from 'react';
 import { Calendar, Compass, Share2, Wallet } from 'lucide-react';
 
 interface MobileBottomNavProps {
-  currentView: 'timeline' | 'map';
-  onSelectView: (view: 'timeline' | 'map') => void;
+  currentView: 'timeline' | 'map' | 'split';
+  onSelectView: (view: 'timeline' | 'map' | 'split') => void;
   onOpenShare: () => void;
   onOpenBudget: () => void;
   unreadCount: number;
