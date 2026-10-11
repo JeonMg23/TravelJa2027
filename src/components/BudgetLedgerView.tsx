@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   BudgetItem,
   BudgetCategory,
@@ -6,6 +6,15 @@ import {
   ExpenseScope,
   FamilyName
 } from '../types/travel';
+
+export type PaymentTypeOption =
+  | 'CASH'
+  | 'CASH_HYEONWOO'
+  | 'CASH_SEHYEON'
+  | 'CARD_SHARED'
+  | 'CARD_HYEONWOO'
+  | 'CARD_SEHYEON';
+
 import {
   Wallet,
   CreditCard,
@@ -92,6 +101,10 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
     return authRole ? getRoleInfo(authRole) : null;
   }, [authRole]);
 
+  // Ref for registration form container and input to enable scroll & focus
+  const registrationFormRef = useRef<HTMLDivElement>(null);
+  const expenseTitleInputRef = useRef<HTMLInputElement>(null);
+
   // Edit item state
   const [editingItem, setEditingItem] = useState<BudgetItem | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -99,9 +112,7 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
   const [editDay, setEditDay] = useState(1);
   const [editLocation, setEditLocation] = useState('');
   const [editCategory, setEditCategory] = useState<BudgetCategory>('식비');
-  const [editPaymentType, setEditPaymentType] = useState<
-    'CASH' | 'CARD_SHARED' | 'CARD_HYEONWOO' | 'CARD_SEHYEON'
-  >('CASH');
+  const [editPaymentType, setEditPaymentType] = useState<PaymentTypeOption>('CASH');
   const [editCardPayer, setEditCardPayer] = useState<FamilyName>('현우가족');
   const [editNote, setEditNote] = useState('');
 
@@ -111,7 +122,13 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
   // Filters
   const [selectedDayFilter, setSelectedDayFilter] = useState<number | 'all'>('all');
   const [selectedPaymentFilter, setSelectedPaymentFilter] = useState<
-    'all' | 'CASH' | 'CARD_SHARED' | 'CARD_HYEONWOO' | 'CARD_SEHYEON'
+    | 'all'
+    | 'CASH'
+    | 'CASH_HYEONWOO'
+    | 'CASH_SEHYEON'
+    | 'CARD_SHARED'
+    | 'CARD_HYEONWOO'
+    | 'CARD_SEHYEON'
   >('all');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
 
@@ -125,9 +142,7 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
   const [expenseDay, setExpenseDay] = useState(1);
   const [expenseLocation, setExpenseLocation] = useState('');
   const [expenseCategory, setExpenseCategory] = useState<BudgetCategory>('식비');
-  const [expensePaymentType, setExpensePaymentType] = useState<
-    'CASH' | 'CARD_SHARED' | 'CARD_HYEONWOO' | 'CARD_SEHYEON'
-  >('CASH');
+  const [expensePaymentType, setExpensePaymentType] = useState<PaymentTypeOption>('CASH');
   const [cardPayer, setCardPayer] = useState<FamilyName>('현우가족');
   const [expenseNote, setExpenseNote] = useState('');
 
@@ -168,19 +183,48 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
     return budget.filter((item) => item.type !== 'DEPOSIT');
   }, [budget]);
 
-  // Cash Expenses (공동경비 현금 차감)
-  const cashExpenses = useMemo(() => {
+  // Shared Cash Expenses (공동경비 현금 차감 - 모금 풀에서 사용)
+  const sharedCashExpenses = useMemo(() => {
     return expenses.filter(
-      (e) => e.paymentMethod === 'CASH' || e.paidBy === '공동경비' || e.paidBy === '공동경비(현금)'
+      (e) =>
+        e.paymentMethod === 'CASH' &&
+        (e.scope === 'SHARED' || e.paidBy === '공동경비' || e.paidBy === '공동경비(현금)')
     );
   }, [expenses]);
 
   const totalCashSpentJPY = useMemo(() => {
-    return cashExpenses.reduce((acc, curr) => acc + curr.amountJPY, 0);
-  }, [cashExpenses]);
+    return sharedCashExpenses.reduce((acc, curr) => acc + curr.amountJPY, 0);
+  }, [sharedCashExpenses]);
 
-  // Cash Remaining Balance
+  // Cash Remaining Balance in Joint Pool (현금 공동경비 풀 잔액)
   const cashRemainingJPY = totalDepositsJPY - totalCashSpentJPY;
+
+  // Personal Individual Cash Expenses (각 가족 개별 현금 지출)
+  const hyeonwooPersonalCashExpenses = useMemo(() => {
+    return expenses.filter(
+      (e) =>
+        e.paymentMethod === 'CASH' &&
+        (e.scope === 'HYEONWOO' || (e.scope !== 'SHARED' && e.paidBy === '현우가족'))
+    );
+  }, [expenses]);
+
+  const sehyeonPersonalCashExpenses = useMemo(() => {
+    return expenses.filter(
+      (e) =>
+        e.paymentMethod === 'CASH' &&
+        (e.scope === 'SEHYEON' || (e.scope !== 'SHARED' && e.paidBy === '세현가족'))
+    );
+  }, [expenses]);
+
+  const hyeonwooPersonalCashJPY = useMemo(() => {
+    return hyeonwooPersonalCashExpenses.reduce((acc, curr) => acc + curr.amountJPY, 0);
+  }, [hyeonwooPersonalCashExpenses]);
+
+  const sehyeonPersonalCashJPY = useMemo(() => {
+    return sehyeonPersonalCashExpenses.reduce((acc, curr) => acc + curr.amountJPY, 0);
+  }, [sehyeonPersonalCashExpenses]);
+
+  const totalPersonalCashJPY = hyeonwooPersonalCashJPY + sehyeonPersonalCashJPY;
 
   // Card Expenses: Shared vs Family-specific
   const cardExpenses = useMemo(() => {
@@ -224,8 +268,14 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
       .reduce((acc, curr) => acc + curr.amountJPY, 0);
   }, [cardExpenses]);
 
-  // Grand Totals
-  const grandTotalExpenseJPY = totalCashSpentJPY + totalCardSharedJPY + hyeonwooPersonalCardJPY + sehyeonPersonalCardJPY;
+  // Grand Totals (공동현금 + 공동카드 + 현우개별(현금+카드) + 세현개별(현금+카드))
+  const grandTotalExpenseJPY =
+    totalCashSpentJPY +
+    totalCardSharedJPY +
+    hyeonwooPersonalCardJPY +
+    sehyeonPersonalCardJPY +
+    hyeonwooPersonalCashJPY +
+    sehyeonPersonalCashJPY;
 
   // 3. Settlement Calculation (정산)
   // Shared expenses to be split 50:50 between 현우가족 (2인) & 세현가족 (2인)
@@ -254,7 +304,18 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
       // Payment filter
       if (selectedPaymentFilter === 'CASH') {
         if (item.type === 'DEPOSIT') return true; // show deposits in cash filter
-        if (item.paymentMethod !== 'CASH' && item.paidBy !== '공동경비' && item.paidBy !== '공동경비(현금)') return false;
+        // Shared cash only
+        if (item.paymentMethod !== 'CASH') return false;
+        if (item.scope === 'HYEONWOO' || item.scope === 'SEHYEON') return false;
+        if (item.paidBy !== '공동경비' && item.paidBy !== '공동경비(현금)' && item.scope !== 'SHARED') return false;
+      } else if (selectedPaymentFilter === 'CASH_HYEONWOO') {
+        if (item.type === 'DEPOSIT') return false;
+        if (item.paymentMethod !== 'CASH') return false;
+        if (item.scope !== 'HYEONWOO' && !(item.scope !== 'SHARED' && item.paidBy === '현우가족')) return false;
+      } else if (selectedPaymentFilter === 'CASH_SEHYEON') {
+        if (item.type === 'DEPOSIT') return false;
+        if (item.paymentMethod !== 'CASH') return false;
+        if (item.scope !== 'SEHYEON' && !(item.scope !== 'SHARED' && item.paidBy === '세현가족')) return false;
       } else if (selectedPaymentFilter === 'CARD_SHARED') {
         if (item.type === 'DEPOSIT') return false;
         if (item.paymentMethod !== 'CARD' || item.scope !== 'SHARED') return false;
@@ -369,6 +430,15 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
         icon: <CreditCard className="w-4 h-4" />
       },
       {
+        label: '현우가족 개별 현금',
+        amount: hyeonwooPersonalCashJPY,
+        color: 'bg-sky-500',
+        textColor: 'text-sky-700',
+        bgSoft: 'bg-sky-50',
+        border: 'border-sky-200',
+        icon: <Banknote className="w-4 h-4" />
+      },
+      {
         label: '세현가족 개별 카드',
         amount: sehyeonPersonalCardJPY,
         color: 'bg-rose-500',
@@ -376,6 +446,15 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
         bgSoft: 'bg-rose-50',
         border: 'border-rose-200',
         icon: <CreditCard className="w-4 h-4" />
+      },
+      {
+        label: '세현가족 개별 현금',
+        amount: sehyeonPersonalCashJPY,
+        color: 'bg-amber-500',
+        textColor: 'text-amber-700',
+        bgSoft: 'bg-amber-50',
+        border: 'border-amber-200',
+        icon: <Banknote className="w-4 h-4" />
       }
     ].map((item) => ({
       ...item,
@@ -386,8 +465,25 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
     totalCardSharedJPY,
     hyeonwooPersonalCardJPY,
     sehyeonPersonalCardJPY,
+    hyeonwooPersonalCashJPY,
+    sehyeonPersonalCashJPY,
     grandTotalExpenseJPY
   ]);
+
+  // Function to open registration form and smoothly scroll/focus into view
+  const handleOpenRegistrationForm = (mode: 'expense' | 'deposit' = 'expense') => {
+    setFormMode(mode);
+    setIsFormOpen(true);
+    // Smoothly scroll down to the registration form container
+    setTimeout(() => {
+      if (registrationFormRef.current) {
+        registrationFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      if (mode === 'expense' && expenseTitleInputRef.current) {
+        expenseTitleInputRef.current.focus();
+      }
+    }, 100);
+  };
 
   // ===================== Handlers =====================
   const handleAddExpenseSubmit = (e: React.FormEvent) => {
@@ -402,6 +498,14 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
       paymentMethod = 'CASH';
       scope = 'SHARED';
       paidBy = '공동경비(현금)';
+    } else if (expensePaymentType === 'CASH_HYEONWOO') {
+      paymentMethod = 'CASH';
+      scope = 'HYEONWOO';
+      paidBy = '현우가족';
+    } else if (expensePaymentType === 'CASH_SEHYEON') {
+      paymentMethod = 'CASH';
+      scope = 'SEHYEON';
+      paidBy = '세현가족';
     } else if (expensePaymentType === 'CARD_SHARED') {
       paymentMethod = 'CARD';
       scope = 'SHARED';
@@ -494,7 +598,13 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
     setEditNote(item.note || '');
 
     if (item.paymentMethod === 'CASH') {
-      setEditPaymentType('CASH');
+      if (item.scope === 'HYEONWOO' || (item.scope !== 'SHARED' && item.paidBy === '현우가족')) {
+        setEditPaymentType('CASH_HYEONWOO');
+      } else if (item.scope === 'SEHYEON' || (item.scope !== 'SHARED' && item.paidBy === '세현가족')) {
+        setEditPaymentType('CASH_SEHYEON');
+      } else {
+        setEditPaymentType('CASH');
+      }
     } else if (item.scope === 'SHARED') {
       setEditPaymentType('CARD_SHARED');
       setEditCardPayer((item.paidBy as FamilyName) || '현우가족');
@@ -530,6 +640,14 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
       paymentMethod = 'CASH';
       scope = 'SHARED';
       paidBy = '공동경비(현금)';
+    } else if (editPaymentType === 'CASH_HYEONWOO') {
+      paymentMethod = 'CASH';
+      scope = 'HYEONWOO';
+      paidBy = '현우가족';
+    } else if (editPaymentType === 'CASH_SEHYEON') {
+      paymentMethod = 'CASH';
+      scope = 'SEHYEON';
+      paidBy = '세현가족';
     } else if (editPaymentType === 'CARD_SHARED') {
       paymentMethod = 'CARD';
       scope = 'SHARED';
@@ -768,8 +886,9 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                 </div>
               ) : (
                 <button
-                  onClick={() => setIsFormOpen(!isFormOpen)}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                  onClick={() => handleOpenRegistrationForm('expense')}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 active:scale-95 transition-all shadow-md flex items-center gap-1.5 cursor-pointer ring-2 ring-white/20 hover:ring-indigo-400"
+                  title="가계부 지출/입금 등록 폼으로 화면 이동"
                 >
                   <Plus className="w-4 h-4" />
                   <span>내역 등록</span>
@@ -931,12 +1050,10 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
         </div>
 
         <button
-          onClick={() => {
-            setIsFormOpen(!isFormOpen);
-          }}
+          onClick={() => handleOpenRegistrationForm('expense')}
           className={`sm:hidden p-1.5 rounded-lg border text-xs font-bold flex items-center gap-1 cursor-pointer ${
             isFormOpen
-              ? 'bg-indigo-50 border-indigo-200 text-indigo-600'
+              ? 'bg-indigo-600 text-white border-indigo-600'
               : 'bg-white border-slate-200 text-slate-700'
           }`}
         >
@@ -947,7 +1064,10 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
 
       {/* 3. New Entry Registration Form (Expandable) */}
       {isFormOpen && (
-        <div className="bg-slate-50 border-2 border-indigo-200/80 rounded-2xl p-4 shadow-sm animate-in fade-in duration-200">
+        <div
+          ref={registrationFormRef}
+          className="bg-slate-50 border-2 border-indigo-400 rounded-2xl p-4 shadow-md animate-in fade-in duration-200 ring-2 ring-indigo-200/50"
+        >
           <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-3">
             <div className="flex items-center gap-2">
               <span className="font-bold text-xs text-slate-800">새 내역 등록:</span>
@@ -1034,6 +1154,7 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                     지출 항목명
                   </label>
                   <input
+                    ref={expenseTitleInputRef}
                     type="text"
                     required
                     placeholder="예: 긴시초 토리키조쿠 저녁 생맥주 & 꼬치"
@@ -1076,9 +1197,10 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                 {/* Payment classification */}
                 <div className="sm:col-span-2">
                   <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                    결제 수단 및 사용 분류
+                    결제 수단 및 사용 분류 (공동 vs 가족별 개별 현금/카드)
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                    {/* 1. Shared Cash */}
                     <button
                       type="button"
                       onClick={() => setExpensePaymentType('CASH')}
@@ -1088,9 +1210,11 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                           : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                       }`}
                     >
-                      <div className="font-semibold text-[11px]">💵 현금</div>
-                      <div className="text-[10px] text-slate-500">공동경비 차감</div>
+                      <div className="font-semibold text-[11px]">💵 공동 현금</div>
+                      <div className="text-[10px] text-slate-500">공동경비 풀 차감</div>
                     </button>
+
+                    {/* 2. Shared Card */}
                     <button
                       type="button"
                       onClick={() => setExpensePaymentType('CARD_SHARED')}
@@ -1100,9 +1224,11 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                           : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                       }`}
                     >
-                      <div className="font-semibold text-[11px]">💳 카드 (공동)</div>
+                      <div className="font-semibold text-[11px]">💳 공동 카드</div>
                       <div className="text-[10px] text-slate-500">1/2 분담 정산</div>
                     </button>
+
+                    {/* 3. Hyunwoo Personal Card */}
                     <button
                       type="button"
                       disabled={authRole === 'SEHYUN'}
@@ -1120,13 +1246,41 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                       title={authRole === 'SEHYUN' ? '세현가족 권한은 현우가족 전용 경비를 등록할 수 없습니다' : '현우가족 개별 카드 지출'}
                     >
                       <div className="font-semibold text-[11px] flex items-center justify-center gap-0.5">
-                        <span>💳 현우가족</span>
+                        <span>💳 현우 카드</span>
                         {authRole === 'SEHYUN' && <Lock className="w-2.5 h-2.5 text-slate-400" />}
                       </div>
                       <div className="text-[10px] text-slate-500">
-                        {authRole === 'SEHYUN' ? '등록 불가' : '개별 카드 지출'}
+                        {authRole === 'SEHYUN' ? '등록 불가' : '현우가족 개별카드'}
                       </div>
                     </button>
+
+                    {/* 4. Hyunwoo Personal Cash */}
+                    <button
+                      type="button"
+                      disabled={authRole === 'SEHYUN'}
+                      onClick={() => {
+                        if (authRole === 'SEHYUN') return;
+                        setExpensePaymentType('CASH_HYEONWOO');
+                      }}
+                      className={`p-1.5 rounded-lg border text-center transition-all ${
+                        authRole === 'SEHYUN'
+                          ? 'opacity-40 bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed border-dashed'
+                          : expensePaymentType === 'CASH_HYEONWOO'
+                          ? 'bg-sky-50 border-sky-400 text-sky-800 font-bold cursor-pointer'
+                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer'
+                      }`}
+                      title={authRole === 'SEHYUN' ? '세현가족 권한은 현우가족 전용 경비를 등록할 수 없습니다' : '현우가족 개별 현금 지출 (개인 지갑/엔화)'}
+                    >
+                      <div className="font-semibold text-[11px] flex items-center justify-center gap-0.5">
+                        <span>💴 현우 현금</span>
+                        {authRole === 'SEHYUN' && <Lock className="w-2.5 h-2.5 text-slate-400" />}
+                      </div>
+                      <div className="text-[10px] text-slate-500">
+                        {authRole === 'SEHYUN' ? '등록 불가' : '개별 현금 지출'}
+                      </div>
+                    </button>
+
+                    {/* 5. Sehyun Personal Card */}
                     <button
                       type="button"
                       disabled={authRole === 'HYUNWOO'}
@@ -1144,11 +1298,37 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                       title={authRole === 'HYUNWOO' ? '현우가족 권한은 세현가족 전용 경비를 등록할 수 없습니다' : '세현가족 개별 카드 지출'}
                     >
                       <div className="font-semibold text-[11px] flex items-center justify-center gap-0.5">
-                        <span>💳 세현가족</span>
+                        <span>💳 세현 카드</span>
                         {authRole === 'HYUNWOO' && <Lock className="w-2.5 h-2.5 text-slate-400" />}
                       </div>
                       <div className="text-[10px] text-slate-500">
-                        {authRole === 'HYUNWOO' ? '등록 불가' : '개별 카드 지출'}
+                        {authRole === 'HYUNWOO' ? '등록 불가' : '세현가족 개별카드'}
+                      </div>
+                    </button>
+
+                    {/* 6. Sehyun Personal Cash */}
+                    <button
+                      type="button"
+                      disabled={authRole === 'HYUNWOO'}
+                      onClick={() => {
+                        if (authRole === 'HYUNWOO') return;
+                        setExpensePaymentType('CASH_SEHYEON');
+                      }}
+                      className={`p-1.5 rounded-lg border text-center transition-all ${
+                        authRole === 'HYUNWOO'
+                          ? 'opacity-40 bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed border-dashed'
+                          : expensePaymentType === 'CASH_SEHYEON'
+                          ? 'bg-amber-50 border-amber-400 text-amber-800 font-bold cursor-pointer'
+                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer'
+                      }`}
+                      title={authRole === 'HYUNWOO' ? '현우가족 권한은 세현가족 전용 경비를 등록할 수 없습니다' : '세현가족 개별 현금 지출 (개인 지갑/엔화)'}
+                    >
+                      <div className="font-semibold text-[11px] flex items-center justify-center gap-0.5">
+                        <span>💴 세현 현금</span>
+                        {authRole === 'HYUNWOO' && <Lock className="w-2.5 h-2.5 text-slate-400" />}
+                      </div>
+                      <div className="text-[10px] text-slate-500">
+                        {authRole === 'HYUNWOO' ? '등록 불가' : '개별 현금 지출'}
                       </div>
                     </button>
                   </div>
@@ -1375,7 +1555,7 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                     : 'bg-white text-emerald-800 border border-emerald-200 hover:bg-emerald-50'
                 }`}
               >
-                💵 현금 (공동경비 차감)
+                💵 공동 현금 (공동 풀)
               </button>
               <button
                 onClick={() => setSelectedPaymentFilter('CARD_SHARED')}
@@ -1385,7 +1565,7 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                     : 'bg-white text-indigo-800 border border-indigo-200 hover:bg-indigo-50'
                 }`}
               >
-                💳 카드 (공동 사용 1/2)
+                💳 공동 카드 (1/2 정산)
               </button>
               <button
                 onClick={() => setSelectedPaymentFilter('CARD_HYEONWOO')}
@@ -1395,7 +1575,17 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                     : 'bg-white text-blue-800 border border-blue-200 hover:bg-blue-50'
                 }`}
               >
-                💳 현우가족 개별카드
+                💳 현우 개별카드
+              </button>
+              <button
+                onClick={() => setSelectedPaymentFilter('CASH_HYEONWOO')}
+                className={`px-2 py-0.5 rounded-md font-medium shrink-0 cursor-pointer ${
+                  selectedPaymentFilter === 'CASH_HYEONWOO'
+                    ? 'bg-sky-600 text-white font-bold'
+                    : 'bg-white text-sky-800 border border-sky-200 hover:bg-sky-50'
+                }`}
+              >
+                💴 현우 개별현금
               </button>
               <button
                 onClick={() => setSelectedPaymentFilter('CARD_SEHYEON')}
@@ -1405,7 +1595,17 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                     : 'bg-white text-rose-800 border border-rose-200 hover:bg-rose-50'
                 }`}
               >
-                💳 세현가족 개별카드
+                💳 세현 개별카드
+              </button>
+              <button
+                onClick={() => setSelectedPaymentFilter('CASH_SEHYEON')}
+                className={`px-2 py-0.5 rounded-md font-medium shrink-0 cursor-pointer ${
+                  selectedPaymentFilter === 'CASH_SEHYEON'
+                    ? 'bg-amber-600 text-white font-bold'
+                    : 'bg-white text-amber-800 border border-amber-200 hover:bg-amber-50'
+                }`}
+              >
+                💴 세현 개별현금
               </button>
             </div>
           </div>
@@ -1479,13 +1679,22 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                   <div className="divide-y divide-slate-100">
                     {items.map((item) => {
                       const isDeposit = item.type === 'DEPOSIT';
-                      const isCash =
-                        item.paymentMethod === 'CASH' ||
-                        item.paidBy === '공동경비' ||
-                        item.paidBy === '공동경비(현금)';
+                      const isSharedCash =
+                        item.paymentMethod === 'CASH' &&
+                        (item.scope === 'SHARED' || item.paidBy === '공동경비' || item.paidBy === '공동경비(현금)');
+                      const isHyeonwooCash =
+                        item.paymentMethod === 'CASH' &&
+                        (item.scope === 'HYEONWOO' || (item.scope !== 'SHARED' && item.paidBy === '현우가족'));
+                      const isSehyeonCash =
+                        item.paymentMethod === 'CASH' &&
+                        (item.scope === 'SEHYEON' || (item.scope !== 'SHARED' && item.paidBy === '세현가족'));
                       const isCardShared = item.paymentMethod === 'CARD' && item.scope === 'SHARED';
-                      const isHyeonwooCard = item.scope === 'HYEONWOO' || (!isCardShared && item.paidBy === '현우가족');
-                      const isSehyeonCard = item.scope === 'SEHYEON' || (!isCardShared && item.paidBy === '세현가족');
+                      const isHyeonwooCard =
+                        item.paymentMethod === 'CARD' &&
+                        (item.scope === 'HYEONWOO' || (!isCardShared && item.paidBy === '현우가족'));
+                      const isSehyeonCard =
+                        item.paymentMethod === 'CARD' &&
+                        (item.scope === 'SEHYEON' || (!isCardShared && item.paidBy === '세현가족'));
 
                       return (
                         <div
@@ -1503,29 +1712,39 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                                   <Plus className="w-2.5 h-2.5" />
                                   <span>현금 공동경비 모금(입금)</span>
                                 </span>
-                              ) : isCash ? (
+                              ) : isSharedCash ? (
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
                                   <Banknote className="w-3 h-3" />
-                                  <span>현금 (공동경비 차감)</span>
+                                  <span>💵 공동 현금 (공동경비 차감)</span>
+                                </span>
+                              ) : isHyeonwooCash ? (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-300 flex items-center gap-1">
+                                  <Banknote className="w-3 h-3" />
+                                  <span>💴 현우가족 개별 현금</span>
+                                </span>
+                              ) : isSehyeonCash ? (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1">
+                                  <Banknote className="w-3 h-3" />
+                                  <span>💴 세현가족 개별 현금</span>
                                 </span>
                               ) : isCardShared ? (
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 flex items-center gap-1">
                                   <Users className="w-3 h-3" />
-                                  <span>카드 (공동 사용 1/2)</span>
+                                  <span>💳 카드 (공동 사용 1/2)</span>
                                 </span>
                               ) : isHyeonwooCard ? (
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200 flex items-center gap-1">
                                   <CreditCard className="w-3 h-3" />
-                                  <span>현우가족 개별 카드</span>
+                                  <span>💳 현우가족 개별 카드</span>
                                 </span>
                               ) : isSehyeonCard ? (
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1">
                                   <CreditCard className="w-3 h-3" />
-                                  <span>세현가족 개별 카드</span>
+                                  <span>💳 세현가족 개별 카드</span>
                                 </span>
                               ) : (
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-700">
-                                  카드
+                                  기타 지출
                                 </span>
                               )}
 
@@ -1964,7 +2183,8 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                     {(
                       hyeonwooDepositJPY +
                       hyeonwooCardSharedPaidJPY +
-                      hyeonwooPersonalCardJPY
+                      hyeonwooPersonalCardJPY +
+                      hyeonwooPersonalCashJPY
                     ).toLocaleString()}
                   </span>
                 </div>
@@ -2009,6 +2229,19 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                   </div>
                 </div>
 
+                <div className="p-2.5 bg-sky-50/60 rounded-xl flex items-center justify-between border border-sky-100">
+                  <span className="text-sky-900 font-medium flex items-center gap-1.5">
+                    <Banknote className="w-3.5 h-3.5 text-sky-600" />
+                    현우가족 개별 현금 지출
+                  </span>
+                  <div className="text-right">
+                    <span className="font-mono font-bold text-sky-950">
+                      ¥{hyeonwooPersonalCashJPY.toLocaleString()}
+                    </span>
+                    <span className="text-[10px] text-sky-500 block">(개인 현금 지출)</span>
+                  </div>
+                </div>
+
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
                   <span>공동 카드 1/2 법정 분담금</span>
                   <span className="font-mono font-semibold">
@@ -2047,7 +2280,8 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                     {(
                       sehyeonDepositJPY +
                       sehyeonCardSharedPaidJPY +
-                      sehyeonPersonalCardJPY
+                      sehyeonPersonalCardJPY +
+                      sehyeonPersonalCashJPY
                     ).toLocaleString()}
                   </span>
                 </div>
@@ -2089,6 +2323,19 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                       ¥{sehyeonPersonalCardJPY.toLocaleString()}
                     </span>
                     <span className="text-[10px] text-rose-500 block">(가족 전용 쇼핑)</span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 bg-amber-50/60 rounded-xl flex items-center justify-between border border-amber-100">
+                  <span className="text-amber-900 font-medium flex items-center gap-1.5">
+                    <Banknote className="w-3.5 h-3.5 text-amber-600" />
+                    세현가족 개별 현금 지출
+                  </span>
+                  <div className="text-right">
+                    <span className="font-mono font-bold text-amber-950">
+                      ¥{sehyeonPersonalCashJPY.toLocaleString()}
+                    </span>
+                    <span className="text-[10px] text-amber-500 block">(개인 현금 지출)</span>
                   </div>
                 </div>
 
@@ -2273,7 +2520,8 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
                       결제 수단 및 사용 분류
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                      {/* 1. Shared Cash */}
                       <button
                         type="button"
                         onClick={() => setEditPaymentType('CASH')}
@@ -2283,9 +2531,11 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                             : 'bg-white border-slate-200 text-slate-600'
                         }`}
                       >
-                        <div className="font-semibold text-[11px]">💵 현금</div>
-                        <div className="text-[10px] text-slate-500">공동경비 차감</div>
+                        <div className="font-semibold text-[11px]">💵 공동 현금</div>
+                        <div className="text-[10px] text-slate-500">공동경비 풀 차감</div>
                       </button>
+
+                      {/* 2. Shared Card */}
                       <button
                         type="button"
                         onClick={() => setEditPaymentType('CARD_SHARED')}
@@ -2295,9 +2545,11 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                             : 'bg-white border-slate-200 text-slate-600'
                         }`}
                       >
-                        <div className="font-semibold text-[11px]">💳 카드(공동)</div>
+                        <div className="font-semibold text-[11px]">💳 공동 카드</div>
                         <div className="text-[10px] text-slate-500">1/2 분담 정산</div>
                       </button>
+
+                      {/* 3. Hyunwoo Card */}
                       <button
                         type="button"
                         disabled={authRole === 'SEHYUN'}
@@ -2314,11 +2566,36 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                         }`}
                         title={authRole === 'SEHYUN' ? '세현가족 권한으로는 변경 불가' : '현우가족 개별 카드'}
                       >
-                        <div className="font-semibold text-[11px]">💳 현우가족</div>
+                        <div className="font-semibold text-[11px]">💳 현우 카드</div>
                         <div className="text-[10px] text-slate-500">
                           {authRole === 'SEHYUN' ? '선택 불가' : '개별 카드'}
                         </div>
                       </button>
+
+                      {/* 4. Hyunwoo Cash */}
+                      <button
+                        type="button"
+                        disabled={authRole === 'SEHYUN'}
+                        onClick={() => {
+                          if (authRole === 'SEHYUN') return;
+                          setEditPaymentType('CASH_HYEONWOO');
+                        }}
+                        className={`p-1.5 rounded-lg border text-center transition-all ${
+                          authRole === 'SEHYUN'
+                            ? 'opacity-40 bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed border-dashed'
+                            : editPaymentType === 'CASH_HYEONWOO'
+                            ? 'bg-sky-50 border-sky-400 text-sky-800 font-bold cursor-pointer'
+                            : 'bg-white border-slate-200 text-slate-600 cursor-pointer'
+                        }`}
+                        title={authRole === 'SEHYUN' ? '세현가족 권한으로는 변경 불가' : '현우가족 개별 현금'}
+                      >
+                        <div className="font-semibold text-[11px]">💴 현우 현금</div>
+                        <div className="text-[10px] text-slate-500">
+                          {authRole === 'SEHYUN' ? '선택 불가' : '개별 현금'}
+                        </div>
+                      </button>
+
+                      {/* 5. Sehyun Card */}
                       <button
                         type="button"
                         disabled={authRole === 'HYUNWOO'}
@@ -2335,9 +2612,32 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                         }`}
                         title={authRole === 'HYUNWOO' ? '현우가족 권한으로는 변경 불가' : '세현가족 개별 카드'}
                       >
-                        <div className="font-semibold text-[11px]">💳 세현가족</div>
+                        <div className="font-semibold text-[11px]">💳 세현 카드</div>
                         <div className="text-[10px] text-slate-500">
                           {authRole === 'HYUNWOO' ? '선택 불가' : '개별 카드'}
+                        </div>
+                      </button>
+
+                      {/* 6. Sehyun Cash */}
+                      <button
+                        type="button"
+                        disabled={authRole === 'HYUNWOO'}
+                        onClick={() => {
+                          if (authRole === 'HYUNWOO') return;
+                          setEditPaymentType('CASH_SEHYEON');
+                        }}
+                        className={`p-1.5 rounded-lg border text-center transition-all ${
+                          authRole === 'HYUNWOO'
+                            ? 'opacity-40 bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed border-dashed'
+                            : editPaymentType === 'CASH_SEHYEON'
+                            ? 'bg-amber-50 border-amber-400 text-amber-800 font-bold cursor-pointer'
+                            : 'bg-white border-slate-200 text-slate-600 cursor-pointer'
+                        }`}
+                        title={authRole === 'HYUNWOO' ? '현우가족 권한으로는 변경 불가' : '세현가족 개별 현금'}
+                      >
+                        <div className="font-semibold text-[11px]">💴 세현 현금</div>
+                        <div className="text-[10px] text-slate-500">
+                          {authRole === 'HYUNWOO' ? '선택 불가' : '개별 현금'}
                         </div>
                       </button>
                     </div>

@@ -100,16 +100,22 @@ export function canManageItem(role: BudgetAuthRole, item: BudgetItem): boolean {
  */
 export function canRegisterScope(
   role: BudgetAuthRole,
-  paymentType: 'CASH' | 'CARD_SHARED' | 'CARD_HYEONWOO' | 'CARD_SEHYEON'
+  paymentType:
+    | 'CASH'
+    | 'CASH_HYEONWOO'
+    | 'CASH_SEHYEON'
+    | 'CARD_SHARED'
+    | 'CARD_HYEONWOO'
+    | 'CARD_SEHYEON'
 ): boolean {
   if (!role || role === 'READ_ONLY') return false;
 
   if (role === 'HYUNWOO') {
-    return paymentType !== 'CARD_SEHYEON';
+    return paymentType !== 'CARD_SEHYEON' && paymentType !== 'CASH_SEHYEON';
   }
 
   if (role === 'SEHYUN') {
-    return paymentType !== 'CARD_HYEONWOO';
+    return paymentType !== 'CARD_HYEONWOO' && paymentType !== 'CASH_HYEONWOO';
   }
 
   return false;

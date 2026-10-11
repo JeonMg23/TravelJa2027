@@ -148,14 +148,32 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
   const hyeonwooDepositJPY = hyeonwooDeposits.reduce((sum, item) => sum + item.amountJPY, 0);
   const sehyeonDepositJPY = sehyeonDeposits.reduce((sum, item) => sum + item.amountJPY, 0);
 
-  // All Cash Expenses (Spent from the shared cash fund pool)
+  // Shared Cash Expenses (Spent from the shared cash fund pool)
   const cashExpenses = budget.filter(
     (b) =>
       b.type !== 'DEPOSIT' &&
-      (b.paymentMethod === 'CASH' || b.paidBy === '공동경비' || b.paidBy === '공동경비(현금)')
+      b.paymentMethod === 'CASH' &&
+      (b.scope === 'SHARED' || b.paidBy === '공동경비' || b.paidBy === '공동경비(현금)')
   );
   const totalCashSpentJPY = cashExpenses.reduce((sum, item) => sum + item.amountJPY, 0);
   const cashRemainingJPY = totalDepositsJPY - totalCashSpentJPY;
+
+  // Individual Personal Cash Expenses
+  const hyeonwooPersonalCashExpenses = budget.filter(
+    (b) =>
+      b.type !== 'DEPOSIT' &&
+      b.paymentMethod === 'CASH' &&
+      (b.scope === 'HYEONWOO' || (b.scope !== 'SHARED' && b.paidBy === '현우가족'))
+  );
+  const sehyeonPersonalCashExpenses = budget.filter(
+    (b) =>
+      b.type !== 'DEPOSIT' &&
+      b.paymentMethod === 'CASH' &&
+      (b.scope === 'SEHYEON' || (b.scope !== 'SHARED' && b.paidBy === '세현가족'))
+  );
+
+  const hyeonwooPersonalCashJPY = hyeonwooPersonalCashExpenses.reduce((sum, item) => sum + item.amountJPY, 0);
+  const sehyeonPersonalCashJPY = sehyeonPersonalCashExpenses.reduce((sum, item) => sum + item.amountJPY, 0);
 
   // 2. Card Expenses
   const cardExpenses = budget.filter(
@@ -189,10 +207,15 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
 
   // Grand Total for entire trip
   const grandTotalExpenseJPY =
-    totalCashSpentJPY + totalCardSharedJPY + hyeonwooPersonalCardJPY + sehyeonPersonalCardJPY;
+    totalCashSpentJPY +
+    totalCardSharedJPY +
+    hyeonwooPersonalCardJPY +
+    sehyeonPersonalCardJPY +
+    hyeonwooPersonalCashJPY +
+    sehyeonPersonalCashJPY;
 
   // Family Specific Calculations
-  // Cash burden: 50% of cash spent
+  // Cash burden: 50% of shared cash spent
   const familyCashBurdenJPY = Math.round(totalCashSpentJPY / 2);
   // Shared card burden: 50% of shared card
   const familyCardSharedBurdenJPY = Math.round(totalCardSharedJPY / 2);
@@ -206,10 +229,12 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
   // Cash deposit difference (if one family deposited more cash into pool)
   const cashDepositDiff = hyeonwooDepositJPY - sehyeonDepositJPY;
 
-  // Hyunwoo Family total trip expenditure
-  const hyeonwooTrueTotalExpenseJPY = familyCashBurdenJPY + familyCardSharedBurdenJPY + hyeonwooPersonalCardJPY;
-  // Sehyun Family total trip expenditure
-  const sehyeonTrueTotalExpenseJPY = familyCashBurdenJPY + familyCardSharedBurdenJPY + sehyeonPersonalCardJPY;
+  // Hyunwoo Family total trip expenditure (공동현금부담 + 공동카드부담 + 개인카드 + 개인현금)
+  const hyeonwooTrueTotalExpenseJPY =
+    familyCashBurdenJPY + familyCardSharedBurdenJPY + hyeonwooPersonalCardJPY + hyeonwooPersonalCashJPY;
+  // Sehyun Family total trip expenditure (공동현금부담 + 공동카드부담 + 개인카드 + 개인현금)
+  const sehyeonTrueTotalExpenseJPY =
+    familyCashBurdenJPY + familyCardSharedBurdenJPY + sehyeonPersonalCardJPY + sehyeonPersonalCashJPY;
 
   // Print function
   const handlePrint = () => {
@@ -237,8 +262,12 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
         `  - 세현가족 선결제: ¥${sehyeonCardSharedPaidJPY.toLocaleString()}`,
         '----------------------------------------',
         `■ 💳 가족별 개별 카드 지출`,
-        `  - 현우가족 개별: ¥${hyeonwooPersonalCardJPY.toLocaleString()}`,
-        `  - 세현가족 개별: ¥${sehyeonPersonalCardJPY.toLocaleString()}`,
+        `  - 현우가족 개별카드: ¥${hyeonwooPersonalCardJPY.toLocaleString()}`,
+        `  - 세현가족 개별카드: ¥${sehyeonPersonalCardJPY.toLocaleString()}`,
+        '----------------------------------------',
+        `■ 💴 가족별 개별 현금 지출`,
+        `  - 현우가족 개별현금: ¥${hyeonwooPersonalCashJPY.toLocaleString()}`,
+        `  - 세현가족 개별현금: ¥${sehyeonPersonalCashJPY.toLocaleString()}`,
         '----------------------------------------',
         `■ ⚖️ 최종 1/2 정산 결과`,
         hyeonwooCardDiff > 0
@@ -265,6 +294,8 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
         `  - 공동카드 50% 분담 기준액: ¥${familyCardSharedBurdenJPY.toLocaleString()}`,
         `  - 현우가족 개별카드 지출: ¥${hyeonwooPersonalCardJPY.toLocaleString()}`,
         '----------------------------------------',
+        `■ 💴 현우가족 개별 현금 지출: ¥${hyeonwooPersonalCashJPY.toLocaleString()}`,
+        '----------------------------------------',
         `■ ⚖️ 세현가족과의 최종 정산`,
         hyeonwooCardDiff > 0
           ? `  👉 세현가족으로부터 받을 금액: +¥${Math.abs(hyeonwooCardDiff).toLocaleString()} (약 ₩${toKRW(Math.abs(hyeonwooCardDiff)).toLocaleString()})`
@@ -289,6 +320,8 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
         `  - 세현가족 선결제 공동카드: ¥${sehyeonCardSharedPaidJPY.toLocaleString()}`,
         `  - 공동카드 50% 분담 기준액: ¥${familyCardSharedBurdenJPY.toLocaleString()}`,
         `  - 세현가족 개별카드 지출: ¥${sehyeonPersonalCardJPY.toLocaleString()}`,
+        '----------------------------------------',
+        `■ 💴 세현가족 개별 현금 지출: ¥${sehyeonPersonalCashJPY.toLocaleString()}`,
         '----------------------------------------',
         `■ ⚖️ 현우가족과의 최종 정산`,
         sehyeonCardDiff > 0
@@ -714,6 +747,18 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
                       </span>
                     </div>
 
+                    <div className="p-2.5 rounded-lg bg-sky-50/70 border border-sky-200 flex items-center justify-between text-xs font-sans">
+                      <div>
+                        <div className="font-bold text-sky-950">현우가족 개별 현금 지출</div>
+                        <span className="text-[10px] text-sky-600">
+                          {hyeonwooPersonalCashExpenses.length}건 (현우 개인 지갑 지출)
+                        </span>
+                      </div>
+                      <span className="font-bold font-mono text-sky-700">
+                        ¥{hyeonwooPersonalCashJPY.toLocaleString()}
+                      </span>
+                    </div>
+
                     <div className="p-2.5 rounded-lg bg-indigo-50/70 border border-indigo-200 flex items-center justify-between text-xs font-sans">
                       <div>
                         <div className="font-bold text-indigo-950">공동카드 50% 분담 기준액</div>
@@ -760,7 +805,7 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
                       </span>
                     </div>
                     <div className="text-[10px] text-slate-400 pl-1">
-                      (현금 공동 50% ¥{familyCashBurdenJPY.toLocaleString()} + 공동카드 50% ¥{familyCardSharedBurdenJPY.toLocaleString()} + 개별카드 ¥{hyeonwooPersonalCardJPY.toLocaleString()})
+                      (현금 공동 50% ¥{familyCashBurdenJPY.toLocaleString()} + 공동카드 50% ¥{familyCardSharedBurdenJPY.toLocaleString()} + 개별카드 ¥{hyeonwooPersonalCardJPY.toLocaleString()} + 개별현금 ¥{hyeonwooPersonalCashJPY.toLocaleString()})
                     </div>
                     <div className="flex items-center justify-between text-[11px] text-slate-300 pt-1.5 border-t border-slate-800">
                       <span>원화 환산 금액 (100엔당 920원)</span>
@@ -794,9 +839,17 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
                     {hyeonwooPersonalCardExpenses.map((c) => (
                       <div key={c.id} className="flex justify-between items-center text-[11px] p-1.5 rounded bg-blue-50/50">
                         <span className="text-slate-700 truncate max-w-[240px]">
-                          [현우개별] {c.title}
+                          [현우카드] {c.title}
                         </span>
                         <span className="font-bold text-blue-700 font-mono">¥{c.amountJPY.toLocaleString()}</span>
+                      </div>
+                    ))}
+                    {hyeonwooPersonalCashExpenses.map((c) => (
+                      <div key={c.id} className="flex justify-between items-center text-[11px] p-1.5 rounded bg-sky-50/50">
+                        <span className="text-slate-700 truncate max-w-[240px]">
+                          [현우현금] {c.title}
+                        </span>
+                        <span className="font-bold text-sky-700 font-mono">¥{c.amountJPY.toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
@@ -874,6 +927,18 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
                       </span>
                     </div>
 
+                    <div className="p-2.5 rounded-lg bg-amber-50/70 border border-amber-200 flex items-center justify-between text-xs font-sans">
+                      <div>
+                        <div className="font-bold text-amber-950">세현가족 개별 현금 지출</div>
+                        <span className="text-[10px] text-amber-600">
+                          {sehyeonPersonalCashExpenses.length}건 (세현 개인 지갑 지출)
+                        </span>
+                      </div>
+                      <span className="font-bold font-mono text-amber-700">
+                        ¥{sehyeonPersonalCashJPY.toLocaleString()}
+                      </span>
+                    </div>
+
                     <div className="p-2.5 rounded-lg bg-indigo-50/70 border border-indigo-200 flex items-center justify-between text-xs font-sans">
                       <div>
                         <div className="font-bold text-indigo-950">공동카드 50% 분담 기준액</div>
@@ -920,7 +985,7 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
                       </span>
                     </div>
                     <div className="text-[10px] text-slate-400 pl-1">
-                      (현금 공동 50% ¥{familyCashBurdenJPY.toLocaleString()} + 공동카드 50% ¥{familyCardSharedBurdenJPY.toLocaleString()} + 개별카드 ¥{sehyeonPersonalCardJPY.toLocaleString()})
+                      (현금 공동 50% ¥{familyCashBurdenJPY.toLocaleString()} + 공동카드 50% ¥{familyCardSharedBurdenJPY.toLocaleString()} + 개별카드 ¥{sehyeonPersonalCardJPY.toLocaleString()} + 개별현금 ¥{sehyeonPersonalCashJPY.toLocaleString()})
                     </div>
                     <div className="flex items-center justify-between text-[11px] text-slate-300 pt-1.5 border-t border-slate-800">
                       <span>원화 환산 금액 (100엔당 920원)</span>
@@ -954,9 +1019,17 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
                     {sehyeonPersonalCardExpenses.map((c) => (
                       <div key={c.id} className="flex justify-between items-center text-[11px] p-1.5 rounded bg-rose-50/50">
                         <span className="text-slate-700 truncate max-w-[240px]">
-                          [세현개별] {c.title}
+                          [세현카드] {c.title}
                         </span>
                         <span className="font-bold text-rose-700 font-mono">¥{c.amountJPY.toLocaleString()}</span>
+                      </div>
+                    ))}
+                    {sehyeonPersonalCashExpenses.map((c) => (
+                      <div key={c.id} className="flex justify-between items-center text-[11px] p-1.5 rounded bg-amber-50/50">
+                        <span className="text-slate-700 truncate max-w-[240px]">
+                          [세현현금] {c.title}
+                        </span>
+                        <span className="font-bold text-amber-700 font-mono">¥{c.amountJPY.toLocaleString()}</span>
                       </div>
                     ))}
                   </div>

@@ -1512,6 +1512,34 @@ export const INITIAL_BUDGET: BudgetItem[] = [
     paidBy: '공동경비(현금)',
     location: '긴시초',
     note: '공동경비 현금에서 차감'
+  },
+  {
+    id: 'b-d2-cash-h',
+    type: 'EXPENSE',
+    day: 2,
+    date: '1월 14일',
+    title: '디즈니씨 길거리 간식 츄러스 & 캐릭터 머리띠 (현우가족 현금)',
+    category: '식비',
+    amountJPY: 3200,
+    paymentMethod: 'CASH',
+    scope: 'HYEONWOO',
+    paidBy: '현우가족',
+    location: '디즈니씨',
+    note: '현우가족 개인 현금 지갑에서 지출 (공동경비 차감 제외)'
+  },
+  {
+    id: 'b-d3-cash-s',
+    type: 'EXPENSE',
+    day: 3,
+    date: '1월 15일',
+    title: '해리포터 스튜디오 버터맥주 & 기념 엽서 (세현가족 현금)',
+    category: '카페/디저트',
+    amountJPY: 2800,
+    paymentMethod: 'CASH',
+    scope: 'SEHYEON',
+    paidBy: '세현가족',
+    location: '해리포터스튜디오',
+    note: '세현가족 개인 현금 지갑에서 지출 (공동경비 차감 제외)'
   }
 ];
 
