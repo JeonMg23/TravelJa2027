@@ -96,8 +96,20 @@ export default function App() {
   const [selectedDayNumber, setSelectedDayNumber] = useState<number | null>(1);
   const [selectedSpot, setSelectedSpot] = useState<TravelSpot | null>(null);
 
-  // Landing / First Page view state
-  const [showLandingPage, setShowLandingPage] = useState<boolean>(true);
+  // Landing / First Page view state (remember in sessionStorage to prevent accidental reset on refresh)
+  const [showLandingPage, setShowLandingPage] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const entered = sessionStorage.getItem('entered_trip_app');
+        if (entered === 'true') {
+          return false;
+        }
+      } catch (e) {
+        // Ignore session storage errors
+      }
+    }
+    return true;
+  });
   // Flight Takeoff & Landing Cinematic Transition state
   const [isFlying, setIsFlying] = useState<boolean>(false);
   const [targetFlightDay, setTargetFlightDay] = useState<number>(1);
@@ -548,6 +560,9 @@ export default function App() {
   const handleFlightComplete = () => {
     setIsFlying(false);
     setShowLandingPage(false);
+    try {
+      sessionStorage.setItem('entered_trip_app', 'true');
+    } catch (e) {}
     if (targetFlightView === 'map') {
       setActiveHeaderTab('map');
       setMobileView('map');
@@ -575,6 +590,9 @@ export default function App() {
         onOpenMap={handleTriggerFlightAndOpenMap}
         onOpenChecklist={() => {
           setShowLandingPage(false);
+          try {
+            sessionStorage.setItem('entered_trip_app', 'true');
+          } catch (e) {}
           setBudgetModalView('checklist');
           setIsBudgetChecklistOpen(true);
         }}
@@ -590,7 +608,12 @@ export default function App() {
         onSelectTab={handleHeaderTab}
         onOpenShare={() => setIsShareOpen(true)}
         onOpenCollab={() => setIsCollabOpen(true)}
-        onGoHome={() => setShowLandingPage(true)}
+        onGoHome={() => {
+          try {
+            sessionStorage.removeItem('entered_trip_app');
+          } catch (e) {}
+          setShowLandingPage(true);
+        }}
         companions={companions}
         unreadCommentCount={comments.length}
       />
