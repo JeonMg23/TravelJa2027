@@ -530,7 +530,7 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Cash Spent */}
+                    {/* Cash Spent */}
                   <div className="space-y-1 pl-1 pt-2">
                     <div className="text-[10px] font-bold text-slate-400 font-sans">
                       [현금 지출 (공동경비 풀 자동 차감)]
@@ -538,7 +538,7 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
                     {cashExpenses.map((e) => (
                       <div key={e.id} className="flex justify-between items-center text-[11px] py-0.5">
                         <span className="text-slate-600 truncate max-w-[260px]">
-                          - {e.day === 0 ? '[사전]' : `[D${e.day}]`} {e.title}
+                          - {e.day === 0 ? '[사전]' : `[D${e.day}]`} {e.title} {e.time ? `(${e.time})` : ''}
                         </span>
                         <span className="text-slate-800">-¥{e.amountJPY.toLocaleString()}</span>
                       </div>
@@ -595,7 +595,7 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
                               </span>
                             </div>
                             <span className="text-[10px] text-slate-400 block mt-0.5">
-                              {c.date || (c.day === 0 ? '사전준비' : `Day ${c.day}`)} · {c.location || '도쿄'} · 결제: {c.paidBy}
+                              {c.date || (c.day === 0 ? '사전준비' : `Day ${c.day}`)} {c.time ? `(${c.time})` : ''} · {c.location || '도쿄'} · 결제: {c.paidBy} {c.cardCompany ? `[${c.cardCompany}]` : ''}
                             </span>
                           </div>
                           <div className="text-right">

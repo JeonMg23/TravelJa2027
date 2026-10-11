@@ -216,13 +216,27 @@ export default function App() {
     return unsubscribe;
   }, []);
 
-  // Fetch initial budget from backend DB to guarantee cross-device & cross-family data sharing
+  // Fetch initial budget from backend DB & sync periodically to catch real-time webhook items
   useEffect(() => {
+    const refreshBudget = () => {
+      fetchBudgetFromDB().then((dbItems) => {
+        if (dbItems && dbItems.length > 0) {
+          setBudget((prev) => {
+            // Update if length differs or newest item differs
+            if (prev.length !== dbItems.length || JSON.stringify(prev[prev.length - 1]) !== JSON.stringify(dbItems[dbItems.length - 1])) {
+              return dbItems;
+            }
+            return prev;
+          });
+        }
+      });
+    };
+
+    // Initial load
     fetchBudgetFromDB().then((dbItems) => {
       if (dbItems && dbItems.length > 0) {
         setBudget(dbItems);
       } else {
-        // If DB has no items yet, initialize backend DB with current budget
         fetch('/api/budget/sync', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -230,6 +244,20 @@ export default function App() {
         }).catch(() => {});
       }
     });
+
+    // Auto poll every 10 seconds to catch webhook items registered by MacroDroid/Samsung Card
+    const timer = setInterval(refreshBudget, 10000);
+    window.addEventListener('focus', refreshBudget);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        refreshBudget();
+      }
+    });
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', refreshBudget);
+    };
   }, []);
 
   // Save changes to storage whenever state updates

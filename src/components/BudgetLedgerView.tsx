@@ -59,6 +59,19 @@ import {
   canManageItem,
   canRegisterScope
 } from '../services/budgetAuth';
+import { SamsungCardSyncModal } from './SamsungCardSyncModal';
+
+function getCurrentTimeString(): string {
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
+function getDefaultDateString(day: number): string {
+  if (day === 0) return '사전준비';
+  return `1월 ${12 + day}일`;
+}
 
 interface BudgetLedgerViewProps {
   budget: BudgetItem[];
@@ -101,6 +114,9 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
     return authRole ? getRoleInfo(authRole) : null;
   }, [authRole]);
 
+  // Samsung Card KakaoTalk Alimtalk modal state (방법 2 구현)
+  const [isSamsungCardModalOpen, setIsSamsungCardModalOpen] = useState(false);
+
   // Ref for registration form container and input to enable scroll & focus
   const registrationFormRef = useRef<HTMLDivElement>(null);
   const expenseTitleInputRef = useRef<HTMLInputElement>(null);
@@ -110,6 +126,8 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
   const [editTitle, setEditTitle] = useState('');
   const [editAmount, setEditAmount] = useState('');
   const [editDay, setEditDay] = useState(1);
+  const [editDate, setEditDate] = useState('1월 13일');
+  const [editTime, setEditTime] = useState(getCurrentTimeString());
   const [editLocation, setEditLocation] = useState('');
   const [editCategory, setEditCategory] = useState<BudgetCategory>('식비');
   const [editPaymentType, setEditPaymentType] = useState<PaymentTypeOption>('CASH');
@@ -136,10 +154,12 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
   const [formMode, setFormMode] = useState<'expense' | 'deposit'>('expense');
   const [isFormOpen, setIsFormOpen] = useState(false);
 
-  // Expense form fields
+  // Expense form fields (날짜 및 시간 자동 등록 지원)
   const [expenseTitle, setExpenseTitle] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
   const [expenseDay, setExpenseDay] = useState(1);
+  const [expenseDate, setExpenseDate] = useState('1월 13일');
+  const [expenseTime, setExpenseTime] = useState(getCurrentTimeString());
   const [expenseLocation, setExpenseLocation] = useState('');
   const [expenseCategory, setExpenseCategory] = useState<BudgetCategory>('식비');
   const [expensePaymentType, setExpensePaymentType] = useState<PaymentTypeOption>('CASH');
@@ -150,6 +170,8 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
   const [depositFamily, setDepositFamily] = useState<FamilyName>('현우가족');
   const [depositAmount, setDepositAmount] = useState('');
   const [depositDay, setDepositDay] = useState(0);
+  const [depositDate, setDepositDate] = useState('사전준비');
+  const [depositTime, setDepositTime] = useState(getCurrentTimeString());
   const [depositNote, setDepositNote] = useState('1차 현금 공동경비 갹출');
 
   // Exchange rate: 100 JPY ~ 920 KRW (1 JPY = 9.2 KRW)
@@ -474,6 +496,11 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
   const handleOpenRegistrationForm = (mode: 'expense' | 'deposit' = 'expense') => {
     setFormMode(mode);
     setIsFormOpen(true);
+    const nowTime = getCurrentTimeString();
+    setExpenseTime(nowTime);
+    setDepositTime(nowTime);
+    setExpenseDate(getDefaultDateString(expenseDay));
+    setDepositDate(getDefaultDateString(depositDay));
     // Smoothly scroll down to the registration form container
     setTimeout(() => {
       if (registrationFormRef.current) {
@@ -526,7 +553,8 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
       category: expenseCategory,
       amountJPY: parseInt(expenseAmount, 10) || 0,
       day: expenseDay,
-      date: expenseDay === 0 ? '사전준비' : `1월 ${12 + expenseDay}일`,
+      date: expenseDate || getDefaultDateString(expenseDay),
+      time: expenseTime || getCurrentTimeString(),
       paymentMethod,
       scope,
       paidBy,
@@ -551,7 +579,8 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
       category: '기타',
       amountJPY: parseInt(depositAmount, 10) || 0,
       day: depositDay,
-      date: depositDay === 0 ? '사전준비' : `1월 ${12 + depositDay}일`,
+      date: depositDate || getDefaultDateString(depositDay),
+      time: depositTime || getCurrentTimeString(),
       paymentMethod: 'CASH',
       scope: 'SHARED',
       paidBy: depositFamily,
@@ -593,6 +622,8 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
     setEditTitle(item.title);
     setEditAmount(item.amountJPY.toString());
     setEditDay(item.day);
+    setEditDate(item.date || getDefaultDateString(item.day));
+    setEditTime(item.time || getCurrentTimeString());
     setEditLocation(item.location || '');
     setEditCategory(item.category || '식비');
     setEditNote(item.note || '');
@@ -629,7 +660,8 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
       onUpdateBudgetItem(editingItem.id, {
         amountJPY: parseInt(editAmount, 10) || 0,
         day: editDay,
-        date: editDay === 0 ? '사전준비' : `1월 ${12 + editDay}일`,
+        date: editDate || getDefaultDateString(editDay),
+        time: editTime || getCurrentTimeString(),
         note: editNote.trim() || undefined
       });
       setEditingItem(null);
@@ -667,7 +699,8 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
       category: editCategory,
       amountJPY: parseInt(editAmount, 10) || 0,
       day: editDay,
-      date: editDay === 0 ? '사전준비' : `1월 ${12 + editDay}일`,
+      date: editDate || getDefaultDateString(editDay),
+      time: editTime || getCurrentTimeString(),
       paymentMethod,
       scope,
       paidBy,
@@ -885,14 +918,27 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                   <span className="text-amber-200">조회 전용 (등록 제한)</span>
                 </div>
               ) : (
-                <button
-                  onClick={() => handleOpenRegistrationForm('expense')}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 active:scale-95 transition-all shadow-md flex items-center gap-1.5 cursor-pointer ring-2 ring-white/20 hover:ring-indigo-400"
-                  title="가계부 지출/입금 등록 폼으로 화면 이동"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>내역 등록</span>
-                </button>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => setIsSamsungCardModalOpen(true)}
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-95 transition-all shadow-md flex items-center gap-1.5 cursor-pointer ring-2 ring-blue-400/30"
+                    title="삼성카드 카카오톡 알림톡 결제내역 자동 연동 (현우가족 개별카드)"
+                  >
+                    <CreditCard className="w-3.5 h-3.5 text-blue-200" />
+                    <span>📲 삼성카드 알림톡 연동</span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-400 text-slate-900 font-black">
+                      방법 2
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => handleOpenRegistrationForm('expense')}
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 active:scale-95 transition-all shadow-md flex items-center gap-1.5 cursor-pointer ring-2 ring-white/20 hover:ring-indigo-400"
+                    title="가계부 지출/입금 등록 폼으로 화면 이동"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>내역 등록</span>
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -1094,6 +1140,15 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                 >
                   💵 현금 공동경비 모금(입금)
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setIsSamsungCardModalOpen(true)}
+                  className="px-2.5 py-1 rounded-md font-bold text-blue-700 hover:bg-blue-50 transition-all cursor-pointer flex items-center gap-1 border border-blue-200"
+                  title="삼성카드 카카오톡 알림톡 결제내역 자동 추출 및 입력"
+                >
+                  <CreditCard className="w-3.5 h-3.5 text-blue-600" />
+                  <span>📲 삼성카드 알림톡 자동입력</span>
+                </button>
               </div>
             </div>
             <button
@@ -1114,7 +1169,11 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                   </label>
                   <select
                     value={expenseDay}
-                    onChange={(e) => setExpenseDay(parseInt(e.target.value, 10))}
+                    onChange={(e) => {
+                      const d = parseInt(e.target.value, 10);
+                      setExpenseDay(d);
+                      setExpenseDate(getDefaultDateString(d));
+                    }}
                     className="w-full px-2.5 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 font-medium"
                   >
                     <option value={0}>사전 준비/예약 (출발 전)</option>
@@ -1192,6 +1251,38 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                     onChange={(e) => setExpenseLocation(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900"
                   />
+                </div>
+
+                {/* Date & Time (날짜와 시간 자동 기록) */}
+                <div className="sm:col-span-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>결제 날짜 및 시간 (현금/카드 등록 시 자동 저장)</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setExpenseTime(getCurrentTimeString())}
+                      className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold underline cursor-pointer"
+                    >
+                      현재 시각({getCurrentTimeString()})
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={expenseDate}
+                      onChange={(e) => setExpenseDate(e.target.value)}
+                      placeholder="예: 1월 13일"
+                      className="w-full px-2.5 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 text-xs font-medium"
+                    />
+                    <input
+                      type="time"
+                      value={expenseTime}
+                      onChange={(e) => setExpenseTime(e.target.value)}
+                      className="w-full px-2.5 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 font-mono font-bold text-xs"
+                    />
+                  </div>
                 </div>
 
                 {/* Payment classification */}
@@ -1453,6 +1544,38 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                     <option value={5}>5일차</option>
                     <option value={6}>6일차</option>
                   </select>
+                </div>
+
+                {/* Date & Time */}
+                <div className="sm:col-span-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>모금/입금 날짜 및 시간 (자동 기록)</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setDepositTime(getCurrentTimeString())}
+                      className="text-[10px] text-emerald-700 hover:text-emerald-900 font-bold underline cursor-pointer"
+                    >
+                      현재 시각({getCurrentTimeString()})
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={depositDate}
+                      onChange={(e) => setDepositDate(e.target.value)}
+                      placeholder="예: 사전준비"
+                      className="w-full px-2.5 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 text-xs font-medium"
+                    />
+                    <input
+                      type="time"
+                      value={depositTime}
+                      onChange={(e) => setDepositTime(e.target.value)}
+                      className="w-full px-2.5 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 font-mono font-bold text-xs"
+                    />
+                  </div>
                 </div>
 
                 {/* Note */}
@@ -1772,8 +1895,27 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                             {/* Item title */}
                             <div className="font-bold text-slate-900 truncate">{item.title}</div>
 
-                            {/* Note and Payer details */}
-                            <div className="text-[10px] text-slate-500 mt-0.5 flex flex-wrap items-center gap-2">
+                            {/* Date, Time, Note and Payer details */}
+                            <div className="text-[10px] text-slate-500 mt-1 flex flex-wrap items-center gap-1.5">
+                              {/* Date & Time pill */}
+                              <span className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                                <Calendar className="w-2.5 h-2.5 text-indigo-500" />
+                                <span>{item.date || (item.day === 0 ? '사전준비' : `1월 ${12 + item.day}일`)}</span>
+                                {item.time && (
+                                  <>
+                                    <span className="text-slate-300">·</span>
+                                    <Clock className="w-2.5 h-2.5 text-indigo-500" />
+                                    <span className="font-bold text-indigo-700">{item.time}</span>
+                                  </>
+                                )}
+                              </span>
+
+                              {item.cardCompany && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-50 text-blue-700 font-bold border border-blue-200">
+                                  {item.cardCompany}
+                                </span>
+                              )}
+
                               <span>
                                 {isDeposit ? '납부자' : '결제/부담'}:{' '}
                                 <strong className="text-slate-700">{item.paidBy}</strong>
@@ -2421,6 +2563,31 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                       <option value={6}>6일차 (1/18)</option>
                     </select>
                   </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        모금/입금 날짜
+                      </label>
+                      <input
+                        type="text"
+                        value={editDate}
+                        onChange={(e) => setEditDate(e.target.value)}
+                        placeholder="예: 사전준비"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        입금 시간 (시:분)
+                      </label>
+                      <input
+                        type="time"
+                        value={editTime}
+                        onChange={(e) => setEditTime(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 font-mono font-bold text-xs"
+                      />
+                    </div>
+                  </div>
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
                       메모
@@ -2490,7 +2657,11 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                       </label>
                       <select
                         value={editDay}
-                        onChange={(e) => setEditDay(parseInt(e.target.value, 10))}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          setEditDay(val);
+                          setEditDate(getDefaultDateString(val));
+                        }}
                         className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 font-medium"
                       >
                         <option value={0}>사전 준비/예약</option>
@@ -2512,6 +2683,33 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                         onChange={(e) => setEditLocation(e.target.value)}
                         placeholder="예: 긴시초, 디즈니씨"
                         className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Edit Date & Time */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        결제 날짜
+                      </label>
+                      <input
+                        type="text"
+                        value={editDate}
+                        onChange={(e) => setEditDate(e.target.value)}
+                        placeholder="예: 1월 14일"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        결제 시간 (시:분)
+                      </label>
+                      <input
+                        type="time"
+                        value={editTime}
+                        onChange={(e) => setEditTime(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 font-mono font-bold text-xs"
                       />
                     </div>
                   </div>
@@ -2709,6 +2907,14 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Samsung Card KakaoTalk Alimtalk Modal (방법 2 구현) */}
+      <SamsungCardSyncModal
+        isOpen={isSamsungCardModalOpen}
+        onClose={() => setIsSamsungCardModalOpen(false)}
+        onAddBudgetItem={onAddBudgetItem}
+        authRole={authRole}
+      />
     </div>
   );
 };

@@ -129,16 +129,19 @@ export interface BudgetItem {
   id: string;
   type?: 'EXPENSE' | 'DEPOSIT'; // 'EXPENSE' (지출) | 'DEPOSIT' (현금 공동경비 모금/입금)
   day: number; // 0: 사전준비, 1..6: 일차
-  date?: string; // e.g. "1월 13일"
+  date?: string; // e.g. "1월 13일" 또는 "2026.01.10"
+  time?: string; // e.g. "14:35"
   title: string;
   category: BudgetCategory;
   amountJPY: number;
   paymentMethod?: PaymentMethod; // 'CASH' (현금 공동경비 차감) | 'CARD' (카드)
   scope?: ExpenseScope; // 'SHARED' (공동 사용) | 'HYEONWOO' (현우가족) | 'SEHYEON' (세현가족)
   paidBy: string; // '공동경비(현금)' | '현우가족' | '세현가족'
+  cardCompany?: string; // e.g. '삼성카드'
   location?: string; // 어디서 사용했는지 (예: '긴시초', '디즈니씨', '우에노')
   note?: string; // 메모
   timestamp?: number;
+  originalMessage?: string; // 알림톡 원문
 }
 
 export interface DayWeather {

@@ -3,6 +3,7 @@ import { createServer as createViteServer } from 'vite';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { parseSamsungCardNotification } from './src/utils/samsungCardParser.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,6 +58,72 @@ app.post('/api/budget/auth', (req, res) => {
     return res.json({ success: true, role: 'SEHYUN', label: '세현가족 및 공동경비 관리자' });
   }
   return res.status(401).json({ success: false, message: '비밀번호가 올바르지 않습니다.' });
+});
+
+// Real-time automatic webhook for Samsung Card notifications (복사/붙여넣기 없이 자동 등록)
+app.all('/api/budget/webhook/samsung-card', (req, res) => {
+  if (req.method === 'GET') {
+    return res.json({
+      status: 'ACTIVE',
+      endpoint: '/api/budget/webhook/samsung-card',
+      target: '현우가족 삼성카드 실시간 자동 등록 웹훅 (방법 2 자동화)',
+      method: 'POST',
+      contentType: 'application/json',
+      expectedBody: {
+        message: '[삼성카드] 01/14 13:45 일시불 1,280엔 FAMILY MART',
+        key: '3539'
+      }
+    });
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ success: false, message: 'Method Not Allowed' });
+  }
+
+  const secret = (req.query.key as string) || (req.headers['x-budget-key'] as string) || req.body?.key;
+  if (secret && secret !== '3539' && secret !== 'tokyo2026') {
+    return res.status(403).json({ success: false, message: 'Invalid webhook key' });
+  }
+
+  const raw = req.body?.message || req.body?.text || req.body?.notification || req.body?.title;
+  const messageText = typeof raw === 'string' ? raw.trim() : '';
+
+  if (!messageText) {
+    return res.status(400).json({
+      success: false,
+      message: '알림톡 메시지 텍스트(message)가 필요합니다.'
+    });
+  }
+
+  const parsed = parseSamsungCardNotification(messageText);
+  const items = readBudgetDB();
+  const newItem = {
+    id: `b-auto-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    type: 'EXPENSE',
+    day: parsed.day,
+    date: parsed.dateStr,
+    time: parsed.timeStr,
+    title: parsed.merchant,
+    category: parsed.category,
+    amountJPY: parsed.amountJPY,
+    paymentMethod: 'CARD',
+    scope: 'HYEONWOO',
+    paidBy: '현우가족',
+    cardCompany: '삼성카드',
+    location: parsed.location,
+    note: `${parsed.note} (카톡 알림톡 실시간 무인 자동 등록)`,
+    originalMessage: parsed.rawText,
+    createdAt: new Date().toISOString()
+  };
+
+  items.push(newItem);
+  writeBudgetDB(items);
+
+  return res.status(201).json({
+    success: true,
+    message: `[실시간 자동 등록 완료] ${newItem.title} ¥${newItem.amountJPY.toLocaleString()} 등록 완료`,
+    item: newItem
+  });
 });
 
 app.get('/api/budget', (req, res) => {
