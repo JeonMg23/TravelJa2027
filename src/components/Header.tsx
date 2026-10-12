@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, Users, Share2, Wallet, CheckSquare, Calendar, Sparkles } from 'lucide-react';
+import { Compass, Users, Share2, Wallet, CheckSquare, Calendar, Sparkles, Smartphone } from 'lucide-react';
 import { FriendCompanion } from '../types/travel';
 
 interface HeaderProps {
@@ -8,6 +8,7 @@ interface HeaderProps {
   onOpenShare: () => void;
   onOpenCollab: () => void;
   onGoHome: () => void;
+  onOpenMobileInstall?: () => void;
   companions: FriendCompanion[];
   unreadCommentCount: number;
 }
@@ -18,6 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenShare,
   onOpenCollab,
   onGoHome,
+  onOpenMobileInstall,
   companions,
   unreadCommentCount
 }) => {
@@ -125,6 +127,19 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             )}
           </button>
+
+          {/* Mobile App Install & ZIP Package Button */}
+          {onOpenMobileInstall && (
+            <button
+              onClick={onOpenMobileInstall}
+              title="스마트폰 홈화면 앱 설치 & 전달용 ZIP 압축파일 다운로드"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 border-black bg-amber-400 hover:bg-amber-300 font-black text-xs text-black shadow-[2px_2px_0_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer whitespace-nowrap shrink-0"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-black" />
+              <span className="hidden sm:inline">📱 앱 설치 / ZIP</span>
+              <span className="sm:hidden">앱 설치</span>
+            </button>
+          )}
 
           {/* Primary Share Action */}
           <button

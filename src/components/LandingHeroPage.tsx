@@ -21,9 +21,12 @@ import {
   HelpCircle,
   Laugh,
   Clock,
-  CheckSquare
+  CheckSquare,
+  Smartphone,
+  Download
 } from 'lucide-react';
 import { TripDay } from '../types/travel';
+import { MobileInstallModal } from './MobileInstallModal';
 
 interface LandingHeroPageProps {
   days: TripDay[];
@@ -55,6 +58,7 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
   onOpenChecklist
 }) => {
   const [funSoundPlayed, setFunSoundPlayed] = useState<string | null>(null);
+  const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
 
   // Departure date: 2027년 1월 13일 09:00:00 (KST / JST)
   const DEPARTURE_TIMESTAMP = new Date('2027-01-13T09:00:00+09:00').getTime();
@@ -133,9 +137,16 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-black text-amber-300 rounded-2xl border-2 border-black flex items-center justify-center font-black text-2xl shadow-[3px_3px_0_#fff] rotate-[-4deg] hover:rotate-12 transition-transform cursor-pointer">
+            <button
+              onClick={() => setIsMobileModalOpen(true)}
+              className="w-11 h-11 bg-black text-amber-300 rounded-2xl border-2 border-black flex items-center justify-center font-black text-2xl shadow-[3px_3px_0_#fff] rotate-[-4deg] hover:rotate-12 hover:scale-105 active:scale-95 transition-transform cursor-pointer relative group"
+              title="스마트폰 앱 설치 및 번개 아이콘(⚡) 생성"
+            >
               ⚡
-            </div>
+              <span className="absolute -bottom-1 -right-1 bg-amber-400 text-black text-[9px] font-black px-1 rounded-full border border-black shadow-[1px_1px_0_#000]">
+                앱
+              </span>
+            </button>
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xl sm:text-2xl font-black tracking-tight text-black font-sans">
@@ -152,7 +163,18 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
           </div>
 
           {/* Quick Actions & Header D-Day */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            {/* Mobile App Install / ZIP Button */}
+            <button
+              onClick={() => setIsMobileModalOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs font-black text-black bg-amber-400 hover:bg-amber-500 rounded-xl border-2 border-black shadow-[2px_2px_0_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer whitespace-nowrap"
+              title="스마트폰 홈화면 앱 설치 & ZIP 압축파일 다운로드"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-black" />
+              <span className="hidden sm:inline">📱 스마트폰 앱 설치</span>
+              <span className="sm:hidden">📱 앱 설치</span>
+            </button>
+
             {/* Header D-Day Pill */}
             <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black text-amber-300 border-2 border-black shadow-[2px_2px_0_#fff] text-xs font-black">
               <Clock className="w-3.5 h-3.5 text-rose-400" />
@@ -163,14 +185,14 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
 
             <button
               onClick={() => onOpenMap()}
-              className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 text-xs font-black text-black bg-white hover:bg-slate-100 rounded-xl border-2 border-black shadow-[2px_2px_0_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer"
+              className="hidden sm:flex items-center gap-1.5 px-3 sm:px-3.5 py-2 text-xs font-black text-black bg-white hover:bg-slate-100 rounded-xl border-2 border-black shadow-[2px_2px_0_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer"
             >
               <Navigation className="w-3.5 h-3.5 text-blue-600" />
               <span>동선 지도</span>
             </button>
             <button
               onClick={() => onStartTrip(1)}
-              className="px-4 sm:px-6 py-2.5 text-xs sm:text-sm font-black text-black bg-[#4ade80] hover:bg-[#22c55e] rounded-xl border-2 border-black shadow-[3px_3px_0_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center gap-2 cursor-pointer"
+              className="px-3.5 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-black text-black bg-[#4ade80] hover:bg-[#22c55e] rounded-xl border-2 border-black shadow-[3px_3px_0_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer"
             >
               <span>🚀 출발하기!</span>
               <ArrowRight className="w-4 h-4 stroke-[3]" />
@@ -271,7 +293,7 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
           </div>
 
           {/* Main CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto mb-10">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto mb-6">
             <button
               onClick={() => onStartTrip(1)}
               className="w-full sm:w-auto px-8 py-4 bg-[#FF4757] hover:bg-[#ff3838] text-white font-black text-lg rounded-2xl border-4 border-black shadow-[5px_5px_0_#000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-3 cursor-pointer group"
@@ -287,6 +309,31 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
             >
               <Navigation className="w-5 h-5 text-blue-600" />
               <span>구글 동선 맵 열기</span>
+            </button>
+          </div>
+
+          {/* Smartphone Install & ZIP Package Banner */}
+          <div className="max-w-xl mx-auto mb-10 bg-black text-white rounded-2xl p-3.5 sm:p-4 border-3 border-amber-400 shadow-[5px_5px_0_#d97706] flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-amber-400 text-black flex items-center justify-center font-black text-2xl shrink-0 shadow-[2px_2px_0_#fff]">
+                ⚡
+              </div>
+              <div>
+                <div className="text-xs sm:text-sm font-black text-amber-300 flex items-center gap-1.5">
+                  <span>📱 스마트폰 홈 화면 앱 설치 & 전달용 ZIP</span>
+                  <span className="text-[10px] bg-red-600 text-white px-1.5 py-0.2 rounded-full font-bold">1초 실행</span>
+                </div>
+                <div className="text-[11px] sm:text-xs text-slate-300 mt-0.5">
+                  바탕화면에 <strong>검정 바탕 노란 번개(⚡)</strong> 아이콘을 생성하고 주소창 없이 진짜 앱으로 실행하세요!
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsMobileModalOpen(true)}
+              className="w-full sm:w-auto px-4 py-2 bg-amber-400 hover:bg-amber-300 text-black font-black text-xs sm:text-sm rounded-xl border-2 border-black shadow-[2px_2px_0_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap"
+            >
+              <Smartphone className="w-4 h-4" />
+              <span>앱 설치 & ZIP 다운로드</span>
             </button>
           </div>
 
@@ -571,6 +618,12 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
       <footer className="py-5 bg-amber-400 border-t-4 border-black text-center text-xs font-black text-black">
         <p>⚡ 개구쟁이들의 일본여행 (우당탕탕 도쿄 5박 6일 원정대) · 구글 지도 & 맛집 연동 스마트 플래너 ⚡</p>
       </footer>
+
+      {/* Mobile App Install & ZIP Package Modal */}
+      <MobileInstallModal
+        isOpen={isMobileModalOpen}
+        onClose={() => setIsMobileModalOpen(false)}
+      />
     </div>
   );
 };

@@ -52,6 +52,7 @@ import { SpotDetailModal } from './components/SpotDetailModal';
 import { AddSpotModal } from './components/AddSpotModal';
 import { BudgetChecklistModal } from './components/BudgetChecklistModal';
 import { BudgetReceiptModal } from './components/BudgetReceiptModal';
+import { MobileInstallModal } from './components/MobileInstallModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { LandingHeroPage } from './components/LandingHeroPage';
 import { FlightTransition } from './components/FlightTransition';
@@ -150,6 +151,7 @@ export default function App() {
   const [budgetModalView, setBudgetModalView] = useState<'budget' | 'checklist'>('checklist');
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [receiptTargetFamily, setReceiptTargetFamily] = useState<'ALL' | '현우가족' | '세현가족'>('ALL');
+  const [isMobileInstallOpen, setIsMobileInstallOpen] = useState(false);
 
   const handleOpenReceipt = (family: 'ALL' | '현우가족' | '세현가족' = 'ALL') => {
     setReceiptTargetFamily(family);
@@ -636,6 +638,7 @@ export default function App() {
         onSelectTab={handleHeaderTab}
         onOpenShare={() => setIsShareOpen(true)}
         onOpenCollab={() => setIsCollabOpen(true)}
+        onOpenMobileInstall={() => setIsMobileInstallOpen(true)}
         onGoHome={() => {
           try {
             sessionStorage.removeItem('entered_trip_app');
@@ -963,6 +966,11 @@ export default function App() {
           }
         }}
         daySpots={currentDay?.spots}
+      />
+
+      <MobileInstallModal
+        isOpen={isMobileInstallOpen}
+        onClose={() => setIsMobileInstallOpen(false)}
       />
 
       {/* Floating Toast Notification */}

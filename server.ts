@@ -263,6 +263,17 @@ app.post('/api/budget/reset', (req, res) => {
   res.json({ success: true, count: itemsToSave.length, items: itemsToSave });
 });
 
+// Mobile Package ZIP Download Route
+app.get('/api/download/mobile-package', (req, res) => {
+  const zipPath = path.join(__dirname, 'public', 'downloads', 'tokyo-trip-mobile-package.zip');
+  if (fs.existsSync(zipPath)) {
+    res.setHeader('Content-Disposition', 'attachment; filename="tokyo_trip_mobile_package.zip"');
+    res.setHeader('Content-Type', 'application/zip');
+    return res.sendFile(zipPath);
+  }
+  return res.status(404).json({ success: false, message: '패키지 파일을 찾을 수 없습니다.' });
+});
+
 async function startServer() {
   const isProd = process.env.NODE_ENV === 'production';
 
