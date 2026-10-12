@@ -158,13 +158,23 @@ export const MobileInstallModal: React.FC<MobileInstallModalProps> = ({
                     <div className="text-xs text-emerald-700 mt-0.5">바탕화면의 번개 아이콘으로 언제든지 터치 한 번에 접속 가능합니다.</div>
                   </div>
                 </div>
-              ) : isInstallable ? (
+              ) : (
                 <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border-2 border-amber-500 rounded-2xl p-4 text-center space-y-3">
                   <div className="font-black text-slate-900 text-base">
-                    🚀 브라우저에서 바로 설치가 지원됩니다!
+                    🚀 스마트폰 원터치 앱 설치
                   </div>
                   <button
-                    onClick={handleInstallClick}
+                    onClick={() => {
+                      if (isInstallable) {
+                        handleInstallClick();
+                      } else {
+                        // Guide user where the button is
+                        const guideElem = document.getElementById('samsung-menu-guide');
+                        if (guideElem) {
+                          guideElem.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }
+                    }}
                     disabled={isInstalling}
                     className="w-full py-3.5 px-4 bg-black text-amber-300 hover:bg-slate-900 font-black rounded-xl border-2 border-black shadow-[3px_3px_0_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer text-base"
                   >
@@ -178,50 +188,49 @@ export const MobileInstallModal: React.FC<MobileInstallModalProps> = ({
                     </div>
                   )}
                 </div>
-              ) : null}
+              )}
 
               {/* Step-by-Step Instructions for Android vs iPhone */}
               <div className="space-y-3">
                 <div className="font-black text-slate-900 text-sm flex items-center gap-2">
                   <Layers className="w-4 h-4 text-amber-600" />
-                  <span>스마트폰 기기별 3초 설치 방법</span>
+                  <span>스마트폰 기기별 정확한 설치 메뉴 위치</span>
+                </div>
+
+                {/* Important Notice for KakaoTalk / In-app Browsers */}
+                <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-3 text-xs text-rose-950 space-y-1">
+                  <div className="font-black text-rose-800 flex items-center gap-1">
+                    🚨 혹시 카카오톡이나 문자에서 링크를 누르셨나요?
+                  </div>
+                  <div className="text-slate-700 leading-relaxed">
+                    카카오톡 내부 브라우저에서는 앱 설치가 제한됩니다. 우측 상단 <strong>점 3개(⋮)</strong>를 터치한 뒤 <strong>[다른 브라우저로 열기]</strong>(또는 삼성인터넷/크롬)를 눌러서 열어주세요!
+                  </div>
                 </div>
 
                 {/* Android Galaxy & Samsung Internet Guide */}
-                <div className="border-2 border-slate-200 rounded-2xl p-3.5 bg-slate-50 space-y-2.5">
+                <div id="samsung-menu-guide" className="border-2 border-slate-200 rounded-2xl p-3.5 bg-slate-50 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="font-black text-blue-700 text-xs sm:text-sm flex items-center gap-1.5">
-                      📱 삼성 갤럭시 / 삼성 인터넷 (Samsung Internet)
+                      📱 삼성 인터넷 (메뉴가 안 보일 때 찾는 방법)
                     </span>
                     <span className="text-[11px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full">
-                      주소창 없애는 법
+                      위치 안내
                     </span>
                   </div>
 
-                  <div className="bg-amber-100/70 border border-amber-300 rounded-xl p-2.5 text-xs text-amber-950 font-medium space-y-1">
-                    <div className="font-black text-amber-900 flex items-center gap-1">
-                      ⚠️ 삼성 인터넷에서 주소창이 계속 보이는 이유!
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-2.5 text-xs text-blue-950 space-y-1.5">
+                    <div className="font-black text-blue-900">
+                      📍 메뉴가 어디에 숨어있나요?
                     </div>
-                    <div>
-                      삼성 인터넷 메뉴에서 <strong>'홈 화면'</strong>을 선택하면 단순 즐겨찾기로 추가되어 주소창이 남습니다. 반드시 아래의 <strong>[앱 설치]</strong>로 진행해야 주소창이 사라집니다!
+                    <div className="text-slate-700 space-y-1">
+                      <div>• <strong>지름길 1 (화면 맨 위):</strong> 주소창 오른쪽 끝에 있는 <strong>[ ⬇ ] 다운로드 아이콘</strong> 터치 → [설치]</div>
+                      <div>• <strong>지름길 2 (화면 맨 아래):</strong> 우측 하단 <strong>줄 3개(☰)</strong> 터치 → 첫 화면의 <strong>[ + 현재 페이지 추가 ]</strong> 터치 → <strong>[앱]</strong> 또는 <strong>[홈 화면]</strong> 선택!</div>
                     </div>
                   </div>
-
-                  <ol className="text-xs text-slate-700 space-y-2 list-decimal list-inside leading-relaxed pl-1">
-                    <li>
-                      <strong>방법 1 (가장 추천):</strong> 화면 맨 위 <strong>주소창 오른쪽 끝의 [ ⬇ ](앱 다운로드 아이콘)</strong>을 터치하고 [설치]를 누릅니다.
-                    </li>
-                    <li>
-                      <strong>방법 2:</strong> 화면 하단 우측 <strong>메뉴(☰)</strong> 터치 → 메뉴 목록의 <strong>[앱 설치]</strong> (또는 '현재 페이지 추가' 안의 <strong>[앱]</strong>)을 선택합니다.
-                    </li>
-                    <li>
-                      <strong>방법 3:</strong> 상단 노란 박스의 <strong>[⚡ 지금 스마트폰 홈 화면에 바로 설치하기]</strong> 버튼을 누르면 자동으로 앱 설치 팝업이 뜹니다.
-                    </li>
-                  </ol>
 
                   <div className="bg-white rounded-xl p-2 border border-slate-200 text-[11px] text-slate-600 flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span>정상 설치 시 바탕화면에 <strong>번개 아이콘(⚡)</strong>이 생기며, 누르면 <strong>주소창 없이 전체화면 진짜 앱</strong>으로 뜹니다!</span>
+                    <span>설치 후 바탕화면의 <strong>검정+노란 번개(⚡)</strong> 아이콘을 누르면 주소창 없이 전체화면으로 실행됩니다.</span>
                   </div>
                 </div>
 

@@ -630,17 +630,12 @@ export default function App() {
       <Header
         activeTab={activeHeaderTab}
         onSelectTab={handleHeaderTab}
-        onOpenShare={() => setIsShareOpen(true)}
-        onOpenCollab={() => setIsCollabOpen(true)}
-        onOpenMobileInstall={() => setIsMobileInstallOpen(true)}
         onGoHome={() => {
           try {
             sessionStorage.removeItem('entered_trip_app');
           } catch (e) {}
           setShowLandingPage(true);
         }}
-        companions={companions}
-        unreadCommentCount={comments.length}
       />
 
       {/* Day Selector Bar */}
@@ -923,12 +918,10 @@ export default function App() {
           setMobileView(v);
           setActiveHeaderTab(v === 'split' ? 'timeline' : v);
         }}
-        onOpenShare={() => setIsShareOpen(true)}
         onOpenBudget={() => {
           setBudgetModalView('checklist');
           setIsBudgetChecklistOpen(true);
         }}
-        unreadCount={comments.length}
       />
 
       {/* Modals & Drawers */}
