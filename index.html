@@ -22,7 +22,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>
-      // Safeguard for browser extensions attempting to overwrite window.fetch
+      // 1. Safeguard for browser extensions attempting to overwrite window.fetch
       try {
         let _currentFetch = window.fetch;
         Object.defineProperty(window, 'fetch', {
@@ -31,9 +31,91 @@
           configurable: true,
           enumerable: true
         });
-      } catch (e) {
-        // Ignore if already configurable
-      }
+      } catch (e) {}
+
+      // 2. Prevent benign Vite dev HMR WebSocket disconnection errors in AI Studio preview iframe
+      try {
+        window.addEventListener('unhandledrejection', function(event) {
+          var reasonStr = event && event.reason ? (event.reason.message || String(event.reason)) : '';
+          if (typeof reasonStr === 'string' && (
+            reasonStr.indexOf('WebSocket closed without opened') !== -1 ||
+            reasonStr.indexOf('vite') !== -1
+          )) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+        }, true);
+
+        window.addEventListener('error', function(event) {
+          var msg = event && (event.message || (event.error && event.error.message)) || '';
+          if (typeof msg === 'string' && (
+            msg.indexOf('WebSocket closed without opened') !== -1 ||
+            msg.indexOf('failed to connect to websocket') !== -1
+          )) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+        }, true);
+
+        var _origConsoleError = console.error;
+        console.error = function() {
+          var first = arguments[0];
+          if (typeof first === 'string' && (
+            first.indexOf('[vite] failed to connect to websocket') !== -1 ||
+            first.indexOf('WebSocket closed without opened') !== -1
+          )) {
+            return;
+          }
+          _origConsoleError.apply(console, arguments);
+        };
+
+        // Neutralize Vite HMR WebSocket so it does not trigger connection failure in cloud preview
+        var NativeWebSocket = window.WebSocket;
+        if (NativeWebSocket) {
+          window.WebSocket = function(url, protocols) {
+            var isViteHmr = (typeof protocols === 'string' && (protocols === 'vite-hmr' || protocols === 'vite-ping')) ||
+              (Array.isArray(protocols) && (protocols.indexOf('vite-hmr') !== -1 || protocols.indexOf('vite-ping') !== -1)) ||
+              (typeof url === 'string' && url.indexOf('token=') !== -1 && url.indexOf('vite') !== -1);
+
+            if (isViteHmr) {
+              var dummyTarget = new EventTarget();
+              return {
+                readyState: 1, // OPEN
+                OPEN: 1,
+                CLOSING: 2,
+                CLOSED: 3,
+                CONNECTING: 0,
+                url: url,
+                protocol: protocols || '',
+                extensions: '',
+                bufferedAmount: 0,
+                binaryType: 'blob',
+                send: function() {},
+                close: function() {},
+                addEventListener: function(type, listener, options) {
+                  dummyTarget.addEventListener(type, listener, options);
+                },
+                removeEventListener: function(type, listener, options) {
+                  dummyTarget.removeEventListener(type, listener, options);
+                },
+                dispatchEvent: function(event) {
+                  return dummyTarget.dispatchEvent(event);
+                },
+                set onopen(fn) { dummyTarget.addEventListener('open', fn); },
+                set onclose(fn) { dummyTarget.addEventListener('close', fn); },
+                set onerror(fn) { dummyTarget.addEventListener('error', fn); },
+                set onmessage(fn) { dummyTarget.addEventListener('message', fn); }
+              };
+            }
+            return new NativeWebSocket(url, protocols);
+          };
+          window.WebSocket.prototype = NativeWebSocket.prototype;
+          window.WebSocket.CONNECTING = NativeWebSocket.CONNECTING;
+          window.WebSocket.OPEN = NativeWebSocket.OPEN;
+          window.WebSocket.CLOSING = NativeWebSocket.CLOSING;
+          window.WebSocket.CLOSED = NativeWebSocket.CLOSED;
+        }
+      } catch (e) {}
     </script>
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased selection:bg-indigo-500 selection:text-white" style="overscroll-behavior-y: none; overscroll-behavior: none;">

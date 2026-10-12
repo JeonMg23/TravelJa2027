@@ -1,0 +1,33 @@
+{
+  "name": "도쿄 원정대 - 개구쟁이들의 일본여행",
+  "short_name": "도쿄원정대",
+  "description": "개구쟁이 소년들과 엄마들의 도쿄 5박 6일 일본여행 실시간 동선 & 스마트 플래너",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "lang": "ko",
+  "scope": "/",
+  "id": "/",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -52,5 +52,14 @@ if (typeof window !== 'undefined') {
   );
 }
 
+// Register Service Worker for Android (Samsung Internet & Chrome) PWA installability
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      // Quiet fallback
+    });
+  });
+}
+
 createRoot(document.getElementById('root')!).render(<App />);
 

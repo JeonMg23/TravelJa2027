@@ -232,15 +232,18 @@ export function saveBudget(budget: BudgetItem[]): void {
   }
   try {
     const passcode = localStorage.getItem('tokyo_budget_passcode');
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (passcode) headers['x-budget-password'] = passcode;
-    fetch('/api/budget/sync', {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify({ items: budget })
-    }).catch(() => {
-      // offline or dev fallback
-    });
+    if (passcode && ['3539', '0901'].includes(passcode)) {
+      fetch('/api/budget/sync', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-budget-password': passcode
+        },
+        body: JSON.stringify({ items: budget })
+      }).catch(() => {
+        // offline or dev fallback
+      });
+    }
   } catch {
     // ignore
   }
@@ -254,13 +257,19 @@ export function resetSavedBudget(defaultBudget: BudgetItem[]): BudgetItem[] {
     // fallback
   }
   try {
-    fetch('/api/budget/reset', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ defaultItems: defaultBudget })
-    }).catch(() => {
-      // offline or dev fallback
-    });
+    const passcode = localStorage.getItem('tokyo_budget_passcode');
+    if (passcode && ['3539', '0901'].includes(passcode)) {
+      fetch('/api/budget/reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-budget-password': passcode
+        },
+        body: JSON.stringify({ defaultItems: defaultBudget })
+      }).catch(() => {
+        // offline or dev fallback
+      });
+    }
   } catch {
     // ignore
   }

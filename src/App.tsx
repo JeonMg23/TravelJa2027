@@ -238,12 +238,6 @@ export default function App() {
     fetchBudgetFromDB().then((dbItems) => {
       if (dbItems && dbItems.length > 0) {
         setBudget(dbItems);
-      } else {
-        fetch('/api/budget/sync', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items: budget })
-        }).catch(() => {});
       }
     });
 

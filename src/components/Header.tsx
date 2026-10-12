@@ -34,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
           className="flex items-center gap-3 shrink-0 text-left hover:opacity-90 transition-opacity cursor-pointer group"
           title="첫 페이지(소개)로 이동"
         >
-          <div className="w-10 h-10 rounded-2xl bg-amber-400 text-slate-900 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000] group-hover:rotate-6 group-hover:scale-105 transition-transform text-xl">
+          <div className="w-10 h-10 rounded-2xl bg-black text-amber-300 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000] group-hover:rotate-6 group-hover:scale-105 transition-transform text-xl">
             ⚡
           </div>
           <div className="flex flex-col">

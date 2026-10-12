@@ -42,8 +42,8 @@ export function getStoredBudgetPasscode(): string | null {
     if (val && ['1111', '3539', '0901'].includes(val)) {
       return val;
     }
-  } catch (err) {
-    console.error('Failed to read budget passcode:', err);
+  } catch {
+    // Graceful fallback if localStorage is disabled in restricted browser environments
   }
   return null;
 }
@@ -55,8 +55,8 @@ export function setStoredBudgetPasscode(passcode: string | null): void {
     } else {
       localStorage.removeItem(STORAGE_KEY);
     }
-  } catch (err) {
-    console.error('Failed to set budget passcode:', err);
+  } catch {
+    // Graceful fallback if localStorage is disabled in restricted browser environments
   }
 }
 

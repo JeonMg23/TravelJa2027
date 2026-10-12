@@ -44,8 +44,8 @@ export const MobileInstallModal: React.FC<MobileInstallModalProps> = ({
       if (outcome) {
         setInstallSuccess(true);
       }
-    } catch (e) {
-      console.error('Install failed:', e);
+    } catch {
+      // User cancelled install prompt or browser rejected
     } finally {
       setIsInstalling(false);
     }
@@ -187,31 +187,55 @@ export const MobileInstallModal: React.FC<MobileInstallModalProps> = ({
                   <span>스마트폰 기기별 3초 설치 방법</span>
                 </div>
 
-                {/* Android Galaxy Guide */}
-                <div className="border-2 border-slate-200 rounded-2xl p-3.5 bg-slate-50 space-y-2">
+                {/* Android Galaxy & Samsung Internet Guide */}
+                <div className="border-2 border-slate-200 rounded-2xl p-3.5 bg-slate-50 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="font-black text-blue-700 text-xs sm:text-sm flex items-center gap-1.5">
-                      📱 삼성 갤럭시 / 안드로이드 폰 (Chrome, 삼성인터넷)
+                      📱 삼성 갤럭시 / 삼성 인터넷 (Samsung Internet)
                     </span>
                     <span className="text-[11px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full">
-                      가장 쉬움
+                      주소창 없애는 법
                     </span>
                   </div>
-                  <ol className="text-xs text-slate-700 space-y-1.5 list-decimal list-inside leading-relaxed pl-1">
+
+                  <div className="bg-amber-100/70 border border-amber-300 rounded-xl p-2.5 text-xs text-amber-950 font-medium space-y-1">
+                    <div className="font-black text-amber-900 flex items-center gap-1">
+                      ⚠️ 삼성 인터넷에서 주소창이 계속 보이는 이유!
+                    </div>
+                    <div>
+                      삼성 인터넷 메뉴에서 <strong>'홈 화면'</strong>을 선택하면 단순 즐겨찾기로 추가되어 주소창이 남습니다. 반드시 아래의 <strong>[앱 설치]</strong>로 진행해야 주소창이 사라집니다!
+                    </div>
+                  </div>
+
+                  <ol className="text-xs text-slate-700 space-y-2 list-decimal list-inside leading-relaxed pl-1">
                     <li>
-                      스마트폰 브라우저 우측 상단의 <strong>점 3개 메뉴(⋮)</strong>를 터치합니다.
+                      <strong>방법 1 (가장 추천):</strong> 화면 맨 위 <strong>주소창 오른쪽 끝의 [ ⬇ ](앱 다운로드 아이콘)</strong>을 터치하고 [설치]를 누릅니다.
                     </li>
                     <li>
-                      메뉴 목록에서 <strong>[앱 설치]</strong> 또는 <strong>[홈 화면에 추가]</strong>를 누릅니다.
+                      <strong>방법 2:</strong> 화면 하단 우측 <strong>메뉴(☰)</strong> 터치 → 메뉴 목록의 <strong>[앱 설치]</strong> (또는 '현재 페이지 추가' 안의 <strong>[앱]</strong>)을 선택합니다.
                     </li>
                     <li>
-                      안내 팝업에서 <strong>[설치]</strong> 또는 <strong>[추가]</strong>를 터치하면 끝!
+                      <strong>방법 3:</strong> 상단 노란 박스의 <strong>[⚡ 지금 스마트폰 홈 화면에 바로 설치하기]</strong> 버튼을 누르면 자동으로 앱 설치 팝업이 뜹니다.
                     </li>
                   </ol>
+
                   <div className="bg-white rounded-xl p-2 border border-slate-200 text-[11px] text-slate-600 flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span>바탕화면에 <strong>검정 바탕 노란 번개(⚡)</strong> 앱 아이콘이 바로 등록됩니다.</span>
+                    <span>정상 설치 시 바탕화면에 <strong>번개 아이콘(⚡)</strong>이 생기며, 누르면 <strong>주소창 없이 전체화면 진짜 앱</strong>으로 뜹니다!</span>
                   </div>
+                </div>
+
+                {/* Android Chrome Guide */}
+                <div className="border-2 border-slate-200 rounded-2xl p-3 bg-slate-50 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-black text-indigo-700 text-xs sm:text-sm flex items-center gap-1.5">
+                      🌐 안드로이드 구글 크롬 (Chrome)
+                    </span>
+                  </div>
+                  <ol className="text-xs text-slate-700 space-y-1 list-decimal list-inside leading-relaxed pl-1">
+                    <li>우측 상단 <strong>점 3개(⋮)</strong> 터치 → <strong>[앱 설치]</strong> (또는 [홈 화면에 추가]) 선택</li>
+                    <li>팝업에서 <strong>[설치]</strong> 터치 시 상단 주소창 없는 독립 앱으로 설치 완료</li>
+                  </ol>
                 </div>
 
                 {/* iPhone Safari Guide */}
