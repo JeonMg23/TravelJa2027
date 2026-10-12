@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { TravelSpot, TripDay, TransitInfo, DayWeather, RecommendedFood } from '../types/travel';
 import { WeatherWidget } from './WeatherWidget';
 import {
@@ -41,6 +41,8 @@ interface TimelineViewProps {
   savedOwmKey: string;
   onToggleSimulatedRain: (isRain: boolean) => void;
   isSimulatedRain: boolean;
+  isSplitView?: boolean;
+  onSpotInView?: (spot: TravelSpot) => void;
 }
 
 export const TimelineView: React.FC<TimelineViewProps> = ({
@@ -59,8 +61,43 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   onSaveOwmKey,
   savedOwmKey,
   onToggleSimulatedRain,
-  isSimulatedRain
+  isSimulatedRain,
+  isSplitView = false,
+  onSpotInView
 }) => {
+  // Track which spot card is currently active in the mobile viewport
+  useEffect(() => {
+    if (!onSpotInView || !currentDay?.spots || typeof IntersectionObserver === 'undefined') return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const spotId = entry.target.getAttribute('data-spot-id');
+            if (spotId) {
+              const spot = currentDay.spots.find((s) => s.id === spotId);
+              if (spot) {
+                onSpotInView(spot);
+              }
+            }
+          }
+        }
+      },
+      {
+        rootMargin: '-10% 0px -40% 0px',
+        threshold: [0.1, 0.4]
+      }
+    );
+
+    currentDay.spots.forEach((spot) => {
+      const el = document.getElementById(`spot-card-${spot.id}`);
+      if (el) observer.observe(el);
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [currentDay?.spots, onSpotInView]);
   const getCategoryBadgeClass = (category: string) => {
     switch (category) {
       case 'hotel':
@@ -154,10 +191,14 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
             <React.Fragment key={spot.id}>
               {/* Spot Card */}
               <div
+                id={`spot-card-${spot.id}`}
+                data-spot-id={spot.id}
                 onClick={() => onSelectSpot(spot)}
-                className={`bg-white rounded-2xl border transition-all duration-200 p-4 sm:p-5 cursor-pointer relative ${
+                className={`bg-white rounded-2xl border transition-all duration-200 cursor-pointer relative scroll-mt-20 md:scroll-mt-24 ${
+                  isSplitView ? 'p-2.5 sm:p-3.5 md:p-5' : 'p-4 sm:p-5'
+                } ${
                   isSelected
-                    ? 'border-indigo-500 ring-2 ring-indigo-500/20 shadow-md'
+                    ? 'border-indigo-600 bg-indigo-50/40 ring-2 ring-indigo-500/30 shadow-md'
                     : 'border-slate-200/80 hover:border-slate-300 hover:shadow-sm'
                 }`}
               >
@@ -168,7 +209,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                     <div
                       className={`w-8 h-8 rounded-xl font-bold text-sm flex items-center justify-center shrink-0 shadow-sm transition-colors ${
                         isSelected
-                          ? 'bg-indigo-600 text-white'
+                          ? 'bg-indigo-600 text-white ring-2 ring-indigo-400'
                           : 'bg-slate-900 text-white'
                       }`}
                     >
@@ -181,6 +222,12 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                         <h3 className="text-base font-bold text-slate-900 tracking-tight">
                           {spot.name}
                         </h3>
+                        {isSelected && (
+                          <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100/90 border border-indigo-200 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse"></span>
+                            <span>확인 중인 순번 {index + 1}</span>
+                          </span>
+                        )}
                         {spot.japaneseName && (
                           <span className="text-xs text-slate-400 font-normal">
                             {spot.japaneseName}

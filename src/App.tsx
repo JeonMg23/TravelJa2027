@@ -625,7 +625,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-20 md:pb-0 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-20 md:pb-0">
       {/* Top Bar Header */}
       <Header
         activeTab={activeHeaderTab}
@@ -702,11 +702,11 @@ export default function App() {
           </div>
         </div>
 
-        {/* 2-Column Responsive Split (Foldable & PC side-by-side) */}
+        {/* 2-Column Responsive Split (Foldable, Mobile & PC side-by-side) */}
         <div
-          className={`grid gap-4 sm:gap-6 items-start ${
+          className={`grid gap-2.5 sm:gap-4 md:gap-6 items-start ${
             mobileView === 'split'
-              ? 'grid-cols-1 min-[640px]:grid-cols-12'
+              ? 'grid-cols-12'
               : 'grid-cols-1 lg:grid-cols-12'
           }`}
         >
@@ -714,7 +714,7 @@ export default function App() {
           <div
             className={`space-y-4 ${
               mobileView === 'split'
-                ? 'min-[640px]:col-span-6 lg:col-span-7 block'
+                ? 'col-span-5 sm:col-span-6 lg:col-span-7 block'
                 : mobileView === 'map'
                 ? 'hidden lg:block'
                 : 'block lg:col-span-7'
@@ -724,6 +724,7 @@ export default function App() {
               <TimelineView
                 currentDay={currentDay}
                 selectedSpot={selectedSpot}
+                isSplitView={mobileView === 'split'}
                 onSelectSpot={(spot) => {
                   handleSelectSpot(spot);
                 }}
@@ -858,7 +859,7 @@ export default function App() {
           <div
             className={`isolate z-0 ${
               mobileView === 'split'
-                ? 'min-[640px]:col-span-6 lg:col-span-5 min-[640px]:sticky min-[640px]:top-20 block'
+                ? 'col-span-7 sm:col-span-6 lg:col-span-5 sticky top-16 md:top-20 block'
                 : mobileView === 'timeline'
                 ? 'hidden lg:block'
                 : 'block lg:col-span-5 lg:sticky lg:top-24'
