@@ -625,7 +625,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-20 md:pb-0">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-20 md:pb-0 overflow-x-hidden">
       {/* Top Bar Header */}
       <Header
         activeTab={activeHeaderTab}

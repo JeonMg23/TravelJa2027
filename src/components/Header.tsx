@@ -20,22 +20,22 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Zone 1: Brand Wordmark (Clickable to return to Landing Page) */}
         <button
           onClick={onGoHome}
-          className="flex items-center gap-3 shrink-0 text-left hover:opacity-90 transition-opacity cursor-pointer group"
+          className="flex items-center gap-2.5 sm:gap-3 shrink-0 text-left hover:opacity-90 transition-opacity cursor-pointer group"
           title="첫 페이지(소개)로 이동"
         >
-          <div className="w-10 h-10 rounded-2xl bg-black text-amber-300 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000] group-hover:rotate-6 group-hover:scale-105 transition-transform text-xl">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-black text-amber-300 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000] group-hover:rotate-6 group-hover:scale-105 transition-transform text-lg sm:text-xl">
             ⚡
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
-              <span className="text-lg font-black tracking-tight text-slate-900 whitespace-nowrap font-sans">
+              <span className="text-base sm:text-lg font-black tracking-tight text-slate-900 whitespace-nowrap font-sans">
                 개구쟁이들의 일본여행
               </span>
-              <span className="hidden sm:inline-block text-[10px] font-black text-amber-900 bg-amber-300 border border-black rounded-md px-1.5 py-0.5 shadow-[1px_1px_0px_#000]">
+              <span className="text-[10px] font-black text-amber-900 bg-amber-300 border border-black rounded-md px-1.5 py-0.5 shadow-[1px_1px_0px_#000]">
                 첫페이지 🏠
               </span>
             </div>
@@ -45,11 +45,11 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </button>
 
-        {/* Zone 2: 4 Clean Single-Line Nav Links */}
-        <nav className="flex items-center gap-1 sm:gap-2">
+        {/* Zone 2: 4 Clean Single-Line Nav Links (PC/태블릿에서 표시, 모바일은 하단 바 이용) */}
+        <nav className="hidden md:flex items-center gap-1 lg:gap-2">
           <button
             onClick={() => onSelectTab('timeline')}
-            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 sm:gap-2 ${
+            className={`px-3.5 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-2 ${
               activeTab === 'timeline'
                 ? 'bg-slate-100 text-slate-900 font-semibold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -60,7 +60,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
           <button
             onClick={() => onSelectTab('map')}
-            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 sm:gap-2 ${
+            className={`px-3.5 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-2 ${
               activeTab === 'map'
                 ? 'bg-slate-100 text-slate-900 font-semibold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -71,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
           <button
             onClick={() => onSelectTab('budget')}
-            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 sm:gap-2 ${
+            className={`px-3.5 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-2 ${
               activeTab === 'budget'
                 ? 'bg-slate-100 text-slate-900 font-semibold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -82,7 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
           <button
             onClick={() => onSelectTab('checklist')}
-            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 sm:gap-2 ${
+            className={`px-3.5 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-2 ${
               activeTab === 'checklist'
                 ? 'bg-slate-100 text-slate-900 font-semibold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
