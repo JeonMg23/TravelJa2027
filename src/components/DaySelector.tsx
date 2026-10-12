@@ -83,8 +83,8 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
                 <div className="text-xs font-semibold truncate max-w-[150px] mt-0.5">
                   {day.dayNumber === 1 && '아사쿠사·스카이트리'}
                   {day.dayNumber === 2 && '디즈니씨 종일'}
-                  {day.dayNumber === 3 && '해리포터 & 신도심'}
-                  {day.dayNumber === 4 && '후지산 & 도쿄역'}
+                  {day.dayNumber === 3 && '후지산 & 도쿄역'}
+                  {day.dayNumber === 4 && '해리포터 & 신도심'}
                   {day.dayNumber === 5 && '쓰키지 & 롯폰기'}
                   {day.dayNumber === 6 && '귀국일'}
                 </div>

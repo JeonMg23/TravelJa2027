@@ -1,6 +1,6 @@
 import { TripDay, SpotComment, ChecklistItem, BudgetItem, FriendCompanion } from '../types/travel';
 
-const STORAGE_KEY_DAYS = 'tokyo_trip_days_v7';
+const STORAGE_KEY_DAYS = 'tokyo_trip_days_v8';
 const STORAGE_KEY_COMMENTS = 'tokyo_trip_comments_v1';
 const STORAGE_KEY_CHECKLIST = 'tokyo_trip_checklist_v3';
 const STORAGE_KEY_BUDGET = 'tokyo_trip_budget_v6';

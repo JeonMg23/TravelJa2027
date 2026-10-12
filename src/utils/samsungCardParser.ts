@@ -482,21 +482,21 @@ FAMILY MART KINSHICHO
 *가맹점: TOKYO DISNEYSEA SHOP`
   },
   {
-    title: '☕ [도쿄 현지 3일차] 시부야 스타벅스 커피 (엔화)',
+    title: '☕ [도쿄 현지 3일차] 후지산 가와구치코 기념품/간식 (엔화)',
     badge: '3일차 (1월 15일)',
     text: `[삼성카드]
 김*우님
 01/15 11:20
 일시불 2,150엔
-STARBUCKS SHIBUYA TSUTAYA`
+LAKE BAKE KAWAGUCHIKO`
   },
   {
-    title: '🛍️ [도쿄 현지 4일차] 돈키호테 개별 쇼핑 (엔화)',
+    title: '🛍️ [도쿄 현지 4일차] 시부야 돈키호테 개별 쇼핑 (엔화)',
     badge: '4일차 (1월 16일)',
     text: `[삼성카드] 해외이용승인
 01/16 22:15
 JPY 8,900
-DON QUIJOTE AKIHABARA
+MEGA DON QUIJOTE SHIBUYA
 삼성카드`
   }
 ];

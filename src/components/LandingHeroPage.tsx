@@ -191,7 +191,7 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black text-amber-300 text-xs sm:text-sm font-black border-2 border-amber-400 shadow-[3px_3px_0_#d97706] mb-6 rotate-[-1deg] hover:rotate-1 transition-transform">
             <Flame className="w-4 h-4 text-red-500 fill-red-500 animate-pulse" />
-            <span>2027.01.13 ~ 01.18 · 개구쟁이 소년들의 도쿄 원정대!</span>
+            <span>2027.01.13 ~ 01.18 · 개구쟁이 소년들과 엄마들의 도쿄 원정대!</span>
           </div>
 
           {/* Main Headline */}
@@ -432,8 +432,8 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
               const dayBadge = 
                 day.dayNumber === 1 ? '🛬 도쿄 상륙 작전' :
                 day.dayNumber === 2 ? '🛍️ 쇼핑 & 인파 생존' :
-                day.dayNumber === 3 ? '👾 성지순례 & 덕질' :
-                day.dayNumber === 4 ? '🗼 랜드마크 점령' :
+                day.dayNumber === 3 ? '🗻 후지산 절경 & 도쿄역' :
+                day.dayNumber === 4 ? '🧙 마법 스튜디오 & 시부야' :
                 day.dayNumber === 5 ? '🍜 먹방 & 힐링(?)' : '🛫 최후의 쇼핑 후 복귀';
 
               return (

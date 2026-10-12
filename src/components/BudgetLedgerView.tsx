@@ -1179,8 +1179,8 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                     <option value={0}>사전 준비/예약 (출발 전)</option>
                     <option value={1}>1일차 (1/13 아사쿠사·스카이트리)</option>
                     <option value={2}>2일차 (1/14 디즈니씨)</option>
-                    <option value={3}>3일차 (1/15 해리포터·시부야)</option>
-                    <option value={4}>4일차 (1/16 후지산 투어)</option>
+                    <option value={3}>3일차 (1/15 후지산 투어)</option>
+                    <option value={4}>4일차 (1/16 해리포터·시부야)</option>
                     <option value={5}>5일차 (1/17 쓰키지·롯폰기)</option>
                     <option value={6}>6일차 (1/18 긴시초·공항귀국)</option>
                   </select>

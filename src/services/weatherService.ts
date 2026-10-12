@@ -18,16 +18,16 @@ export const DAY_INDOOR_RECOMMENDATIONS: Record<number, string[]> = {
     "디즈니 리조트 라인 모노레일 순환 탑승으로 비 맞지 않고 리조트 파크 감상하기"
   ],
   3: [
-    "워너 브라더스 해리포터 스튜디오 투어는 전 구역이 최첨단 초대형 실내 전시장이라 비 오는 날에도 100% 쾌적합니다!",
-    "신주쿠 게이오·오다큐·이세탄 백화점 지하 데파치카(식품관) & 대형 서점 키노쿠니야 실내 투어",
-    "시부야 스카이 야외 루프탑 대신 45층 통유리 실내 전망대 & 시부야 스크램블 스퀘어 실내 쇼핑",
-    "시부야 파르코 (PARCO) 6층 닌텐도 도쿄 & 포켓몬 센터 실내 굿즈 쇼핑"
-  ],
-  4: [
     "도쿄역 마루노우치 지하 '도쿄역 1번가' 캐릭터 스트리트(지브리·포켓몬·산리오) & 라멘 스트리트 실내 미식 투어",
     "도쿄역 바로 맞은편 KITTE(킷테) 쇼핑몰 & 도쿄대학 인터미디어테크(무료 국립 자연사 박물관) 실내 관람",
     "후지산 당일 투어 시: 가와구치코 오르골의 숲 미술관, 후지산 와인 양조장 등 실내 뷰포인트 중심 관람",
     "마루노우치 오아조(OAZO) 대형 마루젠 서점 북카페에서 도쿄역 뷰 감상"
+  ],
+  4: [
+    "워너 브라더스 해리포터 스튜디오 투어는 전 구역이 최첨단 초대형 실내 전시장이라 비 오는 날에도 100% 쾌적합니다!",
+    "신주쿠 게이오·오다큐·이세탄 백화점 지하 데파치카(식품관) & 대형 서점 키노쿠니야 실내 투어",
+    "시부야 스카이 야외 루프탑 대신 45층 통유리 실내 전망대 & 시부야 스크램블 스퀘어 실내 쇼핑",
+    "시부야 파르코 (PARCO) 6층 닌텐도 도쿄 & 포켓몬 센터 실내 굿즈 쇼핑"
   ],
   5: [
     "긴자 식스 (GINZA SIX) 및 미쓰코시 백화점 실내 럭셔리 쇼핑 & 츠타야 북카페 아트 갤러리",
@@ -73,19 +73,6 @@ export const INITIAL_TOKYO_WEATHER: DayWeather[] = [
   {
     dayNumber: 3,
     date: '1월 15일',
-    tempDay: 7,
-    tempNight: 3,
-    condition: 'Rain',
-    description: '오후 비 예보 (우산 필요)',
-    icon: '10d',
-    rainProbability: 80,
-    humidity: 85,
-    windSpeed: 4.5,
-    indoorTips: DAY_INDOOR_RECOMMENDATIONS[3]
-  },
-  {
-    dayNumber: 4,
-    date: '1월 16일',
     tempDay: 10,
     tempNight: 0,
     condition: 'Clear',
@@ -94,6 +81,19 @@ export const INITIAL_TOKYO_WEATHER: DayWeather[] = [
     rainProbability: 5,
     humidity: 36,
     windSpeed: 2.1,
+    indoorTips: DAY_INDOOR_RECOMMENDATIONS[3]
+  },
+  {
+    dayNumber: 4,
+    date: '1월 16일',
+    tempDay: 9,
+    tempNight: 2,
+    condition: 'Clouds',
+    description: '구름 조금 (실내 관람 최적)',
+    icon: '03d',
+    rainProbability: 20,
+    humidity: 50,
+    windSpeed: 3.0,
     indoorTips: DAY_INDOOR_RECOMMENDATIONS[4]
   },
   {

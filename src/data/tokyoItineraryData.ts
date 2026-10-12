@@ -412,6 +412,130 @@ export const INITIAL_TRIP_DAYS: TripDay[] = [
     dayNumber: 3,
     date: '1월 15일',
     fullDate: '2027-01-15 (금)',
+    theme: '후지산 1일 투어 및 도쿄역 야경',
+    description: '눈 덮인 후지산 절경 투어를 마치고, 도쿄의 역사적 중심지 도쿄역 마루노우치 야경 감상 후 소부선 쾌속으로 긴시초 숙소 복귀',
+    spots: [
+      {
+        id: 'spot-4-1',
+        name: '후지산 투어 (가와구치코 & 오시노핫카이)',
+        japaneseName: '富士山日帰りツアー (河口湖)',
+        category: 'nature',
+        categoryLabel: '관광 명소',
+        rating: 4.8,
+        openStatus: 'Open',
+        hours: '08:00 ~ 17:30 (투어 전일)',
+        estimatedTime: '08:00 ~ 17:30',
+        coordinates: [35.5050, 138.7600],
+        summary: '도쿄 도심을 벗어나 일본의 상징 후지산 파노라마 뷰와 가와구치코 호수를 둘러보는 1일 버스 투어입니다.',
+        tips: [
+          '도쿄역 또는 신주쿠역 지정 승차장에서 오전 8시경 투어 버스 탑승.',
+          '아라쿠라야마 센겐공원의 오층탑과 후지산이 겹치는 상징적 뷰포인트, 오시노핫카이 전통 용천수 마을 관람.',
+          '겨울철(1월) 맑은 날씨에는 만년설이 덮인 선명하고 웅장한 후지산을 볼 확률이 가장 높습니다.'
+        ],
+        recommendedFoods: [
+          { name: '호우토우 후도 (ほうとう不動)', menu: '야마나시 명물 된장 칼국수 호우토우', desc: '뜨끈한 호박과 야채가 듬뿍 들어간 뚝배기 토속 칼국수', coordinates: [35.5030, 138.7610], rating: 4.5, priceRange: '1,200~1,500엔' },
+          { name: '후지산 레이크 베이크', menu: '수제 갓 구운 효모빵 & 호숫가 커피', desc: '가와구치코 호수를 바라보는 따뜻한 베이커리 카페', coordinates: [35.5220, 138.7650], rating: 4.6, priceRange: '500~900엔' },
+          { name: '오시노핫카이 두부 & 당고', menu: '후지산 명천수 손두부 & 쑥 당고 꼬치', desc: '만년설 용천수로 만든 고소한 전통 길거리 간식', coordinates: [35.4590, 138.8320], rating: 4.5, priceRange: '200~450엔' },
+          { name: '후지산 푸딩 본점', menu: '파란빛 후지산 소다 & 우유 푸딩', desc: '후지산 모양을 본뜬 인기 로컬 기념 디저트', coordinates: [35.5050, 138.7600], rating: 4.4, priceRange: '400~550엔' }
+        ],
+        address: 'Kawaguchiko, Minamitsuru District, Yamanashi',
+        likes: 22,
+        hasLiked: true
+      },
+      {
+        id: 'spot-4-2',
+        name: '도쿄역 마루노우치 역사',
+        japaneseName: '東京駅 (Tokyo Station)',
+        category: 'station',
+        categoryLabel: '대중교통 이용장소',
+        rating: 4.3,
+        openStatus: 'Open',
+        hours: '상시 개방 (KITTE 및 상점 11:00 ~ 21:00)',
+        estimatedTime: '17:30 ~ 21:00',
+        coordinates: [35.6812, 139.7671],
+        summary: '오후 5시 반경 투어 버스에서 하차한 뒤 도쿄역 근처에서 저녁 일정을 보냅니다. 마루노우치 붉은 벽돌 역사의 클래식한 야경을 구경하기에 최적입니다.',
+        tips: [
+          '투어 버스 하차 후 마루노우치 중앙 광장에서 붉은 벽돌 르네상스 양식의 도쿄역사 외관과 조명을 감상하세요.',
+          '도쿄역 바로 맞은편 KITTE(킷테) 쇼핑몰 6층 옥상정원(무료)에 올라가면 도쿄역 전체가 내려다보이는 야경 명당입니다.',
+          '식사 후 지하 도쿄역 1번가 캐릭터 스트리트(지브리, 포켓몬, 짱구 샵)에서 기념품 쇼핑을 즐기세요.'
+        ],
+        recommendedFoods: [
+          { name: '네무로 하나마루 (KITTE 5층)', menu: '홋카이도 직송 프리미엄 회전초밥', desc: '도쿄역 최고 인기 초밥집 (웨이팅 어플 대기 추천)', coordinates: [35.6798, 139.7648], rating: 4.6, priceRange: '1,800~2,800엔' },
+          { name: '도쿄 라멘 스트리트 (지하 1층)', menu: '로쿠린샤 농후 츠케멘 & 반숙란', desc: '뜨끈한 국물이 당길 때 도쿄 최고 라멘 격전지', coordinates: [35.6812, 139.7675], rating: 4.5, priceRange: '950~1,300엔' },
+          { name: '카츠레츠 마토이 도쿄역점', menu: '두툼한 히레카츠 정식 (가성비 일품)', desc: '지하 상가 현지 직장인들이 찾는 갓 튀긴 돈카츠', coordinates: [35.6805, 139.7668], rating: 4.4, priceRange: '1,100~1,500엔' },
+          { name: '도쿄역 에키벤야 마츠리 (1층)', menu: '전국 200여 종 명품 특산 에키벤 도시락', desc: '신선한 해산물/소고기 도시락 테이크아웃 명소', coordinates: [35.6812, 139.7671], rating: 4.6, priceRange: '1,100~1,600엔' }
+        ],
+        address: '1 Chome Marunouchi, Chiyoda City, Tokyo',
+        likes: 16,
+        hasLiked: false
+      },
+      {
+        id: 'spot-4-3',
+        name: '롯데시티호텔 긴시쵸 (숙소 복귀 & 휴식)',
+        japaneseName: 'ロッテシティホテル錦糸町',
+        category: 'hotel',
+        categoryLabel: '숙소 복귀',
+        rating: 4.5,
+        openStatus: 'Open · 체크인 완료 / 휴식',
+        hours: '24시간 상시 운영 (긴시초역 5번 출구 직결)',
+        estimatedTime: '21:20 ~ 23:00',
+        coordinates: [35.6967, 139.8143],
+        summary: '도쿄역 마루노우치 야경과 캐릭터 스트리트 쇼핑 후 지하 승강장에서 소부선 쾌속을 타면 단 8분(1정거장) 만에 긴시초 숙소로 직통 복귀합니다. 후지산 1일 투어의 여운을 곱씹으며, 숙소 근처 신선한 해산물 선술집이나 바삭한 수제 교자 주점에서 시원한 프리미엄 생맥주를 들이켜보세요.',
+        tips: [
+          '도쿄역 지하 5층 소부·요코스카선 승강장(3·4번 홈)에서 치바/나리타 방면 쾌속 전철 탑승 ➔ 단 8분(1정거장) 만에 긴시초역 도착!',
+          '환승 0회 직통 8분으로 도쿄역에서 가장 빠르게 복귀할 수 있는 최고의 노선입니다.',
+          '🍺 [숙소 근처 밤맥주 선술집 1] 우마이몬야 카라쿠 긴시초(호텔 도보 2분): 매일 아침 도요스/츠키지에서 들여오는 제철 모둠 사시미와 뜨끈한 바지락 버터 술찜! 목 넘김이 부드럽고 시원한 프리미엄 에비스 생맥주와 사케 페어링이 환상적입니다.',
+          '🍺 [숙소 근처 밤맥주 선술집 2] 대중주점 텟짱 긴시초점(호텔 도보 1분): 살얼음 삿포로 생맥주 400엔대! 진하고 고소한 소힘줄 미소 조림과 바삭한 가라아게에 맥주가 무한대로 들어가는 로컬 대중 선술집.'
+        ],
+        recommendedFoods: [
+          { name: '우마이몬야 카라쿠 (해산물 선술집)', menu: '제철 모둠 사시미 5종 & 바지락 버터 술찜 & 에비스 생맥주', desc: '호텔 도보 2분! 신선한 해산물 요리와 시원한 프리미엄 생맥주의 조화', coordinates: [35.6964, 139.8149], rating: 4.6, priceRange: '2,200~3,500엔' },
+          { name: '대중주점 텟짱 긴시초점 (가성비 선술집)', menu: '살얼음 삿포로 생맥주 조끼 & 규스지 니코미 & 햄카츠', desc: '호텔 도보 1분! 현지 직장인들이 애정하는 가성비 최고의 레트로 밤맥주 주점', coordinates: [35.6965, 139.8140], rating: 4.6, priceRange: '1,400~2,200엔' },
+          { name: '긴시초 멘야 이치토 (스미다구)', menu: '특제 농후 어패류 츠케멘 & 캔맥주', desc: '일본 타베로그 라멘 부문 도쿄 최상위 랭킹 노포', coordinates: [35.7005, 139.8170], rating: 4.7, priceRange: '1,000~1,400엔' },
+          { name: '교자보 긴시초남쪽출구', menu: '바삭한 한입 야키교자 & 차가운 생맥주', desc: '야식으로 딱 좋은 가성비 수제 만두', coordinates: [35.6961, 139.8139], rating: 4.4, priceRange: '450~850엔' }
+        ],
+        address: 'Tokyo, Sumida City, Kotobashi, 4 Chome−6−1',
+        likes: 17,
+        hasLiked: false
+      }
+    ],
+    transits: [
+      {
+        fromSpotId: 'spot-4-1',
+        toSpotId: 'spot-4-2',
+        method: 'bus',
+        routeName: '후지산 전용 투어 버스 (추오 자동차도로 ➔ 도쿄역 마루노우치 남쪽 출구)',
+        durationMinutes: 105,
+        fareJPY: 0,
+        fareKRW: 0,
+        lineName: '후지산 1일 데이투어 전용 버스',
+        lineColor: '#00A86B',
+        detailedRoute: '가와구치코 호수 ➔ 추오 고속도로 ➔ 도쿄역 마루노우치 하차장',
+        transitTip: '투어 요금에 왕복 교통비가 포함되어 있습니다. 차창 밖 석양을 감상하며 편안하게 이동하세요.',
+        passRecommendation: '투어 바우처 탑승 (추가 요금 0엔)',
+        transferCount: 0
+      },
+      {
+        fromSpotId: 'spot-4-2',
+        toSpotId: 'spot-4-3',
+        method: 'train',
+        routeName: 'JR 소부선 쾌속 (JO19 도쿄역 ➔ JO22 긴시초역 직통 1정거장)',
+        durationMinutes: 8,
+        fareJPY: 170,
+        fareKRW: 1550,
+        lineName: 'JR 소부선 쾌속 (JO)',
+        lineColor: '#007AC9',
+        detailedRoute: '도쿄역 지하 5층 3·4번 승강장 ➔ 1정거장 쾌속 직통 ➔ 긴시초역 5번 출구 호텔 연결',
+        transitTip: '🏨 [숙소 복귀] 환승 0회! 8분 만에 도쿄역에서 긴시초 숙소 직통 도착! 긴시초역 5번 출구 호텔 지하 직결',
+        passRecommendation: 'Suica/Pasmo IC카드 태그 (167엔)',
+        transferCount: 0,
+        isReturnToHotel: true
+      }
+    ]
+  },
+  {
+    dayNumber: 4,
+    date: '1월 16일',
+    fullDate: '2027-01-16 (토)',
     theme: '해리포터와 신도심 (긴자 제외)',
     description: '워너 브라더스 스튜디오 투어에서 마법 세계를 탐험하고, 신주쿠와 시부야 스카이 후 한조몬선 지하철 직통으로 긴시초 숙소 복귀',
     spots: [
@@ -636,130 +760,6 @@ export const INITIAL_TRIP_DAYS: TripDay[] = [
         detailedRoute: '시부야 스크램블 지하 ➔ 한조몬선 1번홈 ➔ 11정거장 직통 ➔ 긴시초역 5번 출구 호텔 연결',
         transitTip: '🏨 [숙소 복귀] 시부야역에서 환승 0회 직통 29분! 시부야가 출발 기점에 가까워 편안하게 앉아서 올 수 있는 최고의 대중교통 노선입니다.',
         passRecommendation: '도쿄 서브웨이 티켓 유효 / IC카드 252엔',
-        transferCount: 0,
-        isReturnToHotel: true
-      }
-    ]
-  },
-  {
-    dayNumber: 4,
-    date: '1월 16일',
-    fullDate: '2027-01-16 (토)',
-    theme: '후지산 1일 투어 및 도쿄역 야경',
-    description: '눈 덮인 후지산 절경 투어를 마치고, 도쿄의 역사적 중심지 도쿄역 마루노우치 야경 감상 후 소부선 쾌속으로 긴시초 숙소 복귀',
-    spots: [
-      {
-        id: 'spot-4-1',
-        name: '후지산 투어 (가와구치코 & 오시노핫카이)',
-        japaneseName: '富士山日帰りツアー (河口湖)',
-        category: 'nature',
-        categoryLabel: '관광 명소',
-        rating: 4.8,
-        openStatus: 'Open',
-        hours: '08:00 ~ 17:30 (투어 전일)',
-        estimatedTime: '08:00 ~ 17:30',
-        coordinates: [35.5050, 138.7600],
-        summary: '도쿄 도심을 벗어나 일본의 상징 후지산 파노라마 뷰와 가와구치코 호수를 둘러보는 1일 버스 투어입니다.',
-        tips: [
-          '도쿄역 또는 신주쿠역 지정 승차장에서 오전 8시경 투어 버스 탑승.',
-          '아라쿠라야마 센겐공원의 오층탑과 후지산이 겹치는 상징적 뷰포인트, 오시노핫카이 전통 용천수 마을 관람.',
-          '겨울철(1월) 맑은 날씨에는 만년설이 덮인 선명하고 웅장한 후지산을 볼 확률이 가장 높습니다.'
-        ],
-        recommendedFoods: [
-          { name: '호우토우 후도 (ほうとう不動)', menu: '야마나시 명물 된장 칼국수 호우토우', desc: '뜨끈한 호박과 야채가 듬뿍 들어간 뚝배기 토속 칼국수', coordinates: [35.5030, 138.7610], rating: 4.5, priceRange: '1,200~1,500엔' },
-          { name: '후지산 레이크 베이크', menu: '수제 갓 구운 효모빵 & 호숫가 커피', desc: '가와구치코 호수를 바라보는 따뜻한 베이커리 카페', coordinates: [35.5220, 138.7650], rating: 4.6, priceRange: '500~900엔' },
-          { name: '오시노핫카이 두부 & 당고', menu: '후지산 명천수 손두부 & 쑥 당고 꼬치', desc: '만년설 용천수로 만든 고소한 전통 길거리 간식', coordinates: [35.4590, 138.8320], rating: 4.5, priceRange: '200~450엔' },
-          { name: '후지산 푸딩 본점', menu: '파란빛 후지산 소다 & 우유 푸딩', desc: '후지산 모양을 본뜬 인기 로컬 기념 디저트', coordinates: [35.5050, 138.7600], rating: 4.4, priceRange: '400~550엔' }
-        ],
-        address: 'Kawaguchiko, Minamitsuru District, Yamanashi',
-        likes: 22,
-        hasLiked: true
-      },
-      {
-        id: 'spot-4-2',
-        name: '도쿄역 마루노우치 역사',
-        japaneseName: '東京駅 (Tokyo Station)',
-        category: 'station',
-        categoryLabel: '대중교통 이용장소',
-        rating: 4.3,
-        openStatus: 'Open',
-        hours: '상시 개방 (KITTE 및 상점 11:00 ~ 21:00)',
-        estimatedTime: '17:30 ~ 21:00',
-        coordinates: [35.6812, 139.7671],
-        summary: '오후 5시 반경 투어 버스에서 하차한 뒤 도쿄역 근처에서 저녁 일정을 보냅니다. 마루노우치 붉은 벽돌 역사의 클래식한 야경을 구경하기에 최적입니다.',
-        tips: [
-          '투어 버스 하차 후 마루노우치 중앙 광장에서 붉은 벽돌 르네상스 양식의 도쿄역사 외관과 조명을 감상하세요.',
-          '도쿄역 바로 맞은편 KITTE(킷테) 쇼핑몰 6층 옥상정원(무료)에 올라가면 도쿄역 전체가 내려다보이는 야경 명당입니다.',
-          '식사 후 지하 도쿄역 1번가 캐릭터 스트리트(지브리, 포켓몬, 짱구 샵)에서 기념품 쇼핑을 즐기세요.'
-        ],
-        recommendedFoods: [
-          { name: '네무로 하나마루 (KITTE 5층)', menu: '홋카이도 직송 프리미엄 회전초밥', desc: '도쿄역 최고 인기 초밥집 (웨이팅 어플 대기 추천)', coordinates: [35.6798, 139.7648], rating: 4.6, priceRange: '1,800~2,800엔' },
-          { name: '도쿄 라멘 스트리트 (지하 1층)', menu: '로쿠린샤 농후 츠케멘 & 반숙란', desc: '뜨끈한 국물이 당길 때 도쿄 최고 라멘 격전지', coordinates: [35.6812, 139.7675], rating: 4.5, priceRange: '950~1,300엔' },
-          { name: '카츠레츠 마토이 도쿄역점', menu: '두툼한 히레카츠 정식 (가성비 일품)', desc: '지하 상가 현지 직장인들이 찾는 갓 튀긴 돈카츠', coordinates: [35.6805, 139.7668], rating: 4.4, priceRange: '1,100~1,500엔' },
-          { name: '도쿄역 에키벤야 마츠리 (1층)', menu: '전국 200여 종 명품 특산 에키벤 도시락', desc: '신선한 해산물/소고기 도시락 테이크아웃 명소', coordinates: [35.6812, 139.7671], rating: 4.6, priceRange: '1,100~1,600엔' }
-        ],
-        address: '1 Chome Marunouchi, Chiyoda City, Tokyo',
-        likes: 16,
-        hasLiked: false
-      },
-      {
-        id: 'spot-4-3',
-        name: '롯데시티호텔 긴시쵸 (숙소 복귀 & 휴식)',
-        japaneseName: 'ロッテシティホテル錦糸町',
-        category: 'hotel',
-        categoryLabel: '숙소 복귀',
-        rating: 4.5,
-        openStatus: 'Open · 체크인 완료 / 휴식',
-        hours: '24시간 상시 운영 (긴시초역 5번 출구 직결)',
-        estimatedTime: '21:20 ~ 23:00',
-        coordinates: [35.6967, 139.8143],
-        summary: '도쿄역 마루노우치 야경과 캐릭터 스트리트 쇼핑 후 지하 승강장에서 소부선 쾌속을 타면 단 8분(1정거장) 만에 긴시초 숙소로 직통 복귀합니다. 후지산 1일 투어의 여운을 곱씹으며, 숙소 근처 신선한 해산물 선술집이나 바삭한 수제 교자 주점에서 시원한 프리미엄 생맥주를 들이켜보세요.',
-        tips: [
-          '도쿄역 지하 5층 소부·요코스카선 승강장(3·4번 홈)에서 치바/나리타 방면 쾌속 전철 탑승 ➔ 단 8분(1정거장) 만에 긴시초역 도착!',
-          '환승 0회 직통 8분으로 도쿄역에서 가장 빠르게 복귀할 수 있는 최고의 노선입니다.',
-          '🍺 [숙소 근처 밤맥주 선술집 1] 우마이몬야 카라쿠 긴시초(호텔 도보 2분): 매일 아침 도요스/츠키지에서 들여오는 제철 모둠 사시미와 뜨끈한 바지락 버터 술찜! 목 넘김이 부드럽고 시원한 프리미엄 에비스 생맥주와 사케 페어링이 환상적입니다.',
-          '🍺 [숙소 근처 밤맥주 선술집 2] 대중주점 텟짱 긴시초점(호텔 도보 1분): 살얼음 삿포로 생맥주 400엔대! 진하고 고소한 소힘줄 미소 조림과 바삭한 가라아게에 맥주가 무한대로 들어가는 로컬 대중 선술집.'
-        ],
-        recommendedFoods: [
-          { name: '우마이몬야 카라쿠 (해산물 선술집)', menu: '제철 모둠 사시미 5종 & 바지락 버터 술찜 & 에비스 생맥주', desc: '호텔 도보 2분! 신선한 해산물 요리와 시원한 프리미엄 생맥주의 조화', coordinates: [35.6964, 139.8149], rating: 4.6, priceRange: '2,200~3,500엔' },
-          { name: '대중주점 텟짱 긴시초점 (가성비 선술집)', menu: '살얼음 삿포로 생맥주 조끼 & 규스지 니코미 & 햄카츠', desc: '호텔 도보 1분! 현지 직장인들이 애정하는 가성비 최고의 레트로 밤맥주 주점', coordinates: [35.6965, 139.8140], rating: 4.6, priceRange: '1,400~2,200엔' },
-          { name: '긴시초 멘야 이치토 (스미다구)', menu: '특제 농후 어패류 츠케멘 & 캔맥주', desc: '일본 타베로그 라멘 부문 도쿄 최상위 랭킹 노포', coordinates: [35.7005, 139.8170], rating: 4.7, priceRange: '1,000~1,400엔' },
-          { name: '교자보 긴시초남쪽출구', menu: '바삭한 한입 야키교자 & 차가운 생맥주', desc: '야식으로 딱 좋은 가성비 수제 만두', coordinates: [35.6961, 139.8139], rating: 4.4, priceRange: '450~850엔' }
-        ],
-        address: 'Tokyo, Sumida City, Kotobashi, 4 Chome−6−1',
-        likes: 17,
-        hasLiked: false
-      }
-    ],
-    transits: [
-      {
-        fromSpotId: 'spot-4-1',
-        toSpotId: 'spot-4-2',
-        method: 'bus',
-        routeName: '후지산 전용 투어 버스 (추오 자동차도로 ➔ 도쿄역 마루노우치 남쪽 출구)',
-        durationMinutes: 105,
-        fareJPY: 0,
-        fareKRW: 0,
-        lineName: '후지산 1일 데이투어 전용 버스',
-        lineColor: '#00A86B',
-        detailedRoute: '가와구치코 호수 ➔ 추오 고속도로 ➔ 도쿄역 마루노우치 하차장',
-        transitTip: '투어 요금에 왕복 교통비가 포함되어 있습니다. 차창 밖 석양을 감상하며 편안하게 이동하세요.',
-        passRecommendation: '투어 바우처 탑승 (추가 요금 0엔)',
-        transferCount: 0
-      },
-      {
-        fromSpotId: 'spot-4-2',
-        toSpotId: 'spot-4-3',
-        method: 'train',
-        routeName: 'JR 소부선 쾌속 (JO19 도쿄역 ➔ JO22 긴시초역 직통 1정거장)',
-        durationMinutes: 8,
-        fareJPY: 170,
-        fareKRW: 1550,
-        lineName: 'JR 소부선 쾌속 (JO)',
-        lineColor: '#007AC9',
-        detailedRoute: '도쿄역 지하 5층 3·4번 승강장 ➔ 1정거장 쾌속 직통 ➔ 긴시초역 5번 출구 호텔 연결',
-        transitTip: '🏨 [숙소 복귀] 환승 0회! 8분 만에 도쿄역에서 긴시초 숙소 직통 도착! 긴시초역 5번 출구 호텔 지하 직결',
-        passRecommendation: 'Suica/Pasmo IC카드 태그 (167엔)',
         transferCount: 0,
         isReturnToHotel: true
       }
@@ -1366,68 +1366,6 @@ export const INITIAL_BUDGET: BudgetItem[] = [
     "type": "EXPENSE",
     "day": 3,
     "date": "1월 15일",
-    "title": "해리포터 스튜디오 버터맥주 & 백롯 카페 간식 (4인)",
-    "category": "카페/디저트",
-    "amountJPY": 4600,
-    "paymentMethod": "CASH",
-    "scope": "SHARED",
-    "paidBy": "공동경비(현금)",
-    "location": "네리마",
-    "note": "공동경비 현금에서 차감",
-    "time": "11:20"
-  },
-  {
-    "id": "b-d3-2",
-    "type": "EXPENSE",
-    "day": 3,
-    "date": "1월 15일",
-    "title": "Day 3 지하철·세이부선 이동 교통비 합계 (4인)",
-    "category": "교통",
-    "amountJPY": 3840,
-    "paymentMethod": "CASH",
-    "scope": "SHARED",
-    "paidBy": "공동경비(현금)",
-    "location": "도쿄 메트로",
-    "note": "공동경비 현금에서 차감",
-    "time": "13:30"
-  },
-  {
-    "id": "b-d3-card-h",
-    "type": "EXPENSE",
-    "day": 3,
-    "date": "1월 15일",
-    "title": "시부야 파르코 닌텐도 도쿄 & 포켓몬센터 굿즈 쇼핑",
-    "category": "쇼핑",
-    "amountJPY": 14500,
-    "paymentMethod": "CARD",
-    "scope": "HYEONWOO",
-    "paidBy": "현우가족",
-    "location": "시부야",
-    "note": "현우가족 개별 카드 지출 (가족 단독 부담)",
-    "time": "12:00",
-    "cardCompany": "삼성카드"
-  },
-  {
-    "id": "b-d3-card-s",
-    "type": "EXPENSE",
-    "day": 3,
-    "date": "1월 15일",
-    "title": "시부야 메가돈키호테 선물 및 화장품 쇼핑",
-    "category": "쇼핑",
-    "amountJPY": 12800,
-    "paymentMethod": "CARD",
-    "scope": "SEHYEON",
-    "paidBy": "세현가족",
-    "location": "시부야",
-    "note": "세현가족 개별 카드 지출 (가족 단독 부담)",
-    "time": "12:00",
-    "cardCompany": "신한카드"
-  },
-  {
-    "id": "b-d4-1",
-    "type": "EXPENSE",
-    "day": 4,
-    "date": "1월 16일",
     "title": "후지산 & 가와구치코 1일 버스 투어 (4인 전원)",
     "category": "입장료",
     "amountJPY": 32000,
@@ -1440,10 +1378,10 @@ export const INITIAL_BUDGET: BudgetItem[] = [
     "cardCompany": "삼성카드"
   },
   {
-    "id": "b-d4-2",
+    "id": "b-d3-2",
     "type": "EXPENSE",
-    "day": 4,
-    "date": "1월 16일",
+    "day": 3,
+    "date": "1월 15일",
     "title": "가와구치코 호숫가 로컬 우동 점심 식사 (4인)",
     "category": "식비",
     "amountJPY": 5600,
@@ -1453,6 +1391,68 @@ export const INITIAL_BUDGET: BudgetItem[] = [
     "location": "가와구치코",
     "note": "공동경비 현금에서 차감",
     "time": "12:30"
+  },
+  {
+    "id": "b-d4-1",
+    "type": "EXPENSE",
+    "day": 4,
+    "date": "1월 16일",
+    "title": "해리포터 스튜디오 버터맥주 & 백롯 카페 간식 (4인)",
+    "category": "카페/디저트",
+    "amountJPY": 4600,
+    "paymentMethod": "CASH",
+    "scope": "SHARED",
+    "paidBy": "공동경비(현금)",
+    "location": "네리마",
+    "note": "공동경비 현금에서 차감",
+    "time": "11:20"
+  },
+  {
+    "id": "b-d4-2",
+    "type": "EXPENSE",
+    "day": 4,
+    "date": "1월 16일",
+    "title": "Day 4 지하철·세이부선 이동 교통비 합계 (4인)",
+    "category": "교통",
+    "amountJPY": 3840,
+    "paymentMethod": "CASH",
+    "scope": "SHARED",
+    "paidBy": "공동경비(현금)",
+    "location": "도쿄 메트로",
+    "note": "공동경비 현금에서 차감",
+    "time": "13:30"
+  },
+  {
+    "id": "b-d4-card-h",
+    "type": "EXPENSE",
+    "day": 4,
+    "date": "1월 16일",
+    "title": "시부야 파르코 닌텐도 도쿄 & 포켓몬센터 굿즈 쇼핑",
+    "category": "쇼핑",
+    "amountJPY": 14500,
+    "paymentMethod": "CARD",
+    "scope": "HYEONWOO",
+    "paidBy": "현우가족",
+    "location": "시부야",
+    "note": "현우가족 개별 카드 지출 (가족 단독 부담)",
+    "time": "12:00",
+    "cardCompany": "삼성카드"
+  },
+  {
+    "id": "b-d4-card-s",
+    "type": "EXPENSE",
+    "day": 4,
+    "date": "1월 16일",
+    "title": "시부야 메가돈키호테 선물 및 화장품 쇼핑",
+    "category": "쇼핑",
+    "amountJPY": 12800,
+    "paymentMethod": "CARD",
+    "scope": "SEHYEON",
+    "paidBy": "세현가족",
+    "location": "시부야",
+    "note": "세현가족 개별 카드 지출 (가족 단독 부담)",
+    "time": "12:00",
+    "cardCompany": "신한카드"
   },
   {
     "id": "b-d5-1",
