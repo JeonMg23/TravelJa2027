@@ -1080,10 +1080,10 @@ export const INITIAL_TRIP_DAYS: TripDay[] = [
 ];
 
 export const INITIAL_COMPANIONS: FriendCompanion[] = [
-  { id: 'user-1', name: '나 (작성자)', avatarColor: 'bg-indigo-600', status: '동선 확인 중', isOnline: true, viewingDay: 1 },
-  { id: 'user-2', name: '민지', avatarColor: 'bg-rose-500', status: '디즈니씨 DPA 확인 중', isOnline: true, viewingDay: 2 },
-  { id: 'user-3', name: '준호', avatarColor: 'bg-emerald-600', status: '시부야 스카이 티켓 예약 완료', isOnline: true, viewingDay: 3 },
-  { id: 'user-4', name: '수진', avatarColor: 'bg-amber-600', status: '롯폰기 맛집 찜하기 중', isOnline: false, viewingDay: 5 }
+  { id: 'user-1', name: '현우맘 (관리자)', avatarColor: 'bg-blue-600', status: '일정 및 숙소 체크 중', isOnline: true, viewingDay: 1 },
+  { id: 'user-2', name: '세현맘 (관리자)', avatarColor: 'bg-rose-500', status: '경비 정산 및 식당 예약 확인', isOnline: true, viewingDay: 2 },
+  { id: 'user-3', name: '현우 (원정대원)', avatarColor: 'bg-indigo-600', status: '디즈니씨 DPA 탐험 준비', isOnline: true, viewingDay: 2 },
+  { id: 'user-4', name: '세현 (원정대원)', avatarColor: 'bg-emerald-600', status: '시부야 스카이 포토존 탐색 중', isOnline: false, viewingDay: 3 }
 ];
 
 export const INITIAL_COMMENTS: SpotComment[] = [
@@ -1091,8 +1091,8 @@ export const INITIAL_COMMENTS: SpotComment[] = [
     id: 'c-1',
     spotId: 'spot-1-2',
     spotName: '우에노 공원',
-    author: '민지',
-    avatarColor: 'bg-rose-500',
+    author: '현우맘',
+    avatarColor: 'bg-blue-600',
     text: '이센 본점 돈카츠 웨이팅 대략 20~30분 정도 있대요! 늦은 점심 2시 반쯤 가면 바로 들어갈 수도 있대요.',
     timestamp: '오전 10:15'
   },
@@ -1100,8 +1100,8 @@ export const INITIAL_COMMENTS: SpotComment[] = [
     id: 'c-2',
     spotId: 'spot-2-1',
     spotName: '도쿄 디즈니씨',
-    author: '준호',
-    avatarColor: 'bg-emerald-600',
+    author: '현우',
+    avatarColor: 'bg-indigo-600',
     text: '소어링 DPA는 입장하자마자 앱 켜서 바로 결제해야 오전 슬롯 잡을 수 있대! 디즈니 공식 앱 미리 다운받고 카드 등록해두자.',
     timestamp: '오전 11:42'
   },
@@ -1109,10 +1109,19 @@ export const INITIAL_COMMENTS: SpotComment[] = [
     id: 'c-3',
     spotId: 'spot-3-3',
     spotName: '시부야 스카이',
-    author: '수진',
-    avatarColor: 'bg-amber-600',
+    author: '세현',
+    avatarColor: 'bg-emerald-600',
     text: '시부야 스카이 17:20 일몰 시간대로 티켓 예매 성공했어! 인생샷 건지자 ❤️',
     timestamp: '어제'
+  },
+  {
+    id: 'c-4',
+    spotId: 'spot-4-1',
+    spotName: '긴자 거리',
+    author: '세현맘',
+    avatarColor: 'bg-rose-500',
+    text: '긴자 이토야 문구점이랑 긴자 식스 디저트 카페 미리 리스트업 해뒀어요~ 여유롭게 둘러봐요!',
+    timestamp: '오후 03:20'
   }
 ];
 

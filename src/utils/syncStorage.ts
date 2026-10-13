@@ -119,7 +119,12 @@ export function saveDays(days: TripDay[]): void {
 export function loadSavedComments(defaultComments: SpotComment[]): SpotComment[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_COMMENTS);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.some((c) => c.author.includes('현우맘') || c.author.includes('세현맘'))) {
+        return parsed;
+      }
+    }
   } catch {
     // fallback
   }
@@ -279,7 +284,12 @@ export function resetSavedBudget(defaultBudget: BudgetItem[]): BudgetItem[] {
 export function loadSavedCompanions(defaultCompanions: FriendCompanion[]): FriendCompanion[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_COMPANIONS);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.some((c) => c.name.includes('현우맘'))) {
+        return parsed;
+      }
+    }
   } catch {
     // fallback
   }

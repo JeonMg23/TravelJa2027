@@ -27,12 +27,15 @@ import {
 } from 'lucide-react';
 import { TripDay } from '../types/travel';
 import { MobileInstallModal } from './MobileInstallModal';
+import { KakaoAuthUser } from '../types/auth';
 
 interface LandingHeroPageProps {
   days: TripDay[];
   onStartTrip: (dayNumber?: number) => void;
   onOpenMap: () => void;
   onOpenChecklist?: () => void;
+  currentUser?: KakaoAuthUser | null;
+  onOpenLogin?: () => void;
 }
 
 // Playful quotes for teen boys
@@ -55,7 +58,9 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
   days,
   onStartTrip,
   onOpenMap,
-  onOpenChecklist
+  onOpenChecklist,
+  currentUser,
+  onOpenLogin
 }) => {
   const [funSoundPlayed, setFunSoundPlayed] = useState<string | null>(null);
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
@@ -133,49 +138,81 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
       )}
 
       {/* Top Street Style Nav */}
-      <header className="border-b-4 border-black bg-amber-300 sticky top-0 z-40 px-4 sm:px-8 py-3.5 shadow-[0_4px_0_#000]">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsMobileModalOpen(true)}
-              className="w-11 h-11 bg-black text-amber-300 rounded-2xl border-2 border-black flex items-center justify-center font-black text-2xl shadow-[3px_3px_0_#fff] rotate-[-4deg] hover:rotate-12 hover:scale-105 active:scale-95 transition-transform cursor-pointer relative group"
-              title="스마트폰 앱 설치 및 번개 아이콘(⚡) 생성"
-            >
-              ⚡
-              <span className="absolute -bottom-1 -right-1 bg-amber-400 text-black text-[9px] font-black px-1 rounded-full border border-black shadow-[1px_1px_0_#000]">
-                앱
-              </span>
-            </button>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xl sm:text-2xl font-black tracking-tight text-black font-sans">
+      <header className="border-b-2 sm:border-b-4 border-black bg-amber-300 sticky top-0 z-40 px-3 sm:px-8 py-2 sm:py-2.5 shadow-[0_2px_0_#000] sm:shadow-[0_4px_0_#000]">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-1.5 sm:gap-3">
+          {/* Top Row: Logo & Horizontal Title (Never wraps vertically!) */}
+          <div className="flex items-center justify-between gap-2 w-full md:w-auto">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <button
+                onClick={() => setIsMobileModalOpen(true)}
+                className="w-8 h-8 sm:w-10 sm:h-10 bg-black text-amber-300 rounded-xl sm:rounded-2xl border-2 border-black flex items-center justify-center font-black text-base sm:text-xl shadow-[2px_2px_0_#fff] rotate-[-3deg] hover:rotate-12 hover:scale-105 active:scale-95 transition-transform cursor-pointer relative shrink-0 group"
+                title="스마트폰 앱 설치 및 바로가기"
+              >
+                ⚡
+              </button>
+
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                <span className="text-sm sm:text-2xl font-black tracking-tight text-black font-sans whitespace-nowrap">
                   개구쟁이들의 일본여행
                 </span>
-                <span className="bg-red-500 text-white text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-full border border-black shadow-[1px_1px_0_#000] rotate-3">
+                <span className="bg-red-500 text-white text-[10px] sm:text-xs font-black px-1.5 py-0.5 rounded-full border border-black shadow-[1px_1px_0_#000] rotate-2 whitespace-nowrap shrink-0">
                   우당탕탕!
                 </span>
               </div>
-              <span className="text-xs font-bold text-slate-800 hidden sm:block">
-                개구쟁이 친구들의 도쿄 5박 6일 좌충우돌 생존기
-              </span>
             </div>
+
+            {/* Quick Start button on the right of top row on mobile */}
+            <button
+              onClick={() => onStartTrip(1)}
+              className="md:hidden px-3 py-1.5 text-xs font-black text-black bg-[#4ade80] hover:bg-[#22c55e] rounded-xl border-2 border-black shadow-[2px_2px_0_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
+            >
+              <span>🚀 출발!</span>
+              <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
+            </button>
           </div>
 
-          {/* Quick Actions & Header D-Day */}
-          <div className="flex items-center gap-2 sm:gap-2.5">
+          {/* Sub Row on mobile (placed BELOW the title row) & inline on desktop */}
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pt-0.5 md:pt-0">
+            {/* Kakao Login / Profile Status Button */}
+            {onOpenLogin && (
+              <button
+                onClick={onOpenLogin}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-2 text-[11px] sm:text-xs font-black text-[#191919] bg-[#FEE500] hover:bg-[#FDD835] rounded-lg sm:rounded-xl border-2 border-black shadow-[1.5px_1.5px_0_#000] sm:shadow-[2px_2px_0_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer whitespace-nowrap"
+                title={currentUser ? `${currentUser.nickname} 카카오 프로필 (클릭하여 변경)` : '카카오 로그인'}
+              >
+                <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 3C6.477 3 2 6.477 2 10.765c0 2.766 1.87 5.185 4.673 6.541-.205.772-.743 2.784-.852 3.223-.134.542.198.536.417.391.173-.115 2.756-1.871 3.865-2.628.625.088 1.267.135 1.897.135 5.523 0 10-3.477 10-7.765S17.523 3 12 3z" />
+                </svg>
+                {currentUser ? (
+                  <span className="truncate max-w-[90px] sm:max-w-[120px]">
+                    {currentUser.nickname} ({currentUser.device.name.split(' ')[0]})
+                  </span>
+                ) : (
+                  <span>카카오 로그인</span>
+                )}
+              </button>
+            )}
+
             {/* Mobile App Install / ZIP Button */}
             <button
               onClick={() => setIsMobileModalOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs font-black text-black bg-amber-400 hover:bg-amber-500 rounded-xl border-2 border-black shadow-[2px_2px_0_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer whitespace-nowrap"
+              className="flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-2 text-[11px] sm:text-xs font-black text-black bg-amber-400 hover:bg-amber-500 rounded-lg sm:rounded-xl border-2 border-black shadow-[1.5px_1.5px_0_#000] sm:shadow-[2px_2px_0_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer whitespace-nowrap"
               title="스마트폰 홈화면 앱 설치 & ZIP 압축파일 다운로드"
             >
-              <Smartphone className="w-3.5 h-3.5 text-black" />
-              <span className="hidden sm:inline">📱 스마트폰 앱 설치</span>
-              <span className="sm:hidden">📱 앱 설치</span>
+              <Smartphone className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-black shrink-0" />
+              <span>📱 앱 설치</span>
             </button>
 
-            {/* Header D-Day Pill */}
+            {/* Route Map Button */}
+            <button
+              onClick={() => onOpenMap()}
+              className="flex items-center gap-1 px-2.5 sm:px-3.5 py-1 sm:py-2 text-[11px] sm:text-xs font-black text-black bg-white hover:bg-slate-100 rounded-lg sm:rounded-xl border-2 border-black shadow-[1.5px_1.5px_0_#000] sm:shadow-[2px_2px_0_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer whitespace-nowrap"
+            >
+              <Navigation className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 shrink-0" />
+              <span>동선 지도</span>
+            </button>
+
+            {/* Header D-Day Pill (Desktop only) */}
             <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black text-amber-300 border-2 border-black shadow-[2px_2px_0_#fff] text-xs font-black">
               <Clock className="w-3.5 h-3.5 text-rose-400" />
               <span>출발 {dDay.dDayText}</span>
@@ -183,16 +220,10 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
               <span className="tabular-nums text-white font-mono">{dDay.days}일 {String(dDay.hours).padStart(2, '0')}시간 남음</span>
             </div>
 
-            <button
-              onClick={() => onOpenMap()}
-              className="hidden sm:flex items-center gap-1.5 px-3 sm:px-3.5 py-2 text-xs font-black text-black bg-white hover:bg-slate-100 rounded-xl border-2 border-black shadow-[2px_2px_0_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer"
-            >
-              <Navigation className="w-3.5 h-3.5 text-blue-600" />
-              <span>동선 지도</span>
-            </button>
+            {/* Desktop Start button */}
             <button
               onClick={() => onStartTrip(1)}
-              className="px-3.5 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-black text-black bg-[#4ade80] hover:bg-[#22c55e] rounded-xl border-2 border-black shadow-[3px_3px_0_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer"
+              className="hidden md:flex px-4 lg:px-6 py-2 text-xs sm:text-sm font-black text-black bg-[#4ade80] hover:bg-[#22c55e] rounded-xl border-2 border-black shadow-[3px_3px_0_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all items-center gap-1.5 cursor-pointer whitespace-nowrap"
             >
               <span>🚀 출발하기!</span>
               <ArrowRight className="w-4 h-4 stroke-[3]" />
@@ -618,13 +649,26 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
           <p className="text-xs sm:text-base font-bold text-slate-300 mb-8 max-w-lg mx-auto">
             망설일 시간 없다. 지금 바로 일정 확인하고 친구들한테 단톡방 링크 뿌려라!
           </p>
-          <button
-            onClick={() => onStartTrip(1)}
-            className="px-8 sm:px-10 py-4 bg-amber-400 hover:bg-amber-300 text-black font-black text-lg rounded-2xl border-4 border-white shadow-[6px_6px_0_#ff4757] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all inline-flex items-center gap-3 cursor-pointer"
-          >
-            <span>도쿄 1일차 바로 시작하기!</span>
-            <ArrowRight className="w-6 h-6 stroke-[3]" />
-          </button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5">
+            <button
+              onClick={() => onStartTrip(1)}
+              className="w-full sm:w-auto px-8 sm:px-10 py-4 bg-amber-400 hover:bg-amber-300 text-black font-black text-lg rounded-2xl border-4 border-white shadow-[6px_6px_0_#ff4757] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all inline-flex items-center justify-center gap-3 cursor-pointer"
+            >
+              <span>도쿄 1일차 바로 시작하기!</span>
+              <ArrowRight className="w-6 h-6 stroke-[3]" />
+            </button>
+            {onOpenLogin && !currentUser && (
+              <button
+                onClick={onOpenLogin}
+                className="w-full sm:w-auto px-6 py-4 bg-[#FEE500] hover:bg-[#FDD835] text-[#191919] font-black text-base rounded-2xl border-4 border-black shadow-[4px_4px_0_#fff] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all inline-flex items-center justify-center gap-2.5 cursor-pointer"
+              >
+                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 3C6.477 3 2 6.477 2 10.765c0 2.766 1.87 5.185 4.673 6.541-.205.772-.743 2.784-.852 3.223-.134.542.198.536.417.391.173-.115 2.756-1.871 3.865-2.628.625.088 1.267.135 1.897.135 5.523 0 10-3.477 10-7.765S17.523 3 12 3z" />
+                </svg>
+                <span>카카오톡으로 로그인하고 입장</span>
+              </button>
+            )}
+          </div>
         </div>
       </section>
 

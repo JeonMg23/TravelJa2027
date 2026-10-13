@@ -56,6 +56,9 @@ import { MobileInstallModal } from './components/MobileInstallModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { LandingHeroPage } from './components/LandingHeroPage';
 import { FlightTransition } from './components/FlightTransition';
+import { LoginPage } from './components/LoginPage';
+import { KakaoAuthUser } from './types/auth';
+import { getStoredKakaoUser, clearKakaoUser } from './services/kakaoAuth';
 import {
   fetchBudgetFromDB,
   addBudgetItemToDB,
@@ -96,6 +99,59 @@ export default function App() {
   // Selected Day & Spot navigation
   const [selectedDayNumber, setSelectedDayNumber] = useState<number | null>(1);
   const [selectedSpot, setSelectedSpot] = useState<TravelSpot | null>(null);
+
+  // Kakao Talk Login & User session state (식별된 스마트폰/태블릿 접속자)
+  const [currentUser, setCurrentUser] = useState<KakaoAuthUser | null>(() => getStoredKakaoUser());
+  const [isLoginPageOpen, setIsLoginPageOpen] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = getStoredKakaoUser();
+      if (!stored) {
+        try {
+          const skipped = sessionStorage.getItem('skipped_kakao_login');
+          return skipped !== 'true';
+        } catch {
+          return true;
+        }
+      }
+    }
+    return false;
+  });
+
+  const handleKakaoLoginSuccess = (user: KakaoAuthUser) => {
+    setCurrentUser(user);
+    setIsLoginPageOpen(false);
+    setToastMessage(`💬 ${user.nickname}님 카카오 로그인 완료! (${user.device.name} 접속 중)`);
+
+    // Synchronize companions online status
+    const existingIdx = companions.findIndex((c) => {
+      if (c.name === user.nickname) return true;
+      if (user.nickname === '현우맘') return c.name.includes('현우맘');
+      if (user.nickname === '세현맘') return c.name.includes('세현맘');
+      if (user.nickname === '현우') return c.name.startsWith('현우') && !c.name.includes('맘');
+      if (user.nickname === '세현') return c.name.startsWith('세현') && !c.name.includes('맘');
+      return c.name.includes(user.nickname) || user.nickname.includes(c.name);
+    });
+    if (existingIdx !== -1) {
+      const updated = [...companions];
+      updated[existingIdx] = {
+        ...updated[existingIdx],
+        isOnline: true,
+        status: `${user.device.name.split(' ')[0]} 접속 중`
+      };
+      setCompanions(updated);
+      saveCompanions(updated);
+    }
+  };
+
+  const handleKakaoLogout = () => {
+    clearKakaoUser();
+    setCurrentUser(null);
+    setIsLoginPageOpen(true);
+    try {
+      sessionStorage.removeItem('skipped_kakao_login');
+    } catch {}
+    setToastMessage('👋 카카오톡 로그아웃되었습니다.');
+  };
 
   // Landing / First Page view state (remember in sessionStorage to prevent accidental reset on refresh)
   const [showLandingPage, setShowLandingPage] = useState<boolean>(() => {
@@ -511,12 +567,14 @@ export default function App() {
 
   // Comments / Real-time chat
   const handleAddComment = (spotId: string, spotName: string, text: string) => {
+    const authorName = currentUser?.nickname || '나 (작성자)';
+    const avatarColor = currentUser?.avatarColor || 'bg-indigo-600';
     const newComment: SpotComment = {
       id: `c-${Date.now()}`,
       spotId,
       spotName,
-      author: '나 (작성자)',
-      avatarColor: 'bg-indigo-600',
+      author: authorName,
+      avatarColor,
       text,
       timestamp: '방금 전'
     };
@@ -664,6 +722,23 @@ export default function App() {
     }
   };
 
+  if (isLoginPageOpen) {
+    return (
+      <LoginPage
+        initialUser={currentUser}
+        onLoginSuccess={handleKakaoLoginSuccess}
+        onContinueAsGuest={() => {
+          try {
+            sessionStorage.setItem('skipped_kakao_login', 'true');
+          } catch {}
+          setIsLoginPageOpen(false);
+        }}
+        canDismiss={!!currentUser}
+        onClose={() => setIsLoginPageOpen(false)}
+      />
+    );
+  }
+
   if (isFlying) {
     return (
       <FlightTransition
@@ -680,6 +755,8 @@ export default function App() {
         days={days}
         onStartTrip={handleTriggerFlightAndStart}
         onOpenMap={handleTriggerFlightAndOpenMap}
+        currentUser={currentUser}
+        onOpenLogin={() => setIsLoginPageOpen(true)}
         onOpenChecklist={() => {
           setShowLandingPage(false);
           try {
@@ -704,6 +781,10 @@ export default function App() {
           } catch (e) {}
           setShowLandingPage(true);
         }}
+        currentUser={currentUser}
+        onOpenLogin={() => setIsLoginPageOpen(true)}
+        onLogout={handleKakaoLogout}
+        onOpenMobileInstall={() => setIsMobileInstallOpen(true)}
       />
 
       {/* Day Selector Bar */}
@@ -1014,6 +1095,8 @@ export default function App() {
           setBudgetModalView('checklist');
           setIsBudgetChecklistOpen(true);
         }}
+        currentUser={currentUser}
+        onOpenLogin={() => setIsLoginPageOpen(true)}
       />
 
       {/* Modals & Drawers */}
@@ -1031,6 +1114,8 @@ export default function App() {
         comments={comments}
         days={days}
         onAddComment={handleAddComment}
+        currentUser={currentUser}
+        companions={companions}
       />
 
       <SpotDetailModal
