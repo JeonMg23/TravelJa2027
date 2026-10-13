@@ -647,7 +647,7 @@ export const FlightTransition: React.FC<FlightTransitionProps> = ({
             <div className="relative flex items-center justify-center">
               <div className="absolute w-16 h-16 bg-sky-400/30 rounded-full animate-ping" />
               <div className="relative px-3 py-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 border-2 border-white text-white shadow-[0_0_20px_rgba(56,189,248,0.9)] flex items-center gap-1.5">
-                <span className="text-base sm:text-lg">🇰🇷</span>
+                <img src="/korea-flag.svg" alt="대한민국 국기" className="w-5 h-3.5 object-cover rounded-xs inline-block" />
                 <span className="font-mono font-black text-xs sm:text-sm tracking-wider">ICN</span>
               </div>
             </div>

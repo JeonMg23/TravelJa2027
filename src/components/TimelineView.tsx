@@ -194,7 +194,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                 id={`spot-card-${spot.id}`}
                 data-spot-id={spot.id}
                 onClick={() => onSelectSpot(spot)}
-                className={`bg-white rounded-2xl border transition-all duration-200 cursor-pointer relative scroll-mt-20 md:scroll-mt-24 ${
+                className={`bg-white rounded-2xl border transition-all duration-200 cursor-pointer relative scroll-mt-24 md:scroll-mt-28 ${
                   isSplitView ? 'p-2.5 sm:p-3.5 md:p-5' : 'p-4 sm:p-5'
                 } ${
                   isSelected

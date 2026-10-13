@@ -597,7 +597,21 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
       {/* Bottom CTA */}
       <section className="py-14 bg-black text-white text-center px-4 relative overflow-hidden">
         <div className="max-w-2xl mx-auto relative z-10">
-          <div className="text-5xl mb-3 animate-bounce">⚡🎌🚀</div>
+          {/* Lightning, Cute Airplane Image, Rocket */}
+          <div className="flex items-center justify-center gap-3.5 mb-3 animate-bounce">
+            <span className="text-4xl sm:text-5xl select-none" role="img" aria-label="번개">
+              ⚡
+            </span>
+            <img
+              src="/cute-airplane.svg"
+              alt="귀여운 비행기"
+              className="w-12 h-12 sm:w-16 sm:h-16 object-contain inline-block align-middle filter drop-shadow-[0_4px_10px_rgba(56,189,248,0.5)] hover:scale-110 transition-transform"
+              title="도쿄행 귀여운 비행기"
+            />
+            <span className="text-4xl sm:text-5xl select-none" role="img" aria-label="로케트">
+              🚀
+            </span>
+          </div>
           <h2 className="text-2xl sm:text-4xl font-black text-amber-300 mb-3 tracking-tight">
             준비됐나? 개구쟁이들 도쿄로 출발!
           </h2>

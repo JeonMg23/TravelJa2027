@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   TripDay,
   TravelSpot,
@@ -142,6 +142,64 @@ export default function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, [mobileView]);
 
+  // Remember last viewed / active spot and scroll position when navigating between timeline and map on mobile
+  const lastActiveSpotIdRef = useRef<string | null>(null);
+  const lastTimelineScrollYRef = useRef<number>(0);
+
+  // Track window scroll position when in timeline view
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleScroll = () => {
+      if (mobileView === 'timeline') {
+        lastTimelineScrollYRef.current = window.scrollY;
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [mobileView]);
+
+  // When returning to timeline view on mobile, restore viewing spot or scroll position
+  useEffect(() => {
+    if (mobileView === 'timeline') {
+      const targetSpotId = selectedSpot?.id || lastActiveSpotIdRef.current;
+      if (targetSpotId) {
+        // Fast restore right after DOM unhiding
+        const timer1 = setTimeout(() => {
+          const el = document.getElementById(`spot-card-${targetSpotId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          } else if (lastTimelineScrollYRef.current > 0) {
+            window.scrollTo({
+              top: lastTimelineScrollYRef.current,
+              behavior: 'smooth'
+            });
+          }
+        }, 50);
+
+        // Backup restore after image layout and reflow settle
+        const timer2 = setTimeout(() => {
+          const el = document.getElementById(`spot-card-${targetSpotId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'auto', block: 'start' });
+          }
+        }, 220);
+
+        return () => {
+          clearTimeout(timer1);
+          clearTimeout(timer2);
+        };
+      } else if (lastTimelineScrollYRef.current > 0) {
+        const timer = setTimeout(() => {
+          window.scrollTo({
+            top: lastTimelineScrollYRef.current,
+            behavior: 'smooth'
+          });
+        }, 50);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [mobileView]);
+
   // Modals
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isCollabOpen, setIsCollabOpen] = useState(false);
@@ -271,10 +329,20 @@ export default function App() {
   // Spot selection
   const handleSelectSpot = (spot: TravelSpot) => {
     setSelectedSpot(spot);
+    lastActiveSpotIdRef.current = spot.id;
     // Find which day this spot belongs to if on 'all days' mode
     if (selectedDayNumber === null) {
       const parentDay = days.find((d) => d.spots.some((s) => s.id === spot.id));
       if (parentDay) setSelectedDayNumber(parentDay.dayNumber);
+    }
+    // If in split view (Request 8), scroll so the selected spot card aligns beside the map
+    if (mobileView === 'split') {
+      setTimeout(() => {
+        const el = document.getElementById(`spot-card-${spot.id}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 50);
     }
   };
 
@@ -645,6 +713,8 @@ export default function App() {
         onSelectDay={(dayNum) => {
           setSelectedDayNumber(dayNum);
           setSelectedSpot(null);
+          lastActiveSpotIdRef.current = null;
+          lastTimelineScrollYRef.current = 0;
         }}
         onGoHome={() => setShowLandingPage(true)}
       />
@@ -727,6 +797,9 @@ export default function App() {
                 isSplitView={mobileView === 'split'}
                 onSelectSpot={(spot) => {
                   handleSelectSpot(spot);
+                }}
+                onSpotInView={(spot) => {
+                  lastActiveSpotIdRef.current = spot.id;
                 }}
                 onToggleLike={handleToggleLike}
                 onMoveSpot={handleMoveSpot}
@@ -877,24 +950,42 @@ export default function App() {
                 className="h-[520px] sm:h-[580px] md:h-[640px] lg:h-[calc(100vh-10.5rem)] min-h-[420px] w-full"
               />
 
-              {/* Selected Spot Quick Info Card below map on desktop */}
+              {/* Selected Spot Quick Info Card below map on desktop & mobile */}
               {selectedSpot && (
                 <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-xs animate-in fade-in duration-200">
                   <div className="flex items-center justify-between">
                     <div className="truncate pr-2">
-                      <div className="text-[11px] font-bold text-indigo-600">
-                        선택된 거점
+                      <div className="text-[11px] font-bold text-indigo-600 flex items-center gap-1.5">
+                        <span>선택된 거점</span>
+                        {currentDay?.spots && (
+                          <span className="bg-indigo-100 text-indigo-700 px-1.5 py-0.2 rounded-md text-[10px] font-bold">
+                            순번 {currentDay.spots.findIndex((s) => s.id === selectedSpot.id) + 1}번
+                          </span>
+                        )}
                       </div>
                       <div className="text-sm font-bold text-slate-900 truncate">
                         {selectedSpot.name}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                      {mobileView === 'map' && (
+                        <button
+                          onClick={() => {
+                            setMobileView('timeline');
+                            setActiveHeaderTab('timeline');
+                          }}
+                          className="px-2.5 py-1 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg cursor-pointer transition-colors shadow-2xs flex items-center gap-1"
+                          title="일정 타임라인에서 이 순번 위치로 이동합니다"
+                        >
+                          <span>일정에서 보기</span>
+                          <span>→</span>
+                        </button>
+                      )}
                       <button
                         onClick={() => setIsDetailModalOpen(true)}
-                        className="text-xs font-semibold text-indigo-600 hover:underline cursor-pointer"
+                        className="text-xs font-semibold text-slate-600 hover:text-slate-900 hover:underline cursor-pointer"
                       >
-                        상세 정보 열기 →
+                        상세 정보
                       </button>
                       <button
                         onClick={() => setSelectedSpot(null)}
