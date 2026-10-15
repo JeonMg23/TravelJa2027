@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Compass, Wallet, CheckSquare, Smartphone, Tablet, Laptop, LogOut, RefreshCw, UserCheck } from 'lucide-react';
+import { Calendar, Compass, Wallet, CheckSquare, Smartphone, Tablet, Laptop, LogOut, RefreshCw, UserCheck, Sparkles } from 'lucide-react';
 import { FriendCompanion } from '../types/travel';
 import { KakaoAuthUser } from '../types/auth';
 
@@ -15,6 +15,7 @@ interface HeaderProps {
   currentUser?: KakaoAuthUser | null;
   onOpenLogin?: () => void;
   onLogout?: () => void;
+  onReplayIntro?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -24,7 +25,8 @@ export const Header: React.FC<HeaderProps> = ({
   currentUser,
   onOpenLogin,
   onLogout,
-  onOpenMobileInstall
+  onOpenMobileInstall,
+  onReplayIntro
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
@@ -36,27 +38,27 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-13 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 w-full max-w-full overflow-hidden">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 h-13 sm:h-16 flex items-center justify-between gap-1.5 sm:gap-4 w-full">
         {/* Zone 1: Brand Wordmark (Clickable to return to Landing Page) */}
         <button
           onClick={onGoHome}
-          className="flex items-center gap-2 sm:gap-3 shrink-0 text-left hover:opacity-90 transition-opacity cursor-pointer group"
+          className="flex items-center gap-1.5 sm:gap-3 shrink min-w-0 text-left hover:opacity-90 transition-opacity cursor-pointer group"
           title="첫 페이지(소개)로 이동"
         >
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-black text-amber-300 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000] group-hover:rotate-6 group-hover:scale-105 transition-transform text-lg sm:text-xl">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-black text-amber-300 border-2 border-black flex items-center justify-center shadow-[1.5px_1.5px_0px_#000] sm:shadow-[2px_2px_0px_#000] group-hover:rotate-6 group-hover:scale-105 transition-transform text-base sm:text-xl shrink-0">
             ⚡
           </div>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm sm:text-lg font-black tracking-tight text-slate-900 whitespace-nowrap font-sans">
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
+              <span className="text-xs sm:text-lg font-black tracking-tight text-slate-900 truncate font-sans">
                 개구쟁이들의 일본여행
               </span>
-              <span className="text-[10px] font-black text-amber-900 bg-amber-300 border border-black rounded-md px-1.5 py-0.5 shadow-[1px_1px_0px_#000]">
+              <span className="text-[9px] sm:text-[10px] font-black text-amber-900 bg-amber-300 border border-black rounded px-1 sm:px-1.5 py-0.2 sm:py-0.5 shadow-[1px_1px_0px_#000] shrink-0 whitespace-nowrap">
                 첫페이지 🏠
               </span>
             </div>
-            <span className="text-[11px] text-slate-500 font-bold hidden sm:inline">
+            <span className="text-[11px] text-slate-500 font-bold hidden sm:inline truncate">
               🔥 우당탕탕 도쿄 5박 6일 원정대 (1.13 ~ 1.18)
             </span>
           </div>
@@ -115,11 +117,11 @@ export const Header: React.FC<HeaderProps> = ({
           {onOpenMobileInstall && (
             <button
               onClick={onOpenMobileInstall}
-              className="flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 text-[11px] sm:text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl border border-slate-200 transition-colors cursor-pointer whitespace-nowrap"
+              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl border border-slate-200 transition-colors cursor-pointer whitespace-nowrap"
               title="스마트폰 홈화면 앱 설치"
             >
               <Smartphone className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-              <span className="hidden sm:inline">앱 설치</span>
+              <span>앱 설치</span>
             </button>
           )}
 
@@ -189,6 +191,18 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
 
                   <div className="space-y-1">
+                    {onReplayIntro && (
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onReplayIntro();
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs font-semibold text-amber-800 hover:text-amber-950 hover:bg-amber-100/70 rounded-lg flex items-center gap-2 cursor-pointer transition-colors"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <span>도쿄 원정대 인트로 다시보기</span>
+                      </button>
+                    )}
                     {onOpenLogin && (
                       <button
                         onClick={() => {

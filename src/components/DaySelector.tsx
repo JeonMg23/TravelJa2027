@@ -16,8 +16,8 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
   onGoHome
 }) => {
   return (
-    <div className="w-full bg-white border-b border-slate-200/90 py-3 px-4 sm:px-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="w-full max-w-full bg-white border-b border-slate-200/90 py-2.5 sm:py-3 px-3 sm:px-6 overflow-hidden">
+      <div className="max-w-7xl mx-auto w-full">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
             <Calendar className="w-3.5 h-3.5 text-indigo-600" />

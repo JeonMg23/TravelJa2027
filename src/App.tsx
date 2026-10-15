@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   TripDay,
   TravelSpot,
@@ -57,6 +57,7 @@ import { MobileBottomNav } from './components/MobileBottomNav';
 import { LandingHeroPage } from './components/LandingHeroPage';
 import { FlightTransition } from './components/FlightTransition';
 import { LoginPage } from './components/LoginPage';
+import { IntroPage } from './components/IntroPage';
 import { KakaoAuthUser } from './types/auth';
 import { getStoredKakaoUser, clearKakaoUser } from './services/kakaoAuth';
 import {
@@ -100,6 +101,58 @@ export default function App() {
   const [selectedDayNumber, setSelectedDayNumber] = useState<number | null>(1);
   const [selectedSpot, setSelectedSpot] = useState<TravelSpot | null>(null);
 
+  // Netflix-style Cinematic Intro Splash Screen (어플 시작 시 멋있는 도쿄원정대 인트로)
+  // 스마트폰 화면을 닫았다 다시 열거나 어플을 재실행할 때 항상 인트로 화면부터 시작
+  const [showIntro, setShowIntro] = useState<boolean>(true);
+
+  const handleIntroComplete = () => {
+    setShowIntro(false);
+    setIsLoginPageOpen(true);
+    setShowLandingPage(true);
+  };
+
+  // 스마트폰 화면 닫기/잠금(화면 꺼짐) 또는 어플을 백그라운드로 닫았다가 다시 열 때 항상 인트로 -> 로그인 -> 첫페이지 -> 일정 순서로 시작
+  useEffect(() => {
+    let hiddenTimestamp = 0;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenTimestamp = Date.now();
+      } else if (document.visibilityState === 'visible') {
+        // 스마트폰 화면을 껐다 켜거나(화면 닫음), 앱을 닫았다가 다시 열었을 때 (600ms 이상 백그라운드)
+        if (hiddenTimestamp > 0 && Date.now() - hiddenTimestamp > 600) {
+          setShowIntro(true);
+          setIsLoginPageOpen(false);
+          setShowLandingPage(true);
+          try {
+            sessionStorage.removeItem('entered_trip_app');
+          } catch {}
+        }
+        hiddenTimestamp = 0;
+      }
+    };
+
+    const handlePageShow = (event: PageTransitionEvent) => {
+      // 브라우저 백그라운드 캐시(bfcache) 복원이나 재진입 시 항상 인트로 -> 로그인 -> 첫페이지로 리셋
+      if (event.persisted) {
+        setShowIntro(true);
+        setIsLoginPageOpen(false);
+        setShowLandingPage(true);
+        try {
+          sessionStorage.removeItem('entered_trip_app');
+        } catch {}
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, []);
+
   // Kakao Talk Login & User session state (식별된 스마트폰/태블릿 접속자)
   const [currentUser, setCurrentUser] = useState<KakaoAuthUser | null>(() => getStoredKakaoUser());
   const [isLoginPageOpen, setIsLoginPageOpen] = useState<boolean>(() => {
@@ -120,6 +173,7 @@ export default function App() {
   const handleKakaoLoginSuccess = (user: KakaoAuthUser) => {
     setCurrentUser(user);
     setIsLoginPageOpen(false);
+    setShowLandingPage(true);
     setToastMessage(`💬 ${user.nickname}님 카카오 로그인 완료! (${user.device.name} 접속 중)`);
 
     // Synchronize companions online status
@@ -147,26 +201,16 @@ export default function App() {
     clearKakaoUser();
     setCurrentUser(null);
     setIsLoginPageOpen(true);
+    setShowLandingPage(true);
     try {
       sessionStorage.removeItem('skipped_kakao_login');
+      sessionStorage.removeItem('entered_trip_app');
     } catch {}
     setToastMessage('👋 카카오톡 로그아웃되었습니다.');
   };
 
-  // Landing / First Page view state (remember in sessionStorage to prevent accidental reset on refresh)
-  const [showLandingPage, setShowLandingPage] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const entered = sessionStorage.getItem('entered_trip_app');
-        if (entered === 'true') {
-          return false;
-        }
-      } catch (e) {
-        // Ignore session storage errors
-      }
-    }
-    return true;
-  });
+  // Landing / First Page view state (인트로 -> 로그인 페이지 -> 첫페이지 -> 일정페이지 순서 엄수)
+  const [showLandingPage, setShowLandingPage] = useState<boolean>(true);
   // Flight Takeoff & Landing Cinematic Transition state
   const [isFlying, setIsFlying] = useState<boolean>(false);
   const [targetFlightDay, setTargetFlightDay] = useState<number>(1);
@@ -382,6 +426,49 @@ export default function App() {
     return days.find((d) => d.dayNumber === selectedDayNumber) || days[0];
   }, [days, selectedDayNumber]);
 
+  // Split View: Track vertical position of the selected spot card so the RouteMap aligns right beside it
+  const [splitMapOffsetY, setSplitMapOffsetY] = useState<number>(0);
+  const splitGridRef = useRef<HTMLDivElement | null>(null);
+
+  const syncSplitMapPosition = useCallback((targetSpotId?: string) => {
+    if (mobileView !== 'split') {
+      setSplitMapOffsetY(0);
+      return;
+    }
+    const spotId = targetSpotId || selectedSpot?.id || currentDay?.spots?.[0]?.id;
+    if (!spotId) return;
+
+    const spotEl = document.getElementById(`spot-card-${spotId}`);
+    const gridEl = splitGridRef.current;
+    if (spotEl && gridEl) {
+      const spotRect = spotEl.getBoundingClientRect();
+      const gridRect = gridEl.getBoundingClientRect();
+      // Calculate relative vertical offset from the top of the grid container to the spot card
+      const relativeOffset = spotRect.top - gridRect.top;
+      // Allow map to align with spot card top, clamped within positive bounds
+      const maxOffset = Math.max(0, gridEl.offsetHeight - 360);
+      const clampedOffset = Math.min(Math.max(0, relativeOffset), maxOffset);
+      setSplitMapOffsetY(clampedOffset);
+    }
+  }, [mobileView, selectedSpot, currentDay]);
+
+  useEffect(() => {
+    if (mobileView === 'split') {
+      if (!selectedSpot && currentDay?.spots?.[0]) {
+        setSelectedSpot(currentDay.spots[0]);
+      }
+      const t = setTimeout(() => {
+        syncSplitMapPosition();
+      }, 70);
+      const handleResize = () => syncSplitMapPosition();
+      window.addEventListener('resize', handleResize);
+      return () => {
+        clearTimeout(t);
+        window.removeEventListener('resize', handleResize);
+      };
+    }
+  }, [mobileView, selectedSpot, currentDay, selectedDayNumber, syncSplitMapPosition]);
+
   // Spot selection
   const handleSelectSpot = (spot: TravelSpot) => {
     setSelectedSpot(spot);
@@ -391,14 +478,15 @@ export default function App() {
       const parentDay = days.find((d) => d.spots.some((s) => s.id === spot.id));
       if (parentDay) setSelectedDayNumber(parentDay.dayNumber);
     }
-    // If in split view (Request 8), scroll so the selected spot card aligns beside the map
+    // If in split view, smoothly slide the map right beside this spot card and center in view
     if (mobileView === 'split') {
       setTimeout(() => {
+        syncSplitMapPosition(spot.id);
         const el = document.getElementById(`spot-card-${spot.id}`);
         if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
-      }, 50);
+      }, 40);
     }
   };
 
@@ -722,6 +810,10 @@ export default function App() {
     }
   };
 
+  if (showIntro) {
+    return <IntroPage onComplete={handleIntroComplete} />;
+  }
+
   if (isLoginPageOpen) {
     return (
       <LoginPage
@@ -732,9 +824,14 @@ export default function App() {
             sessionStorage.setItem('skipped_kakao_login', 'true');
           } catch {}
           setIsLoginPageOpen(false);
+          setShowLandingPage(true);
         }}
         canDismiss={!!currentUser}
-        onClose={() => setIsLoginPageOpen(false)}
+        onClose={() => {
+          setIsLoginPageOpen(false);
+          setShowLandingPage(true);
+        }}
+        onReplayIntro={() => setShowIntro(true)}
       />
     );
   }
@@ -770,7 +867,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-20 md:pb-0">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-20 md:pb-0 w-full max-w-full overflow-x-hidden">
       {/* Top Bar Header */}
       <Header
         activeTab={activeHeaderTab}
@@ -785,6 +882,7 @@ export default function App() {
         onOpenLogin={() => setIsLoginPageOpen(true)}
         onLogout={handleKakaoLogout}
         onOpenMobileInstall={() => setIsMobileInstallOpen(true)}
+        onReplayIntro={() => setShowIntro(true)}
       />
 
       {/* Day Selector Bar */}
@@ -803,50 +901,51 @@ export default function App() {
       {/* Main View Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 md:p-6 lg:p-8">
         {/* Mobile, Foldable & Desktop View Selector Bar */}
-        <div className="flex items-center justify-between gap-2 p-1.5 bg-slate-200/90 rounded-2xl mb-4 shadow-2xs">
-          <div className="flex items-center gap-1.5 flex-1">
+        <div className="flex items-center justify-between gap-1.5 sm:gap-2 p-1.5 bg-slate-200/90 rounded-2xl mb-4 shadow-2xs w-full max-w-full overflow-hidden">
+          <div className="flex items-center gap-1 sm:gap-1.5 flex-1 min-w-0">
             <button
               onClick={() => {
                 setMobileView('timeline');
                 setActiveHeaderTab('timeline');
               }}
-              className={`flex-1 py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 py-2 px-1 sm:px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer min-w-0 ${
                 mobileView === 'timeline'
                   ? 'bg-white text-indigo-700 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Calendar className="w-3.5 h-3.5" />
-              <span>일정 타임라인</span>
+              <Calendar className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">일정</span>
+              <span className="hidden sm:inline"> 타임라인</span>
             </button>
             <button
               onClick={() => {
                 setMobileView('map');
                 setActiveHeaderTab('map');
               }}
-              className={`flex-1 py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 py-2 px-1 sm:px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer min-w-0 ${
                 mobileView === 'map'
                   ? 'bg-blue-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Compass className="w-3.5 h-3.5" />
-              <span>동선 지도</span>
+              <Compass className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">동선 지도</span>
             </button>
             <button
               onClick={() => {
                 setMobileView('split');
               }}
-              className={`flex-1 py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${
+              className={`flex-1 py-2 px-1 sm:px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer relative min-w-0 ${
                 mobileView === 'split'
                   ? 'bg-indigo-600 text-white shadow-xs'
                   : 'text-slate-700 hover:text-slate-900'
               }`}
               title="갤럭시 Z폴드 및 태블릿, PC처럼 좌우로 분할하여 타임라인과 지도를 동시에 봅니다"
             >
-              <Columns2 className="w-3.5 h-3.5" />
-              <span>좌우 분할</span>
-              <span className="text-[10px] font-black bg-amber-400 text-black px-1.5 py-0.2 rounded-md shadow-2xs">
+              <Columns2 className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">좌우 분할</span>
+              <span className="text-[10px] font-black bg-amber-400 text-black px-1.5 py-0.2 rounded-md shadow-2xs shrink-0 hidden sm:inline">
                 Z폴드·PC
               </span>
             </button>
@@ -855,7 +954,8 @@ export default function App() {
 
         {/* 2-Column Responsive Split (Foldable, Mobile & PC side-by-side) */}
         <div
-          className={`grid gap-2.5 sm:gap-4 md:gap-6 items-start ${
+          ref={splitGridRef}
+          className={`grid gap-2.5 sm:gap-4 md:gap-6 items-start relative ${
             mobileView === 'split'
               ? 'grid-cols-12'
               : 'grid-cols-1 lg:grid-cols-12'
@@ -1013,11 +1113,19 @@ export default function App() {
           <div
             className={`isolate z-0 ${
               mobileView === 'split'
-                ? 'col-span-7 sm:col-span-6 lg:col-span-5 sticky top-16 md:top-20 block'
+                ? 'col-span-7 sm:col-span-6 lg:col-span-5 block'
                 : mobileView === 'timeline'
                 ? 'hidden lg:block'
                 : 'block lg:col-span-5 lg:sticky lg:top-24'
             }`}
+            style={
+              mobileView === 'split'
+                ? {
+                    transform: `translateY(${splitMapOffsetY}px)`,
+                    transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
+                  }
+                : undefined
+            }
           >
             <div className="space-y-3">
               <RouteMap
@@ -1028,7 +1136,11 @@ export default function App() {
                   handleSelectSpot(spot);
                 }}
                 isVisible={mobileView === 'map' || mobileView === 'split'}
-                className="h-[520px] sm:h-[580px] md:h-[640px] lg:h-[calc(100vh-10.5rem)] min-h-[420px] w-full"
+                className={
+                  mobileView === 'split'
+                    ? 'h-[360px] sm:h-[420px] md:h-[480px] w-full rounded-2xl shadow-sm'
+                    : 'h-[520px] sm:h-[580px] md:h-[640px] lg:h-[calc(100vh-10.5rem)] min-h-[420px] w-full'
+                }
               />
 
               {/* Selected Spot Quick Info Card below map on desktop & mobile */}

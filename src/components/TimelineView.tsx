@@ -141,43 +141,64 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   };
 
   return (
-    <div className="space-y-4">
-      {/* Tokyo Day Weather Forecast & Rain Alert (OpenWeatherMap) */}
-      <WeatherWidget
-        weather={currentWeather}
-        isLive={isLiveWeather}
-        onRefresh={onRefreshWeather}
-        onSaveApiKey={onSaveOwmKey}
-        savedApiKey={savedOwmKey}
-        onToggleSimulatedRain={onToggleSimulatedRain}
-        isSimulatedRain={isSimulatedRain}
-      />
-
-      {/* Day Theme Banner */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
-                DAY {currentDay.dayNumber}
-              </span>
-              <span className="text-xs text-slate-500 font-medium">
-                {currentDay.fullDate}
-              </span>
-            </div>
-            <h2 className="text-lg font-bold text-slate-900 mt-1">
+    <div className="space-y-3">
+      {isSplitView ? (
+        /* Compact Header in Split View so Spots start near the top */
+        <div className="bg-white rounded-2xl border border-slate-200/90 p-3 shadow-2xs flex items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-[11px] font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md shrink-0">
+              DAY {currentDay.dayNumber}
+            </span>
+            <span className="font-bold text-slate-800 truncate">
               {currentDay.theme}
-            </h2>
+            </span>
           </div>
-          <div className="text-xs text-slate-500 flex items-center gap-1.5 shrink-0">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>최적화된 당일 추천 동선</span>
+          <div className="flex items-center gap-1.5 shrink-0 text-slate-500 font-semibold text-[11px]">
+            <span>{currentWeather.tempDay}°C</span>
+            <span>·</span>
+            <span>{currentDay.spots.length}개 거점</span>
           </div>
         </div>
-        <p className="text-xs sm:text-sm text-slate-600 mt-3 leading-relaxed">
-          {currentDay.description}
-        </p>
-      </div>
+      ) : (
+        <>
+          {/* Tokyo Day Weather Forecast & Rain Alert (OpenWeatherMap) */}
+          <WeatherWidget
+            weather={currentWeather}
+            isLive={isLiveWeather}
+            onRefresh={onRefreshWeather}
+            onSaveApiKey={onSaveOwmKey}
+            savedApiKey={savedOwmKey}
+            onToggleSimulatedRain={onToggleSimulatedRain}
+            isSimulatedRain={isSimulatedRain}
+          />
+
+          {/* Day Theme Banner */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
+                    DAY {currentDay.dayNumber}
+                  </span>
+                  <span className="text-xs text-slate-500 font-medium">
+                    {currentDay.fullDate}
+                  </span>
+                </div>
+                <h2 className="text-lg font-bold text-slate-900 mt-1">
+                  {currentDay.theme}
+                </h2>
+              </div>
+              <div className="text-xs text-slate-500 flex items-center gap-1.5 shrink-0">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>최적화된 당일 추천 동선</span>
+              </div>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-600 mt-3 leading-relaxed">
+              {currentDay.description}
+            </p>
+          </div>
+        </>
+      )}
 
       {/* Spot Timeline Items */}
       <div className="space-y-3">
@@ -194,7 +215,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                 id={`spot-card-${spot.id}`}
                 data-spot-id={spot.id}
                 onClick={() => onSelectSpot(spot)}
-                className={`bg-white rounded-2xl border transition-all duration-200 cursor-pointer relative scroll-mt-24 md:scroll-mt-28 ${
+                className={`bg-white rounded-2xl border transition-all duration-200 cursor-pointer relative scroll-mt-24 md:scroll-mt-28 w-full max-w-full overflow-hidden break-words ${
                   isSplitView ? 'p-2.5 sm:p-3.5 md:p-5' : 'p-4 sm:p-5'
                 } ${
                   isSelected
@@ -226,6 +247,11 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                           <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100/90 border border-indigo-200 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
                             <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse"></span>
                             <span>확인 중인 순번 {index + 1}</span>
+                            {isSplitView && (
+                              <span className="text-[9px] font-extrabold text-indigo-950 bg-amber-300 px-1 py-0.2 rounded shadow-2xs">
+                                👉 옆 지도
+                              </span>
+                            )}
                           </span>
                         )}
                         {spot.japaneseName && (
@@ -526,7 +552,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
               {/* Transit Connector between spots */}
               {correspondingTransit && (
                 <div
-                  className={`px-4 py-3 rounded-2xl border transition-all text-xs my-1 shadow-2xs ${
+                  className={`px-3.5 sm:px-4 py-3 rounded-2xl border transition-all text-xs my-1 shadow-2xs w-full max-w-full overflow-hidden break-words ${
                     correspondingTransit.isReturnToHotel
                       ? 'bg-gradient-to-r from-indigo-50/90 via-purple-50/80 to-indigo-50/90 border-indigo-300 ring-1 ring-indigo-200'
                       : 'bg-gradient-to-r from-slate-50 via-blue-50/40 to-slate-50 border-blue-200/90'

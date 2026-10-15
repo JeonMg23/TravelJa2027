@@ -76,7 +76,7 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
   return (
     <div className="space-y-3">
       {/* Weather Header Card */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs">
+      <div className="bg-white rounded-2xl border border-slate-200/90 p-3.5 sm:p-4 shadow-xs w-full max-w-full overflow-hidden break-words">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Left: Weather condition & Temperature */}
           <div className="flex items-center gap-3">
