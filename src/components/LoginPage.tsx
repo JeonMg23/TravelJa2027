@@ -12,19 +12,28 @@ interface LoginPageProps {
   onReplayIntro?: () => void;
 }
 
+import tokyoTowerImg from '../assets/images/tokyo_tower_night_1792063728180.jpg';
+import tokyoSkytreeImg from '../assets/images/tokyo_skytree_night_1792063728807.jpg';
+import sensojiTempleImg from '../assets/images/sensoji_temple_night_1792063729029.jpg';
+
 // 5 Curated High-Definition Tokyo Cityscape & Night View Photos (Crossfade Slideshow)
+// 1. 도쿄타워 야경 (첫번째 메인 사진)
+// 2. 도쿄 스카이트리 & 스미다가와 리버 야경 (시부야/신주쿠 대체)
+// 3. 아사쿠사 센소지 & 오층탑 야간 라이트업 (시부야/신주쿠 대체)
+// 4. 도쿄 일몰 노을 & 도시 전경
+// 5. 레인보우 브릿지 & 오다이바 야경
 const TOKYO_BACKGROUNDS = [
   {
-    url: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1920&q=80',
+    url: tokyoTowerImg,
     title: '도쿄 타워 야경'
   },
   {
-    url: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=1920&q=80',
-    title: '시부야 스크램블 교차로 야경'
+    url: tokyoSkytreeImg,
+    title: '도쿄 스카이트리 & 스미다가와 야경'
   },
   {
-    url: 'https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?auto=format&fit=crop&w=1920&q=80',
-    title: '신주쿠 네온 스카이라인'
+    url: sensojiTempleImg,
+    title: '아사쿠사 센소지 & 오층탑 라이트업'
   },
   {
     url: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1920&q=80',
