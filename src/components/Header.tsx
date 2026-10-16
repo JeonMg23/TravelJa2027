@@ -46,8 +46,41 @@ export const Header: React.FC<HeaderProps> = ({
           className="flex items-center gap-1.5 sm:gap-3 shrink min-w-0 text-left hover:opacity-90 transition-opacity cursor-pointer group"
           title="첫 페이지(소개)로 이동"
         >
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-black text-amber-300 border-2 border-black flex items-center justify-center shadow-[1.5px_1.5px_0px_#000] sm:shadow-[2px_2px_0px_#000] group-hover:rotate-6 group-hover:scale-105 transition-transform text-base sm:text-xl shrink-0">
-            ⚡
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-black/90 border border-yellow-400/60 backdrop-blur-xl flex items-center justify-center p-1.5 shadow-[0_0_12px_rgba(250,204,21,0.4)] group-hover:scale-105 transition-transform shrink-0">
+            <svg
+              className="w-full h-full drop-shadow-[0_0_6px_rgba(250,204,21,0.95)]"
+              viewBox="0 0 512 512"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <defs>
+                <linearGradient id="headerBrandYellowBoltGrad" x1="0%" y1="0%" x2="70%" y2="100%">
+                  <stop offset="0%" stopColor="#FFFFFF" />
+                  <stop offset="25%" stopColor="#FEF08A" />
+                  <stop offset="65%" stopColor="#FACC15" />
+                  <stop offset="100%" stopColor="#EAB308" />
+                </linearGradient>
+                <filter id="headerBrandBoltFilter" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="0" stdDeviation="10" floodColor="#FACC15" floodOpacity="0.9" />
+                </filter>
+              </defs>
+              <path
+                d="M 292 60 
+                   L 140 270 
+                   L 256 270 
+                   L 190 460 
+                   L 372 230 
+                   L 262 230 
+                   L 325 60 
+                   Z"
+                fill="url(#headerBrandYellowBoltGrad)"
+                stroke="#FFFBEB"
+                strokeWidth="10"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                filter="url(#headerBrandBoltFilter)"
+              />
+            </svg>
           </div>
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">

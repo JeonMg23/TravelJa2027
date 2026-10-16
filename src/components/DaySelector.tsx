@@ -30,10 +30,46 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
             {onGoHome && (
               <button
                 onClick={onGoHome}
-                className="flex items-center gap-1.5 text-xs text-slate-800 bg-amber-300 hover:bg-amber-400 font-black px-2.5 py-1 rounded-lg border border-black shadow-[1px_1px_0_#000] transition-transform active:scale-95 cursor-pointer"
-                title="첫 페이지(개구쟁이들의 일본여행 인트로)로 이동"
+                className="flex items-center gap-1.5 text-xs text-slate-900 bg-amber-300 hover:bg-amber-400 font-black px-2.5 py-1 rounded-lg border border-black shadow-[1.5px_1.5px_0_#000] transition-transform active:scale-95 cursor-pointer"
+                title="첫 페이지(도쿄 원정대 2027)로 이동"
               >
-                <span>⚡ 첫페이지</span>
+                <div className="w-4 h-4 rounded-md bg-black/90 border border-yellow-400/60 p-0.5 flex items-center justify-center shrink-0 shadow-[0_0_8px_rgba(250,204,21,0.5)]">
+                  <svg
+                    className="w-full h-full drop-shadow-[0_0_6px_rgba(250,204,21,0.95)]"
+                    viewBox="0 0 512 512"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <defs>
+                      <linearGradient id="daySelYellowBoltGrad" x1="0%" y1="0%" x2="70%" y2="100%">
+                        <stop offset="0%" stopColor="#FFFFFF" />
+                        <stop offset="25%" stopColor="#FEF08A" />
+                        <stop offset="65%" stopColor="#FACC15" />
+                        <stop offset="100%" stopColor="#EAB308" />
+                      </linearGradient>
+                      <filter id="daySelBoltFilter" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="0" stdDeviation="10" floodColor="#FACC15" floodOpacity="0.9" />
+                      </filter>
+                    </defs>
+                    <path
+                      d="M 292 60 
+                         L 140 270 
+                         L 256 270 
+                         L 190 460 
+                         L 372 230 
+                         L 262 230 
+                         L 325 60 
+                         Z"
+                      fill="url(#daySelYellowBoltGrad)"
+                      stroke="#FFFBEB"
+                      strokeWidth="12"
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                      filter="url(#daySelBoltFilter)"
+                    />
+                  </svg>
+                </div>
+                <span>첫페이지</span>
               </button>
             )}
           </div>

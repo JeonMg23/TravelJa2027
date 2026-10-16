@@ -854,6 +854,8 @@ export default function App() {
         onOpenMap={handleTriggerFlightAndOpenMap}
         currentUser={currentUser}
         onOpenLogin={() => setIsLoginPageOpen(true)}
+        onSelectUser={handleKakaoLoginSuccess}
+        onReplayIntro={() => setShowIntro(true)}
         onOpenChecklist={() => {
           setShowLandingPage(false);
           try {

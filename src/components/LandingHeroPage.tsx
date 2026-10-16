@@ -1,33 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Sparkles,
   Zap,
-  Flame,
   ArrowRight,
   MapPin,
-  Utensils,
-  Camera,
   Navigation,
-  Compass,
-  Smile,
-  Gamepad2,
-  Skull,
-  Award,
-  AlertTriangle,
-  Plane,
   ChevronRight,
-  TrendingUp,
-  Volume2,
-  HelpCircle,
-  Laugh,
   Clock,
   CheckSquare,
   Smartphone,
-  Download
+  Users
 } from 'lucide-react';
 import { TripDay } from '../types/travel';
 import { MobileInstallModal } from './MobileInstallModal';
 import { KakaoAuthUser } from '../types/auth';
+import tokyoTowerDesktopImg from '../assets/images/tokyo_tower_night_1792063728180.jpg';
+import tokyoTowerMobileImg from '../assets/images/tokyo_tower_mobile_1792145945594.jpg';
 
 interface LandingHeroPageProps {
   days: TripDay[];
@@ -36,22 +23,24 @@ interface LandingHeroPageProps {
   onOpenChecklist?: () => void;
   currentUser?: KakaoAuthUser | null;
   onOpenLogin?: () => void;
+  onSelectUser?: (user: KakaoAuthUser) => void;
+  onReplayIntro?: () => void;
 }
 
 // Playful quotes for teen boys
 const BOY_SURVIVAL_TIPS = [
   { icon: '🔋', title: '보조배터리 필수', desc: '사진 찍다 배터리 나가면 길 잃고 미아 됨. 무조건 만충!' },
-  { icon: '🍜', title: '라멘 국물까지 원샷 금지', desc: '염분 폭발해서 다음 날 아침 얼굴 두 배 됨 주의' },
+  { icon: '🍜', title: '라멘 국물 원샷 금지', desc: '염분 폭발해서 다음 날 아침 얼굴 두 배 됨 주의' },
   { icon: '👟', title: '발바닥 파스 챙겨라', desc: '하루 2만 보 걷고 밤에 다리 털릴 예정. 슬리퍼 신고 오지 마라' },
   { icon: '💴', title: '가챠(뽑기) 탕진 주의', desc: '아키하바라에서 100엔 동전 넣다 보면 지갑 탈탈 털림' }
 ];
 
 // Fun member roles
 const GANG_CHARACTERS = [
-  { emoji: '😎', role: '인간 네비게이터', quote: '“나만 따라와라 (사실 구글맵 3초마다 봄)”', bg: 'bg-amber-100 border-amber-400 text-amber-950' },
-  { emoji: '🍖', role: '먹방 폭격기', quote: '“밥 먹은 지 1시간 됐는데 또 편의점 가자고?”', bg: 'bg-orange-100 border-orange-400 text-orange-950' },
-  { emoji: '📸', role: '릴스/셀카 중독자', quote: '“야 잠깐 멈춰봐 폼 나게 한 컷 찍어줌”', bg: 'bg-emerald-100 border-emerald-400 text-emerald-950' },
-  { emoji: '😴', role: '아침 기상 실패자', quote: '“5분만 더... 오늘 일정 하나 빼면 안 됨?”', bg: 'bg-purple-100 border-purple-400 text-purple-950' }
+  { emoji: '😎', role: '인간 네비게이터', quote: '“나만 따라와라 (사실 구글맵 3초마다 봄)”', accent: 'from-amber-500/20 to-black border-amber-500/40 text-amber-200' },
+  { emoji: '🍖', role: '먹방 폭격기', quote: '“밥 먹은 지 1시간 됐는데 또 편의점 가자고?”', accent: 'from-orange-500/20 to-black border-orange-500/40 text-orange-200' },
+  { emoji: '📸', role: '릴스/셀카 중독자', quote: '“야 잠깐 멈춰봐 폼 나게 한 컷 찍어줌”', accent: 'from-emerald-500/20 to-black border-emerald-500/40 text-emerald-200' },
+  { emoji: '😴', role: '아침 기상 실패자', quote: '“5분만 더... 오늘 일정 하나 빼면 안 됨?”', accent: 'from-purple-500/20 to-black border-purple-500/40 text-purple-200' }
 ];
 
 export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
@@ -60,10 +49,22 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
   onOpenMap,
   onOpenChecklist,
   currentUser,
-  onOpenLogin
+  onOpenLogin,
+  onSelectUser,
+  onReplayIntro
 }) => {
   const [funSoundPlayed, setFunSoundPlayed] = useState<string | null>(null);
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Departure date: 2027년 1월 13일 09:00:00 (KST / JST)
   const DEPARTURE_TIMESTAMP = new Date('2027-01-13T09:00:00+09:00').getTime();
@@ -82,7 +83,7 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
           minutes: 0,
           seconds: 0,
           status: 'ongoing' as const,
-          label: '🎉 D-DAY! 오늘 일본 도쿄 대모험이 시작되었습니다! ✈️🇯🇵'
+          label: '🎉 오늘 일본 도쿄 대모험이 시작되었습니다! ✈️🇯🇵'
         };
       }
       return {
@@ -128,437 +129,421 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#FFFDF0] text-slate-900 flex flex-col font-sans selection:bg-amber-300 selection:text-black relative overflow-x-hidden">
-      {/* Playful Floating Sticker Toast */}
+    <div className="min-h-screen bg-black text-white flex flex-col font-sans selection:bg-yellow-400 selection:text-black relative overflow-x-hidden">
+      {/* Toast Notification */}
       {funSoundPlayed && (
-        <div className="fixed top-20 right-6 z-50 animate-bounce bg-black text-amber-300 px-5 py-3 rounded-2xl font-black text-sm border-2 border-amber-400 shadow-[4px_4px_0px_#f59e0b] flex items-center gap-2">
+        <div className="fixed top-20 right-6 z-50 animate-bounce bg-zinc-900/95 text-yellow-300 px-5 py-3 rounded-2xl font-bold text-sm border border-yellow-400/50 shadow-[0_10px_35px_rgba(0,0,0,0.9)] backdrop-blur-md flex items-center gap-2">
           <span>📢</span>
           <span>{funSoundPlayed}</span>
         </div>
       )}
 
-      {/* Top Street Style Nav */}
-      <header className="border-b-2 sm:border-b-4 border-black bg-amber-300 sticky top-0 z-40 px-3 sm:px-8 py-2 sm:py-2.5 shadow-[0_2px_0_#000] sm:shadow-[0_4px_0_#000]">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-1.5 sm:gap-3">
-          {/* Top Row: Logo & Horizontal Title (Never wraps vertically!) */}
+      {/* 1. Top Cinematic Navigation Bar (넷플릭스 스타일 글래스모피즘 헤더) */}
+      <header className="sticky top-0 z-40 bg-black/80 backdrop-blur-2xl border-b border-white/10 px-3 sm:px-8 py-2.5 sm:py-3.5 transition-colors">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-2.5 sm:gap-3">
+          {/* Logo & Identity (인트로의 번개 볼트 & 도쿄원정대 폰트 연결) */}
           <div className="flex items-center justify-between gap-2 w-full md:w-auto">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+              {/* Black background golden lightning bolt icon button (아래 엠블럼과 동일한 블랙 바탕 + 골든 번개볼트) */}
               <button
                 onClick={() => setIsMobileModalOpen(true)}
-                className="w-8 h-8 sm:w-10 sm:h-10 bg-black text-amber-300 rounded-xl sm:rounded-2xl border-2 border-black flex items-center justify-center font-black text-base sm:text-xl shadow-[2px_2px_0_#fff] rotate-[-3deg] hover:rotate-12 hover:scale-105 active:scale-95 transition-transform cursor-pointer relative shrink-0 group"
-                title="스마트폰 앱 설치 및 바로가기"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-black/70 border border-yellow-400/50 backdrop-blur-xl flex items-center justify-center p-1.5 shadow-[0_0_15px_rgba(250,204,21,0.4)] hover:scale-105 active:scale-95 transition-transform cursor-pointer shrink-0"
+                title="스마트폰 홈화면 앱 설치 & 바로가기"
               >
-                ⚡
+                <svg
+                  className="w-full h-full drop-shadow-[0_0_8px_rgba(250,204,21,0.95)]"
+                  viewBox="0 0 512 512"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <defs>
+                    <linearGradient id="headerYellowBoltGrad" x1="0%" y1="0%" x2="70%" y2="100%">
+                      <stop offset="0%" stopColor="#FFFFFF" />
+                      <stop offset="25%" stopColor="#FEF08A" />
+                      <stop offset="65%" stopColor="#FACC15" />
+                      <stop offset="100%" stopColor="#EAB308" />
+                    </linearGradient>
+                    <filter id="headerBoltFilter" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="0" stdDeviation="10" floodColor="#FACC15" floodOpacity="0.9" />
+                    </filter>
+                  </defs>
+                  <path
+                    d="M 292 60 
+                       L 140 270 
+                       L 256 270 
+                       L 190 460 
+                       L 372 230 
+                       L 262 230 
+                       L 325 60 
+                       Z"
+                    fill="url(#headerYellowBoltGrad)"
+                    stroke="#FFFBEB"
+                    strokeWidth="10"
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    filter="url(#headerBoltFilter)"
+                  />
+                </svg>
               </button>
 
-              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                <span className="text-sm sm:text-2xl font-black tracking-tight text-black font-sans whitespace-nowrap">
-                  개구쟁이들의 일본여행
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  className="text-base sm:text-xl font-black tracking-tight text-white whitespace-nowrap"
+                  style={{ textShadow: '0 0 15px rgba(255,255,255,0.8)' }}
+                >
+                  도쿄 원정대 <span className="text-yellow-400 font-mono">2027</span>
                 </span>
-                <span className="bg-red-500 text-white text-[10px] sm:text-xs font-black px-1.5 py-0.5 rounded-full border border-black shadow-[1px_1px_0_#000] rotate-2 whitespace-nowrap shrink-0">
+                <span className="bg-yellow-400/20 text-yellow-300 border border-yellow-400/40 text-[10px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap shrink-0 shadow-[0_0_10px_rgba(250,204,21,0.25)]">
                   우당탕탕!
                 </span>
               </div>
             </div>
-
-            {/* Quick Start button on the right of top row on mobile */}
-            <button
-              onClick={() => onStartTrip(1)}
-              className="md:hidden px-3 py-1.5 text-xs font-black text-black bg-[#4ade80] hover:bg-[#22c55e] rounded-xl border-2 border-black shadow-[2px_2px_0_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
-            >
-              <span>🚀 출발!</span>
-              <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
-            </button>
           </div>
 
-          {/* Sub Row on mobile (placed BELOW the title row) & inline on desktop */}
-          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pt-0.5 md:pt-0">
-            {/* Kakao Login / Profile Status Button */}
+          {/* Action Tools & User Profile */}
+          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar pt-0.5 md:pt-0">
+            {/* Logged in Profile Badge (클릭 시 프로필 전환) */}
             {onOpenLogin && (
               <button
                 onClick={onOpenLogin}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-2 text-[11px] sm:text-xs font-black text-[#191919] bg-[#FEE500] hover:bg-[#FDD835] rounded-lg sm:rounded-xl border-2 border-black shadow-[1.5px_1.5px_0_#000] sm:shadow-[2px_2px_0_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer whitespace-nowrap"
-                title={currentUser ? `${currentUser.nickname} 카카오 프로필 (클릭하여 변경)` : '카카오 로그인'}
+                className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 rounded-xl border border-white/20 backdrop-blur-md transition-all cursor-pointer whitespace-nowrap shadow-sm group"
+                title={currentUser ? `${currentUser.nickname} 프로필 (클릭하여 전환)` : '프로필 선택'}
               >
-                <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 3C6.477 3 2 6.477 2 10.765c0 2.766 1.87 5.185 4.673 6.541-.205.772-.743 2.784-.852 3.223-.134.542.198.536.417.391.173-.115 2.756-1.871 3.865-2.628.625.088 1.267.135 1.897.135 5.523 0 10-3.477 10-7.765S17.523 3 12 3z" />
-                </svg>
                 {currentUser ? (
-                  <span className="truncate max-w-[90px] sm:max-w-[120px]">
-                    {currentUser.nickname} ({currentUser.device.name.split(' ')[0]})
-                  </span>
+                  <>
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
+                    <span className="truncate max-w-[100px] sm:max-w-[130px] text-yellow-300 font-bold group-hover:text-yellow-200">
+                      {currentUser.nickname}
+                    </span>
+                    <span className="text-[10px] text-white/60 bg-white/10 px-1.5 py-0.5 rounded">전환</span>
+                  </>
                 ) : (
-                  <span>카카오 로그인</span>
+                  <>
+                    <Users className="w-3.5 h-3.5 text-yellow-400" />
+                    <span>프로필 선택</span>
+                  </>
                 )}
               </button>
             )}
 
-            {/* Mobile App Install / ZIP Button */}
+            {/* App Install Button */}
             <button
               onClick={() => setIsMobileModalOpen(true)}
-              className="flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-2 text-[11px] sm:text-xs font-black text-black bg-amber-400 hover:bg-amber-500 rounded-lg sm:rounded-xl border-2 border-black shadow-[1.5px_1.5px_0_#000] sm:shadow-[2px_2px_0_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer whitespace-nowrap"
-              title="스마트폰 홈화면 앱 설치 & ZIP 압축파일 다운로드"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-yellow-300 bg-yellow-400/10 hover:bg-yellow-400/20 border border-yellow-400/30 rounded-xl transition-all cursor-pointer whitespace-nowrap"
             >
-              <Smartphone className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-black shrink-0" />
-              <span>📱 앱 설치</span>
+              <Smartphone className="w-3.5 h-3.5 text-yellow-400" />
+              <span>앱 설치</span>
             </button>
 
-            {/* Route Map Button */}
-            <button
-              onClick={() => onOpenMap()}
-              className="flex items-center gap-1 px-2.5 sm:px-3.5 py-1 sm:py-2 text-[11px] sm:text-xs font-black text-black bg-white hover:bg-slate-100 rounded-lg sm:rounded-xl border-2 border-black shadow-[1.5px_1.5px_0_#000] sm:shadow-[2px_2px_0_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer whitespace-nowrap"
-            >
-              <Navigation className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 shrink-0" />
-              <span>동선 지도</span>
-            </button>
-
-            {/* Header D-Day Pill (Desktop only) */}
-            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black text-amber-300 border-2 border-black shadow-[2px_2px_0_#fff] text-xs font-black">
-              <Clock className="w-3.5 h-3.5 text-rose-400" />
+            {/* Desktop D-Day Pill */}
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-mono font-bold text-amber-300">
+              <Clock className="w-3.5 h-3.5 text-yellow-400" />
               <span>출발 {dDay.dDayText}</span>
-              <span className="text-slate-500">|</span>
-              <span className="tabular-nums text-white font-mono">{dDay.days}일 {String(dDay.hours).padStart(2, '0')}시간 남음</span>
+              <span className="text-white/20">|</span>
+              <span className="text-white">{dDay.days}일 {String(dDay.hours).padStart(2, '0')}시간 남음</span>
             </div>
-
-            {/* Desktop Start button */}
-            <button
-              onClick={() => onStartTrip(1)}
-              className="hidden md:flex px-4 lg:px-6 py-2 text-xs sm:text-sm font-black text-black bg-[#4ade80] hover:bg-[#22c55e] rounded-xl border-2 border-black shadow-[3px_3px_0_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all items-center gap-1.5 cursor-pointer whitespace-nowrap"
-            >
-              <span>🚀 출발하기!</span>
-              <ArrowRight className="w-4 h-4 stroke-[3]" />
-            </button>
           </div>
         </div>
       </header>
 
-      {/* Hero Section: Comic / Boyish Street Graffiti Style */}
-      <section className="relative pt-10 pb-16 lg:pt-16 lg:pb-20 px-4 sm:px-6 border-b-4 border-black bg-gradient-to-b from-[#FFFDF0] via-[#FEF3C7] to-[#FDE68A] overflow-hidden">
-        {/* Background Comic Halftone & Doodles */}
-        <div className="absolute top-6 left-8 text-4xl opacity-30 select-none rotate-12">💥</div>
-        <div className="absolute top-20 right-12 text-5xl opacity-30 select-none -rotate-12">🔥</div>
-        <div className="absolute bottom-10 left-16 text-4xl opacity-25 select-none -rotate-6">👾</div>
-        <div className="absolute top-1/2 right-6 text-4xl opacity-25 select-none rotate-45">🍜</div>
+      {/* 2. Hero Section: Tokyo Night Backdrop + Golden Lightning (인트로 & 로그인 페이지와 일치하는 시네마틱 밤하늘) */}
+      <section className="relative pt-12 pb-20 lg:pt-20 lg:pb-28 px-4 sm:px-6 overflow-hidden border-b border-white/10">
+        {/* Full-bleed Tokyo Tower Night Backdrop (로그인 화면과 동일한 도쿄 타워 야경 & 비네트) */}
+        <div
+          className="absolute inset-0 bg-cover bg-no-repeat transition-transform duration-1000 ease-out scale-100 filter brightness-95"
+          style={{
+            backgroundImage: `url(${isMobile ? tokyoTowerMobileImg : tokyoTowerDesktopImg})`,
+            backgroundPosition: isMobile ? 'center 15%' : 'center center'
+          }}
+        />
+
+        {/* Cinematic Netflix Vignettes matching LoginPage */}
+        <div className="absolute inset-0 bg-black/45" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-36 bg-gradient-to-b from-black/80 to-transparent" />
+
+        {/* Golden Central Radiant Aura matching Intro Page */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-yellow-400/15 rounded-full blur-3xl pointer-events-none" />
 
         <div className="max-w-5xl mx-auto text-center relative z-10">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black text-amber-300 text-xs sm:text-sm font-black border-2 border-amber-400 shadow-[3px_3px_0_#d97706] mb-6 rotate-[-1deg] hover:rotate-1 transition-transform">
-            <Flame className="w-4 h-4 text-red-500 fill-red-500 animate-pulse" />
-            <span>2027.01.13 ~ 01.18 · 개구쟁이 소년들과 엄마들의 도쿄 원정대!</span>
+          {/* Glowing Golden Lightning Bolt Emblem (인트로의 시그니처 황금 번개와 일치) */}
+          <div className="flex justify-center mb-6">
+            <div className="relative inline-flex items-center justify-center p-3 rounded-3xl bg-black/50 border border-yellow-400/40 backdrop-blur-xl shadow-[0_0_35px_rgba(250,204,21,0.4)] hover:scale-105 transition-transform duration-300">
+              <svg
+                className="w-14 h-14 sm:w-18 sm:h-18 drop-shadow-[0_0_24px_rgba(250,204,21,0.95)]"
+                viewBox="0 0 512 512"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <defs>
+                  <linearGradient id="heroYellowBoltGrad" x1="0%" y1="0%" x2="70%" y2="100%">
+                    <stop offset="0%" stopColor="#FFFFFF" />
+                    <stop offset="25%" stopColor="#FEF08A" />
+                    <stop offset="65%" stopColor="#FACC15" />
+                    <stop offset="100%" stopColor="#EAB308" />
+                  </linearGradient>
+                  <filter id="heroBoltFilter" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="0" stdDeviation="12" floodColor="#FACC15" floodOpacity="0.9" />
+                  </filter>
+                </defs>
+                <path
+                  d="M 292 60 
+                     L 140 270 
+                     L 256 270 
+                     L 190 460 
+                     L 372 230 
+                     L 262 230 
+                     L 325 60 
+                     Z"
+                  fill="url(#heroYellowBoltGrad)"
+                  stroke="#FFFBEB"
+                  strokeWidth="8"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  filter="url(#heroBoltFilter)"
+                />
+              </svg>
+            </div>
           </div>
 
-          {/* Main Headline */}
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-black tracking-tight leading-[1.15] mb-6">
-            개구쟁이들의 <br className="sm:hidden" />
-            <span className="relative inline-block mx-1">
-              <span className="relative z-10 text-amber-500 [-webkit-text-stroke:2px_black] sm:[-webkit-text-stroke:3px_black] drop-shadow-[4px_4px_0_#000]">
-                우당탕탕!
-              </span>
+          {/* Expedition Date & Motto Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/70 border border-yellow-400/50 text-yellow-300 text-xs sm:text-sm font-bold shadow-[0_0_25px_rgba(250,204,21,0.25)] backdrop-blur-md mb-6">
+            <Zap className="w-4 h-4 text-yellow-400 fill-yellow-400 animate-pulse" />
+            <span>2027.01.13 ~ 01.18 · 개구쟁이 소년들과 엄마들의 도쿄 대원정</span>
+          </div>
+
+          {/* Main Headline (인트로의 별빛 타이포그래피 계승) */}
+          <h1
+            className="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.15] mb-5 select-none"
+            style={{
+              textShadow: '0 0 20px rgba(255,255,255,0.9), 0 0 40px rgba(250,204,21,0.4)'
+            }}
+          >
+            도쿄 원정대 <span className="font-mono text-yellow-400">2027</span> <br />
+            <span className="bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(250,204,21,0.55)]">
+              우당탕탕! 일본 대모험
             </span>
-            <br />
-            일본여행 대모험
           </h1>
 
           {/* Subtitle */}
-          <p className="text-base sm:text-xl font-bold text-slate-800 max-w-2xl mx-auto mb-7 leading-relaxed">
-            길 잃어도 괜찮고 라멘 국물 튀어도 신난다! <br />
-            아키하바라 피규어부터 시부야 스크램블, 신주쿠 야경까지 <br className="hidden sm:inline" />
-            <span className="bg-amber-300 px-1 border-b-2 border-black">구글맵 동선 + 추천 먹방</span> 완벽 장착 완료!
+          <p className="text-sm sm:text-lg font-medium text-slate-200 max-w-2xl mx-auto mb-8 leading-relaxed drop-shadow-md">
+            길 잃어도 신나고 라멘 국물 튀어도 즐겁다! <br />
+            아사쿠사부터 디즈니씨, 해리포터 스튜디오, 시부야·신주쿠 야경까지 <br className="hidden sm:inline" />
+            <span className="text-yellow-300 font-bold border-b border-yellow-400/50">최적화 구글맵 동선 + 실시간 맛집 가이드</span> 완벽 장착 완료!
           </p>
 
-          {/* D-DAY Live Countdown Box */}
-          <div className="max-w-xl mx-auto mb-9 bg-white/95 backdrop-blur-xs rounded-2xl border-4 border-black shadow-[6px_6px_0_#000] p-4 sm:p-5 relative overflow-hidden">
-            {/* Top header row */}
-            <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b-2 border-black/10">
-              <div className="flex items-center gap-2 sm:gap-2.5 text-left">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#FF4757] text-white flex items-center justify-center font-black text-lg border-2 border-black shadow-[2px_2px_0_#000] animate-pulse shrink-0">
-                  ✈️
+          {/* D-DAY Flight Mission Countdown Terminal (다크 글래스모피즘 HUD) */}
+          <div className="max-w-xl mx-auto mb-10 bg-zinc-950/80 backdrop-blur-2xl rounded-3xl border border-white/15 p-5 sm:p-7 shadow-[0_20px_60px_rgba(0,0,0,0.9)] relative overflow-hidden">
+            {/* Header row */}
+            <div className="flex items-center justify-between gap-2 pb-4 mb-4 border-b border-white/10">
+              <div className="flex items-center gap-3 text-left">
+                <div className="w-10 h-10 rounded-2xl bg-black/85 border border-yellow-400/50 backdrop-blur-xl flex items-center justify-center p-1.5 shadow-[0_0_15px_rgba(250,204,21,0.4)] shrink-0">
+                  <svg
+                    className="w-full h-full drop-shadow-[0_0_8px_rgba(250,204,21,0.95)]"
+                    viewBox="0 0 512 512"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <defs>
+                      <linearGradient id="ddayYellowBoltGrad" x1="0%" y1="0%" x2="70%" y2="100%">
+                        <stop offset="0%" stopColor="#FFFFFF" />
+                        <stop offset="25%" stopColor="#FEF08A" />
+                        <stop offset="65%" stopColor="#FACC15" />
+                        <stop offset="100%" stopColor="#EAB308" />
+                      </linearGradient>
+                      <filter id="ddayBoltFilter" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="0" stdDeviation="10" floodColor="#FACC15" floodOpacity="0.9" />
+                      </filter>
+                    </defs>
+                    <path
+                      d="M 292 60 
+                         L 140 270 
+                         L 256 270 
+                         L 190 460 
+                         L 372 230 
+                         L 262 230 
+                         L 325 60 
+                         Z"
+                      fill="url(#ddayYellowBoltGrad)"
+                      stroke="#FFFBEB"
+                      strokeWidth="10"
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                      filter="url(#ddayBoltFilter)"
+                    />
+                  </svg>
                 </div>
                 <div>
-                  <div className="text-[11px] sm:text-xs font-black text-rose-600 flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>여행 출발 D-DAY 카운트다운</span>
+                  <div className="text-xs font-bold text-yellow-300 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-yellow-400" />
+                    <span>도쿄 원정 출발 D-DAY 카운트다운</span>
                   </div>
-                  <div className="text-xs sm:text-sm font-black text-slate-900">
-                    2027.01.13 ~ 01.18 · 도쿄 5박 6일
+                  <div className="text-xs sm:text-sm font-semibold text-slate-300">
+                    2027.01.13 (수) 09:00 인천 ✈️ 11:30 나리타 착륙
                   </div>
                 </div>
               </div>
-              <div className="bg-[#FF4757] text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded-xl font-black text-base sm:text-xl border-2 border-black shadow-[2px_2px_0_#000] rotate-2 shrink-0">
+              <div className="bg-yellow-400 text-black px-4 py-1.5 rounded-xl font-black text-base sm:text-xl shadow-[0_0_20px_rgba(250,204,21,0.5)]">
                 {dDay.dDayText}
               </div>
             </div>
 
             {/* 4 Digital Timer Cards */}
-            <div className="grid grid-cols-4 gap-2 sm:gap-3">
-              <div className="bg-[#FEF3C7] p-2 sm:p-3 rounded-xl border-2 border-black shadow-[2px_2px_0_#000] flex flex-col items-center">
-                <span className="text-2xl sm:text-4xl font-black text-black tabular-nums tracking-tight font-mono">
+            <div className="grid grid-cols-4 gap-2.5 sm:gap-3.5">
+              <div className="bg-white/5 border border-white/10 p-2.5 sm:p-3.5 rounded-2xl flex flex-col items-center">
+                <span className="text-2xl sm:text-4xl font-black text-yellow-300 tabular-nums font-mono">
                   {dDay.days}
                 </span>
-                <span className="text-[10px] sm:text-xs font-black text-slate-700 mt-0.5">남은 일(Days)</span>
+                <span className="text-[10px] sm:text-xs font-medium text-slate-400 mt-1">남은 일(Days)</span>
               </div>
-              <div className="bg-[#E0F2FE] p-2 sm:p-3 rounded-xl border-2 border-black shadow-[2px_2px_0_#000] flex flex-col items-center">
-                <span className="text-2xl sm:text-4xl font-black text-blue-700 tabular-nums tracking-tight font-mono">
+              <div className="bg-white/5 border border-white/10 p-2.5 sm:p-3.5 rounded-2xl flex flex-col items-center">
+                <span className="text-2xl sm:text-4xl font-black text-sky-400 tabular-nums font-mono">
                   {String(dDay.hours).padStart(2, '0')}
                 </span>
-                <span className="text-[10px] sm:text-xs font-black text-slate-700 mt-0.5">시간(Hours)</span>
+                <span className="text-[10px] sm:text-xs font-medium text-slate-400 mt-1">시간(Hours)</span>
               </div>
-              <div className="bg-[#DCFCE7] p-2 sm:p-3 rounded-xl border-2 border-black shadow-[2px_2px_0_#000] flex flex-col items-center">
-                <span className="text-2xl sm:text-4xl font-black text-emerald-700 tabular-nums tracking-tight font-mono">
+              <div className="bg-white/5 border border-white/10 p-2.5 sm:p-3.5 rounded-2xl flex flex-col items-center">
+                <span className="text-2xl sm:text-4xl font-black text-emerald-400 tabular-nums font-mono">
                   {String(dDay.minutes).padStart(2, '0')}
                 </span>
-                <span className="text-[10px] sm:text-xs font-black text-slate-700 mt-0.5">분(Mins)</span>
+                <span className="text-[10px] sm:text-xs font-medium text-slate-400 mt-1">분(Mins)</span>
               </div>
-              <div className="bg-[#FFE4E6] p-2 sm:p-3 rounded-xl border-2 border-black shadow-[2px_2px_0_#000] flex flex-col items-center">
-                <span className="text-2xl sm:text-4xl font-black text-rose-600 tabular-nums tracking-tight font-mono animate-pulse">
+              <div className="bg-white/5 border border-white/10 p-2.5 sm:p-3.5 rounded-2xl flex flex-col items-center">
+                <span className="text-2xl sm:text-4xl font-black text-rose-400 tabular-nums font-mono animate-pulse">
                   {String(dDay.seconds).padStart(2, '0')}
                 </span>
-                <span className="text-[10px] sm:text-xs font-black text-slate-700 mt-0.5">초(Secs)</span>
+                <span className="text-[10px] sm:text-xs font-medium text-slate-400 mt-1">초(Secs)</span>
               </div>
             </div>
 
-            {/* Subtext info */}
-            <div className="mt-3 text-center text-[11px] sm:text-xs font-bold text-slate-700 bg-amber-50 py-1.5 px-2 rounded-lg border border-amber-200">
+            {/* Departure Info Banner */}
+            <div className="mt-4 text-center text-xs font-medium text-slate-300 bg-white/5 py-2 px-3 rounded-xl border border-white/10">
               {dDay.label}
             </div>
           </div>
 
-          {/* Main CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto mb-6">
+          {/* 5. Main Action Buttons (초대형 골든 액션 버튼) */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-lg mx-auto mb-12">
             <button
               onClick={() => onStartTrip(1)}
-              className="w-full sm:w-auto px-8 py-4 bg-[#FF4757] hover:bg-[#ff3838] text-white font-black text-lg rounded-2xl border-4 border-black shadow-[5px_5px_0_#000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-3 cursor-pointer group"
+              className="w-full sm:w-auto px-9 py-4.5 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:brightness-110 text-black font-black text-lg rounded-2xl shadow-[0_0_35px_rgba(250,204,21,0.5)] active:scale-95 transition-all flex items-center justify-center gap-3 cursor-pointer group"
             >
-              <Gamepad2 className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+              <Zap className="w-5 h-5 fill-black group-hover:rotate-12 transition-transform" />
               <span>원정 시작하기 (Day 1)</span>
-              <ArrowRight className="w-6 h-6 stroke-[3] group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-5 h-5 stroke-[3] group-hover:translate-x-1.5 transition-transform" />
             </button>
 
             <button
               onClick={() => onOpenMap()}
-              className="w-full sm:w-auto px-7 py-4 bg-white hover:bg-slate-100 text-black font-black text-base rounded-2xl border-4 border-black shadow-[5px_5px_0_#000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full sm:w-auto px-7 py-4.5 bg-white/10 hover:bg-white/20 text-white font-bold text-base rounded-2xl border border-white/20 backdrop-blur-md active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg"
             >
-              <Navigation className="w-5 h-5 text-blue-600" />
-              <span>구글 동선 맵 열기</span>
+              <Navigation className="w-5 h-5 text-sky-400" />
+              <span>구글 동선 지도 열기</span>
             </button>
           </div>
 
-          {/* Smartphone Install & ZIP Package Banner */}
-          <div className="max-w-xl mx-auto mb-10 bg-black text-white rounded-2xl p-3.5 sm:p-4 border-3 border-amber-400 shadow-[5px_5px_0_#d97706] flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-amber-400 text-black flex items-center justify-center font-black text-2xl shrink-0 shadow-[2px_2px_0_#fff]">
-                ⚡
-              </div>
-              <div>
-                <div className="text-xs sm:text-sm font-black text-amber-300 flex items-center gap-1.5">
-                  <span>📱 스마트폰 홈 화면 앱 설치 & 전달용 ZIP</span>
-                  <span className="text-[10px] bg-red-600 text-white px-1.5 py-0.2 rounded-full font-bold">1초 실행</span>
-                </div>
-                <div className="text-[11px] sm:text-xs text-slate-300 mt-0.5">
-                  바탕화면에 <strong>검정 바탕 노란 번개(⚡)</strong> 아이콘을 생성하고 주소창 없이 진짜 앱으로 실행하세요!
-                </div>
-              </div>
+          {/* Quick Stats Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 max-w-3xl mx-auto pt-6 border-t border-white/10">
+            <div className="bg-zinc-950/70 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
+              <div className="text-2xl sm:text-3xl font-black text-yellow-400 font-mono">{dDay.dDayText}</div>
+              <div className="text-xs font-medium text-slate-400 mt-1">⏳ 출발 카운트다운</div>
             </div>
-            <button
-              onClick={() => setIsMobileModalOpen(true)}
-              className="w-full sm:w-auto px-4 py-2 bg-amber-400 hover:bg-amber-300 text-black font-black text-xs sm:text-sm rounded-xl border-2 border-black shadow-[2px_2px_0_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap"
-            >
-              <Smartphone className="w-4 h-4" />
-              <span>앱 설치 & ZIP 다운로드</span>
-            </button>
-          </div>
-
-          {/* Fun stats tags */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto pt-6 border-t-2 border-dashed border-black/40">
-            <div className="bg-white p-3.5 rounded-xl border-2 border-black shadow-[2px_2px_0_#000]">
-              <div className="text-2xl sm:text-3xl font-black text-rose-600">{dDay.dDayText}</div>
-              <div className="text-xs font-bold text-slate-600 mt-0.5">⏳ 출발 카운트다운</div>
+            <div className="bg-zinc-950/70 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
+              <div className="text-2xl sm:text-3xl font-black text-amber-300">5박 6일</div>
+              <div className="text-xs font-medium text-slate-400 mt-1">🔥 끝장나는 일정</div>
             </div>
-            <div className="bg-white p-3.5 rounded-xl border-2 border-black shadow-[2px_2px_0_#000]">
-              <div className="text-2xl sm:text-3xl font-black text-black">5박 6일</div>
-              <div className="text-xs font-bold text-slate-600 mt-0.5">🔥 끝장나는 일정</div>
+            <div className="bg-zinc-950/70 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
+              <div className="text-2xl sm:text-3xl font-black text-sky-400 font-mono">24+ 곳</div>
+              <div className="text-xs font-medium text-slate-400 mt-1">🎮 핫플 & 맛집 폭격</div>
             </div>
-            <div className="bg-white p-3.5 rounded-xl border-2 border-black shadow-[2px_2px_0_#000]">
-              <div className="text-2xl sm:text-3xl font-black text-blue-600">24+ 곳</div>
-              <div className="text-xs font-bold text-slate-600 mt-0.5">🎮 핫플 & 맛집 폭격</div>
-            </div>
-            <div className="bg-white p-3.5 rounded-xl border-2 border-black shadow-[2px_2px_0_#000]">
-              <div className="text-2xl sm:text-3xl font-black text-amber-500">100%</div>
-              <div className="text-xs font-bold text-slate-600 mt-0.5">🗺️ 길치 구출 구글맵</div>
+            <div className="bg-zinc-950/70 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
+              <div className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono">100%</div>
+              <div className="text-xs font-medium text-slate-400 mt-1">🗺️ 길치 탈출 구글맵</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Boys Crew Types & Survival Rules Section */}
-      <section className="py-14 px-4 sm:px-6 bg-[#E0F2FE] border-b-4 border-black">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-10">
-            <div className="inline-block bg-blue-600 text-white font-black text-xs px-3 py-1 rounded-md border border-black shadow-[2px_2px_0_#000] -rotate-2 mb-2">
-              CREW TYPES
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-black">
-              우리 원정대 유형 분석! (너는 누구냐?)
-            </h2>
-            <p className="text-xs sm:text-sm font-bold text-slate-600 mt-1">
-              친구들을 눌러서 한마디 외쳐보세요!
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {GANG_CHARACTERS.map((char, i) => (
-              <button
-                key={i}
-                onClick={() => triggerFunReaction(`${char.role}: ${char.quote}`)}
-                className={`${char.bg} p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0_#000] hover:scale-105 active:scale-95 transition-all text-left flex flex-col justify-between cursor-pointer`}
-              >
-                <div>
-                  <div className="text-4xl mb-3">{char.emoji}</div>
-                  <div className="font-black text-base text-black mb-1">{char.role}</div>
-                  <div className="text-xs font-bold text-slate-700 leading-snug">
-                    {char.quote}
-                  </div>
-                </div>
-                <div className="mt-4 pt-2 border-t border-black/20 text-[11px] font-black text-slate-900 flex items-center justify-between">
-                  <span>외치기 📢</span>
-                  <span>CLICK!</span>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {/* Survival Rules */}
-          <div className="mt-12 bg-white rounded-2xl border-3 border-black p-6 sm:p-8 shadow-[6px_6px_0_#000]">
-            <div className="flex items-center gap-3 mb-6 pb-4 border-b-2 border-black">
-              <span className="text-3xl">⚠️</span>
-              <div>
-                <h3 className="text-lg sm:text-xl font-black text-black">
-                  도쿄 원정대 절대 생존 4대 수칙
-                </h3>
-                <p className="text-xs font-bold text-slate-500">
-                  이것만 지키면 경찰서 갈 일도 없고 친구랑 멱살 잡을 일도 없다!
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {BOY_SURVIVAL_TIPS.map((tip, idx) => (
-                <div key={idx} className="bg-slate-50 p-4 rounded-xl border-2 border-black shadow-[2px_2px_0_#000]">
-                  <div className="text-2xl mb-2">{tip.icon}</div>
-                  <div className="text-sm font-black text-black mb-1">{tip.title}</div>
-                  <p className="text-xs font-bold text-slate-600 leading-relaxed">{tip.desc}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Travel Essentials Checklist Banner */}
-            {onOpenChecklist && (
-              <div className="mt-6 pt-4 border-t-2 border-dashed border-slate-300 flex flex-col sm:flex-row items-center justify-between gap-4 bg-amber-50/80 p-4 sm:p-5 rounded-2xl border-2 border-black shadow-[3px_3px_0_#000]">
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl">🎒</span>
-                  <div>
-                    <div className="text-sm font-black text-black">
-                      여행 필수 준비물 챙겼어? (속옷, 양말, 칫솔, 비상약, 모자, 썬글라스 등)
-                    </div>
-                    <div className="text-xs text-slate-700 font-bold mt-0.5">
-                      놓치기 쉬운 36가지 필수품을 카테고리별로 꼼꼼하게 체크해 보세요!
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={onOpenChecklist}
-                  className="w-full sm:w-auto px-5 py-2.5 bg-black hover:bg-slate-800 text-amber-300 font-black text-xs sm:text-sm rounded-xl border-2 border-black shadow-[2px_2px_0_#f59e0b] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
-                >
-                  <CheckSquare className="w-4 h-4 text-amber-300" />
-                  <span>준비물 체크리스트 열기</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* 6-Day Comic Road Grid */}
-      <section className="py-14 px-4 sm:px-6 bg-[#FEF08A] border-b-4 border-black">
+      {/* 6. 5박 6일 일자별 공략 코스 (넷플릭스 에피소드 스타일 카드) */}
+      <section className="py-16 px-4 sm:px-6 bg-zinc-950 border-b border-white/10">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
             <div>
-              <div className="inline-block bg-red-500 text-white font-black text-xs px-3 py-1 rounded-md border border-black shadow-[2px_2px_0_#000] rotate-1 mb-2">
-                DAILY MISSION
+              <div className="inline-block bg-yellow-400/20 text-yellow-300 border border-yellow-400/40 font-bold text-xs px-3.5 py-1 rounded-full mb-2.5 shadow-[0_0_12px_rgba(250,204,21,0.2)]">
+                DAILY MISSION · EPISODES
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-black">
-                5박 6일 일자별 공략 코스!
+              <h2 className="text-2xl sm:text-3xl font-black text-white">
+                5박 6일 일자별 공략 코스
               </h2>
-              <p className="text-xs sm:text-sm font-bold text-slate-700 mt-1">
+              <p className="text-xs sm:text-sm font-medium text-slate-400 mt-1">
                 원하는 날짜 카드를 누르면 그날의 작전 지도로 직행합니다.
               </p>
             </div>
             <button
               onClick={() => onStartTrip(1)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-black text-amber-300 font-black text-xs sm:text-sm rounded-xl border-2 border-black shadow-[3px_3px_0_#f59e0b] hover:bg-slate-900 transition-colors self-start sm:self-auto cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-yellow-300 font-bold text-xs sm:text-sm rounded-xl border border-white/15 transition-all self-start sm:self-auto cursor-pointer"
             >
               <span>전체 일정 타임라인으로 바로가기</span>
               <ChevronRight className="w-4 h-4 stroke-[3]" />
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             {days.map((day) => {
               const spotNames = day.spots.map((s) => s.name).join(' → ');
 
-              // Fun badges per day
-              const dayBadge = 
+              const dayBadge =
                 day.dayNumber === 1 ? '🛬 도쿄 상륙 작전' :
                 day.dayNumber === 2 ? '🛍️ 쇼핑 & 인파 생존' :
                 day.dayNumber === 3 ? '🗻 후지산 절경 & 도쿄역' :
                 day.dayNumber === 4 ? '🧙 마법 스튜디오 & 시부야' :
-                day.dayNumber === 5 ? '🍜 먹방 & 힐링(?)' : '🛫 최후의 쇼핑 후 복귀';
+                day.dayNumber === 5 ? '🍜 먹방 & 롯폰기 힐스' : '🛫 최후의 쇼핑 후 복귀';
 
               return (
                 <div
                   key={day.dayNumber}
                   onClick={() => onStartTrip(day.dayNumber)}
-                  className="bg-white border-3 border-black rounded-2xl p-5 shadow-[5px_5px_0_#000] hover:shadow-[7px_7px_0_#000] hover:-translate-y-1 hover:translate-x-0.5 transition-all flex flex-col justify-between cursor-pointer group"
+                  className="bg-black/80 hover:bg-zinc-900 border border-white/10 hover:border-yellow-400/50 rounded-3xl p-5 sm:p-6 shadow-xl hover:-translate-y-1.5 transition-all duration-200 flex flex-col justify-between cursor-pointer group backdrop-blur-md"
                 >
                   <div>
                     {/* Header */}
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="px-3 py-1 rounded-lg bg-black text-amber-300 text-xs font-black border border-black shadow-[2px_2px_0_#fff]">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="px-3 py-1 rounded-lg bg-yellow-400 text-black text-xs font-black shadow-[0_0_12px_rgba(250,204,21,0.4)]">
                         DAY {day.dayNumber}
                       </span>
-                      <span className="text-xs font-black text-slate-500">
+                      <span className="text-xs font-mono font-medium text-slate-400">
                         {day.fullDate.split(' ')[0]}
                       </span>
                     </div>
 
-                    <div className="inline-block text-[11px] font-black text-red-600 bg-red-100 border border-red-300 rounded px-2 py-0.5 mb-2">
+                    <div className="inline-block text-[11px] font-bold text-amber-300 bg-amber-400/10 border border-amber-400/20 rounded-md px-2 py-0.5 mb-2.5">
                       {dayBadge}
                     </div>
 
                     {/* Theme */}
-                    <h3 className="text-base font-black text-black mb-1 group-hover:text-blue-600 transition-colors">
+                    <h3 className="text-base sm:text-lg font-bold text-white mb-2 group-hover:text-yellow-300 transition-colors">
                       {day.theme}
                     </h3>
 
                     {/* Description */}
-                    <p className="text-xs font-bold text-slate-600 mb-4 line-clamp-2">
+                    <p className="text-xs font-medium text-slate-400 mb-4 line-clamp-2 leading-relaxed">
                       {day.description}
                     </p>
 
                     {/* Spots list */}
-                    <div className="bg-[#FFFDF0] p-3 rounded-xl border-2 border-black/80 mb-4">
-                      <div className="text-[11px] font-black text-slate-700 flex items-center gap-1 mb-1">
-                        <MapPin className="w-3.5 h-3.5 text-red-500" />
+                    <div className="bg-white/5 p-3 rounded-2xl border border-white/10 mb-4">
+                      <div className="text-[11px] font-bold text-yellow-400 flex items-center gap-1.5 mb-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-yellow-400" />
                         <span>타격 목표 ({day.spots.length}곳)</span>
                       </div>
-                      <p className="text-xs font-bold text-slate-800 line-clamp-2 leading-relaxed">
+                      <p className="text-xs font-medium text-slate-300 line-clamp-2 leading-relaxed">
                         {spotNames}
                       </p>
                     </div>
                   </div>
 
                   {/* Card Bottom CTA */}
-                  <div className="pt-3 border-t-2 border-dashed border-slate-300 flex items-center justify-between text-xs font-black text-blue-600 group-hover:text-blue-800">
+                  <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs font-bold text-yellow-400 group-hover:text-yellow-300">
                     <span>Day {day.dayNumber} 코스 파헤치기 ⚡</span>
                     <ArrowRight className="w-4 h-4 stroke-[3] group-hover:translate-x-1 transition-transform" />
                   </div>
@@ -569,112 +554,196 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
         </div>
       </section>
 
-      {/* Secret Weapon Features */}
-      <section className="py-14 px-4 sm:px-6 bg-white border-b-4 border-black">
+      {/* 7. Boys Crew Types & Survival Rules Section */}
+      <section className="py-16 px-4 sm:px-6 bg-black border-b border-white/10">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <div className="inline-block bg-emerald-500 text-white font-black text-xs px-3 py-1 rounded-md border border-black shadow-[2px_2px_0_#000] -rotate-1 mb-2">
+          <div className="text-center mb-12">
+            <div className="inline-block bg-sky-500/20 text-sky-300 border border-sky-400/40 font-bold text-xs px-3.5 py-1 rounded-full mb-2.5">
+              CREW TYPES
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-white">
+              우리 원정대 유형 분석! (너는 누구냐?)
+            </h2>
+            <p className="text-xs sm:text-sm font-medium text-slate-400 mt-1">
+              친구들을 눌러서 한마디 외쳐보세요!
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {GANG_CHARACTERS.map((char, i) => (
+              <button
+                key={i}
+                onClick={() => triggerFunReaction(`${char.role}: ${char.quote}`)}
+                className={`bg-gradient-to-b ${char.accent} p-5 rounded-2xl border backdrop-blur-sm hover:scale-105 active:scale-95 transition-all text-left flex flex-col justify-between cursor-pointer shadow-lg`}
+              >
+                <div>
+                  <div className="text-4xl mb-3">{char.emoji}</div>
+                  <div className="font-bold text-base text-white mb-1">{char.role}</div>
+                  <div className="text-xs font-medium text-slate-300 leading-snug">
+                    {char.quote}
+                  </div>
+                </div>
+                <div className="mt-4 pt-2 border-t border-white/15 text-[11px] font-bold text-yellow-300 flex items-center justify-between">
+                  <span>외치기 📢</span>
+                  <span>CLICK!</span>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Survival Rules Card */}
+          <div className="mt-12 bg-zinc-950/80 border border-white/15 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/10">
+              <span className="text-3xl">⚠️</span>
+              <div>
+                <h3 className="text-lg sm:text-xl font-black text-white">
+                  도쿄 원정대 절대 생존 4대 수칙
+                </h3>
+                <p className="text-xs font-medium text-slate-400">
+                  이것만 지키면 경찰서 갈 일도 없고 친구랑 멱살 잡을 일도 없다!
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {BOY_SURVIVAL_TIPS.map((tip, idx) => (
+                <div key={idx} className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                  <div className="text-2xl mb-2">{tip.icon}</div>
+                  <div className="text-sm font-bold text-white mb-1">{tip.title}</div>
+                  <p className="text-xs font-medium text-slate-400 leading-relaxed">{tip.desc}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Travel Essentials Checklist Banner */}
+            {onOpenChecklist && (
+              <div className="mt-6 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 bg-yellow-400/10 p-5 rounded-2xl border border-yellow-400/30">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">🎒</span>
+                  <div>
+                    <div className="text-sm font-bold text-white">
+                      여행 필수 준비물 챙겼어? (속옷, 양말, 칫솔, 비상약, 모자, 선글라스 등)
+                    </div>
+                    <div className="text-xs text-slate-400 font-medium mt-0.5">
+                      놓치기 쉬운 36가지 필수품을 카테고리별로 꼼꼼하게 체크해 보세요!
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={onOpenChecklist}
+                  className="w-full sm:w-auto px-5 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-black font-black text-xs sm:text-sm rounded-xl shadow-[0_0_20px_rgba(250,204,21,0.4)] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                >
+                  <CheckSquare className="w-4 h-4 text-black" />
+                  <span>준비물 체크리스트 열기</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* 8. Secret Weapon Features (특수 무기 기능 4종) */}
+      <section className="py-16 px-4 sm:px-6 bg-zinc-950 border-b border-white/10">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <div className="inline-block bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 font-bold text-xs px-3.5 py-1 rounded-full mb-2.5">
               GEAR & SKILLS
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-black">
-              개구쟁이들을 위한 특수 무기 기능 4종
+            <h2 className="text-2xl sm:text-3xl font-black text-white">
+              원정대를 위한 스마트 특수 무기 4종
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-5 rounded-2xl bg-amber-50 border-3 border-black shadow-[4px_4px_0_#000]">
-              <div className="w-10 h-10 rounded-xl bg-amber-300 border-2 border-black flex items-center justify-center font-black text-xl mb-3 shadow-[2px_2px_0_#000]">
+            <div className="p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:border-yellow-400/40 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center font-black text-xl mb-3 text-amber-300">
                 🗺️
               </div>
-              <h3 className="font-black text-base text-black mb-1">길치 탈출 파란 동선선</h3>
-              <p className="text-xs font-bold text-slate-600 leading-relaxed">
-                1, 2, 3 순서대로 점 찍고 선으로 이어줌. 구글 길찾기 버튼 누르면 전철 환승까지 다 나옴!
+              <h3 className="font-bold text-base text-white mb-1.5">길치 탈출 파란 동선선</h3>
+              <p className="text-xs font-medium text-slate-400 leading-relaxed">
+                1, 2, 3 순서대로 점 찍고 선으로 이어줌. 구글 길찾기 버튼 누르면 전철 환승까지 실시간 안내!
               </p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-orange-50 border-3 border-black shadow-[4px_4px_0_#000]">
-              <div className="w-10 h-10 rounded-xl bg-orange-300 border-2 border-black flex items-center justify-center font-black text-xl mb-3 shadow-[2px_2px_0_#000]">
+            <div className="p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:border-yellow-400/40 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-orange-400/20 border border-orange-400/40 flex items-center justify-center font-black text-xl mb-3 text-orange-300">
                 🍜
               </div>
-              <h3 className="font-black text-base text-black mb-1">원클릭 맛집 추가 & 삭제</h3>
-              <p className="text-xs font-bold text-slate-600 leading-relaxed">
-                배고플 때 맛집 클릭 시 동선에 즉시 추가! 다시 누르면 쏙 삭제되는 스마트 토글!
+              <h3 className="font-bold text-base text-white mb-1.5">원클릭 맛집 추가 & 삭제</h3>
+              <p className="text-xs font-medium text-slate-400 leading-relaxed">
+                배고플 때 맛집 클릭 시 동선에 즉시 추가! 다시 누르면 쏙 삭제되는 스마트 실시간 토글!
               </p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-sky-50 border-3 border-black shadow-[4px_4px_0_#000]">
-              <div className="w-10 h-10 rounded-xl bg-sky-300 border-2 border-black flex items-center justify-center font-black text-xl mb-3 shadow-[2px_2px_0_#000]">
+            <div className="p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:border-yellow-400/40 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-sky-400/20 border border-sky-400/40 flex items-center justify-center font-black text-xl mb-3 text-sky-300">
                 ☔
               </div>
-              <h3 className="font-black text-base text-black mb-1">비 올 때 실내 대피령</h3>
-              <p className="text-xs font-bold text-slate-600 leading-relaxed">
+              <h3 className="font-bold text-base text-white mb-1.5">비 올 때 실내 대피령</h3>
+              <p className="text-xs font-medium text-slate-400 leading-relaxed">
                 도쿄 날씨 실시간 연동. 비 오면 우산 쓰고 덜덜 떨지 말고 대형 몰·아케이드로 경로 자동 변경!
               </p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-emerald-50 border-3 border-black shadow-[4px_4px_0_#000]">
-              <div className="w-10 h-10 rounded-xl bg-emerald-300 border-2 border-black flex items-center justify-center font-black text-xl mb-3 shadow-[2px_2px_0_#000]">
+            <div className="p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:border-yellow-400/40 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-emerald-400/20 border border-emerald-400/40 flex items-center justify-center font-black text-xl mb-3 text-emerald-300">
                 💸
               </div>
-              <h3 className="font-black text-base text-black mb-1">싸움 방지 N빵 계산기</h3>
-              <p className="text-xs font-bold text-slate-600 leading-relaxed">
-                누가 편의점 결제했는지 바로 기록. 엔화/원화 자동 환산해서 1원도 안 틀리고 정산!
+              <h3 className="font-bold text-base text-white mb-1.5">싸움 방지 N빵 계산기</h3>
+              <p className="text-xs font-medium text-slate-400 leading-relaxed">
+                누가 결제했는지 즉시 기록. 엔화/원화 자동 환산해서 1엔도 틀리지 않고 평화로운 정산!
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Bottom CTA */}
-      <section className="py-14 bg-black text-white text-center px-4 relative overflow-hidden">
+      {/* 9. Bottom Final CTA (시네마틱 엔딩) */}
+      <section className="py-16 bg-black text-white text-center px-4 relative overflow-hidden">
         <div className="max-w-2xl mx-auto relative z-10">
-          {/* Lightning, Cute Airplane Image, Rocket */}
-          <div className="flex items-center justify-center gap-3.5 mb-3 animate-bounce">
-            <span className="text-4xl sm:text-5xl select-none" role="img" aria-label="번개">
+          <div className="flex items-center justify-center gap-3.5 mb-4 animate-bounce">
+            <span className="text-4xl select-none" role="img" aria-label="번개">
               ⚡
             </span>
             <img
               src="/cute-airplane.svg"
-              alt="귀여운 비행기"
-              className="w-12 h-12 sm:w-16 sm:h-16 object-contain inline-block align-middle filter drop-shadow-[0_4px_10px_rgba(56,189,248,0.5)] hover:scale-110 transition-transform"
-              title="도쿄행 귀여운 비행기"
+              alt="도쿄행 비행기"
+              className="w-12 h-12 sm:w-16 sm:h-16 object-contain inline-block align-middle filter drop-shadow-[0_0_15px_rgba(56,189,248,0.6)] hover:scale-110 transition-transform"
             />
-            <span className="text-4xl sm:text-5xl select-none" role="img" aria-label="로케트">
+            <span className="text-4xl select-none" role="img" aria-label="로케트">
               🚀
             </span>
           </div>
-          <h2 className="text-2xl sm:text-4xl font-black text-amber-300 mb-3 tracking-tight">
+          <h2 className="text-2xl sm:text-4xl font-black text-white mb-3 tracking-tight">
             준비됐나? 개구쟁이들 도쿄로 출발!
           </h2>
-          <p className="text-xs sm:text-base font-bold text-slate-300 mb-8 max-w-lg mx-auto">
-            망설일 시간 없다. 지금 바로 일정 확인하고 친구들한테 단톡방 링크 뿌려라!
+          <p className="text-xs sm:text-base font-medium text-slate-400 mb-8 max-w-lg mx-auto leading-relaxed">
+            망설일 시간 없다. 지금 바로 일정 확인하고 도쿄 여행의 모든 것을 만끽하자!
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5">
             <button
               onClick={() => onStartTrip(1)}
-              className="w-full sm:w-auto px-8 sm:px-10 py-4 bg-amber-400 hover:bg-amber-300 text-black font-black text-lg rounded-2xl border-4 border-white shadow-[6px_6px_0_#ff4757] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all inline-flex items-center justify-center gap-3 cursor-pointer"
+              className="w-full sm:w-auto px-8 sm:px-10 py-4 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:brightness-110 text-black font-black text-lg rounded-2xl shadow-[0_0_30px_rgba(250,204,21,0.5)] active:scale-95 transition-all inline-flex items-center justify-center gap-3 cursor-pointer"
             >
               <span>도쿄 1일차 바로 시작하기!</span>
-              <ArrowRight className="w-6 h-6 stroke-[3]" />
+              <ArrowRight className="w-5 h-5 stroke-[3]" />
             </button>
             {onOpenLogin && !currentUser && (
               <button
                 onClick={onOpenLogin}
-                className="w-full sm:w-auto px-6 py-4 bg-[#FEE500] hover:bg-[#FDD835] text-[#191919] font-black text-base rounded-2xl border-4 border-black shadow-[4px_4px_0_#fff] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all inline-flex items-center justify-center gap-2.5 cursor-pointer"
+                className="w-full sm:w-auto px-6 py-4 bg-white/10 hover:bg-white/15 text-white font-bold text-base rounded-2xl border border-white/20 active:scale-95 transition-all inline-flex items-center justify-center gap-2.5 cursor-pointer backdrop-blur-md"
               >
-                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 3C6.477 3 2 6.477 2 10.765c0 2.766 1.87 5.185 4.673 6.541-.205.772-.743 2.784-.852 3.223-.134.542.198.536.417.391.173-.115 2.756-1.871 3.865-2.628.625.088 1.267.135 1.897.135 5.523 0 10-3.477 10-7.765S17.523 3 12 3z" />
-                </svg>
-                <span>카카오톡으로 로그인하고 입장</span>
+                <Users className="w-5 h-5 text-yellow-400 shrink-0" />
+                <span>프로필 선택하고 입장</span>
               </button>
             )}
           </div>
         </div>
       </section>
 
-      {/* Street Footer */}
-      <footer className="py-5 bg-amber-400 border-t-4 border-black text-center text-xs font-black text-black">
-        <p>⚡ 개구쟁이들의 일본여행 (우당탕탕 도쿄 5박 6일 원정대) · 구글 지도 & 맛집 연동 스마트 플래너 ⚡</p>
+      {/* Footer */}
+      <footer className="py-6 bg-black border-t border-white/10 text-center text-xs font-medium text-slate-500">
+        <p>⚡ 도쿄 원정대 2027 (우당탕탕 도쿄 5박 6일 일본여행) · 구글 지도 & 실시간 맛집 연동 스마트 플래너 ⚡</p>
       </footer>
 
       {/* Mobile App Install & ZIP Package Modal */}
