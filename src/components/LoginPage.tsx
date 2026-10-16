@@ -12,36 +12,60 @@ interface LoginPageProps {
   onReplayIntro?: () => void;
 }
 
-import tokyoTowerImg from '../assets/images/tokyo_tower_night_1792063728180.jpg';
-import tokyoSkytreeImg from '../assets/images/tokyo_skytree_night_1792063728807.jpg';
-import sensojiTempleImg from '../assets/images/sensoji_temple_night_1792063729029.jpg';
+import tokyoTowerDesktopImg from '../assets/images/tokyo_tower_night_1792063728180.jpg';
+import tokyoTowerMobileImg from '../assets/images/tokyo_tower_mobile_1792145945594.jpg';
+
+import tokyoSkytreeDesktopImg from '../assets/images/tokyo_skytree_night_1792063728807.jpg';
+import tokyoSkytreeMobileImg from '../assets/images/tokyo_skytree_mobile_1792145946265.jpg';
+
+import sensojiTempleDesktopImg from '../assets/images/sensoji_temple_night_1792063729029.jpg';
+import sensojiPagodaMobileImg from '../assets/images/sensoji_pagoda_mobile_1792145947030.jpg';
 
 // 5 Curated High-Definition Tokyo Cityscape & Night View Photos (Crossfade Slideshow)
-// 1. 도쿄타워 야경 (첫번째 메인 사진)
-// 2. 도쿄 스카이트리 & 스미다가와 리버 야경 (시부야/신주쿠 대체)
-// 3. 아사쿠사 센소지 & 오층탑 야간 라이트업 (시부야/신주쿠 대체)
-// 4. 도쿄 일몰 노을 & 도시 전경
-// 5. 레인보우 브릿지 & 오다이바 야경
-const TOKYO_BACKGROUNDS = [
+// 스마트폰에서는 세로 9:16 랜드마크 중심 사진으로 건축물이 짤리지 않고 상단에 선명하게 표시됨
+interface TokyoBackground {
+  title: string;
+  desktopUrl: string;
+  mobileUrl: string;
+  mobilePosition: string;
+  desktopPosition: string;
+}
+
+const TOKYO_BACKGROUNDS: TokyoBackground[] = [
   {
-    url: tokyoTowerImg,
-    title: '도쿄 타워 야경'
+    title: '도쿄 타워 야경',
+    desktopUrl: tokyoTowerDesktopImg,
+    mobileUrl: tokyoTowerMobileImg,
+    mobilePosition: 'center 15%',
+    desktopPosition: 'center center'
   },
   {
-    url: tokyoSkytreeImg,
-    title: '도쿄 스카이트리 & 스미다가와 야경'
+    title: '도쿄 스카이트리 & 스미다가와 야경',
+    desktopUrl: tokyoSkytreeDesktopImg,
+    mobileUrl: tokyoSkytreeMobileImg,
+    mobilePosition: 'center 12%',
+    desktopPosition: 'center center'
   },
   {
-    url: sensojiTempleImg,
-    title: '아사쿠사 센소지 & 오층탑 라이트업'
+    title: '아사쿠사 센소지 & 오층탑 라이트업',
+    desktopUrl: sensojiTempleDesktopImg,
+    mobileUrl: sensojiPagodaMobileImg,
+    mobilePosition: 'center 18%',
+    desktopPosition: 'center center'
   },
   {
-    url: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1920&q=80',
-    title: '도쿄 일몰 노을 & 도시 전경'
+    title: '도쿄 일몰 노을 & 도시 전경',
+    desktopUrl: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1920&q=80',
+    mobileUrl: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1080&q=80',
+    mobilePosition: 'center center',
+    desktopPosition: 'center center'
   },
   {
-    url: 'https://images.unsplash.com/photo-1513407030348-c983a97b98d8?auto=format&fit=crop&w=1920&q=80',
-    title: '레인보우 브릿지 & 오다이바 야경'
+    title: '레인보우 브릿지 & 오다이바 야경',
+    desktopUrl: 'https://images.unsplash.com/photo-1513407030348-c983a97b98d8?auto=format&fit=crop&w=1920&q=80',
+    mobileUrl: 'https://images.unsplash.com/photo-1513407030348-c983a97b98d8?auto=format&fit=crop&w=1080&q=80',
+    mobilePosition: 'center center',
+    desktopPosition: 'center center'
   }
 ];
 
@@ -166,12 +190,28 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 }) => {
   const [currentBgIndex, setCurrentBgIndex] = useState<number>(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 640;
+    }
+    return true;
+  });
 
-  // Preload Tokyo cityscape images & smoothly cycle every 5 seconds
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Preload Tokyo cityscape images (both desktop & mobile versions) & smoothly cycle every 5 seconds
   useEffect(() => {
     TOKYO_BACKGROUNDS.forEach((item) => {
-      const img = new Image();
-      img.src = item.url;
+      const img1 = new Image();
+      img1.src = item.desktopUrl;
+      const img2 = new Image();
+      img2.src = item.mobileUrl;
     });
 
     const interval = setInterval(() => {
@@ -192,26 +232,41 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 w-full h-[100dvh] max-h-[100dvh] overflow-hidden bg-black text-white flex flex-col justify-end font-sans select-none z-[9999]">
+    <div
+      className="fixed inset-0 w-full min-h-screen bg-black text-white flex flex-col justify-end font-sans select-none z-[9999] overflow-hidden"
+      style={{
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        minHeight: '-webkit-fill-available'
+      }}
+    >
       {/* 1. Tokyo Cityscape & Night View Photos (5-image smooth crossfade) */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {TOKYO_BACKGROUNDS.map((bg, idx) => {
           const isActive = idx === currentBgIndex;
+          const bgUrl = isMobile ? bg.mobileUrl : bg.desktopUrl;
+          const bgPos = isMobile ? bg.mobilePosition : bg.desktopPosition;
+
           return (
             <div
-              key={bg.url}
-              className={`absolute inset-0 bg-cover bg-center transition-all duration-1200 ease-in-out transform ${
+              key={bg.title}
+              className={`absolute inset-0 bg-cover transition-all duration-1200 ease-in-out transform ${
                 isActive
                   ? 'opacity-100 scale-100'
                   : 'opacity-0 scale-105 pointer-events-none'
               }`}
-              style={{ backgroundImage: `url(${bg.url})` }}
+              style={{
+                backgroundImage: `url(${bgUrl})`,
+                backgroundPosition: bgPos
+              }}
             />
           );
         })}
 
         {/* Cinematic Netflix-style Vignette Overlay */}
-        <div className="absolute inset-0 bg-black/35" />
+        <div className="absolute inset-0 bg-black/30" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/75 to-transparent" />
         <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/60 to-transparent" />
       </div>
@@ -227,8 +282,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         </button>
       )}
 
-      {/* 2. Netflix Mobile Profile Selector (Positioned cleanly at bottom) */}
-      <div className="relative z-20 w-full max-w-xl mx-auto px-4 pb-12 sm:pb-16 flex flex-col items-center">
+      {/* 2. Netflix Mobile Profile Selector (Positioned cleanly at bottom above safe area) */}
+      <div
+        className="relative z-20 w-full max-w-xl mx-auto px-4 pb-8 sm:pb-12 flex flex-col items-center"
+        style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 2rem))' }}
+      >
         {/* "프로필을 선택하세요" Header Text (Exactly as requested) */}
         <h2 className="text-base sm:text-lg font-medium text-white/95 tracking-tight mb-5 sm:mb-6 text-center drop-shadow-md">
           프로필을 선택하세요

@@ -29,6 +29,7 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
   const [revealedLightning, setRevealedLightning] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isOutro, setIsOutro] = useState<boolean>(false);
+  const [hasAudioUnlocked, setHasAudioUnlocked] = useState<boolean>(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const letterRefs = useRef<(HTMLSpanElement | null)[]>([]);
@@ -40,6 +41,66 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
   useEffect(() => {
     isMutedRef.current = isMuted;
   }, [isMuted]);
+
+  // iOS Safari / Android Web Audio API Unlocker (모바일 브라우저 오디오 자동재생 정책 해제)
+  const initAndUnlockAudio = useCallback(() => {
+    try {
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+
+      if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+        audioContextRef.current = new AudioCtx();
+      }
+      const ctx = audioContextRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+
+      // iOS WebKit silent 1-sample buffer playback unlocks audio engine for the session
+      const buffer = ctx.createBuffer(1, 1, 22050);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start(0);
+
+      setHasAudioUnlocked(true);
+    } catch {
+      // Ignored
+    }
+  }, []);
+
+  // Global mobile touch / click listeners to immediately unlock sound on any user gesture
+  useEffect(() => {
+    try {
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (AudioCtx) {
+        audioContextRef.current = new AudioCtx();
+        if (audioContextRef.current.state === 'running') {
+          setHasAudioUnlocked(true);
+        }
+      }
+    } catch {}
+
+    const unlockHandler = () => {
+      initAndUnlockAudio();
+    };
+
+    window.addEventListener('touchstart', unlockHandler, { passive: true });
+    window.addEventListener('touchend', unlockHandler, { passive: true });
+    window.addEventListener('pointerdown', unlockHandler, { passive: true });
+    window.addEventListener('click', unlockHandler, { passive: true });
+
+    return () => {
+      window.removeEventListener('touchstart', unlockHandler);
+      window.removeEventListener('touchend', unlockHandler);
+      window.removeEventListener('pointerdown', unlockHandler);
+      window.removeEventListener('click', unlockHandler);
+    };
+  }, [initAndUnlockAudio]);
 
   // Web Audio API Synthesizer: 6 bright, pleasant, sparkling "띠리링~" (tiriring~) chimes
   const playSparkleChime = useCallback((stepIndex: number) => {
@@ -425,10 +486,11 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
     };
   }, [playSparkleChime, onComplete]);
 
-  // Touch screen to unlock audio if browser autoplay was blocked
+  // Touch screen to unlock audio on mobile smartphones
   const handleScreenInteraction = () => {
-    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-      audioContextRef.current.resume().catch(() => {});
+    initAndUnlockAudio();
+    if (!hasAudioUnlocked && !isMutedRef.current) {
+      playSparkleChime(revealedLightning ? 5 : Math.max(0, revealedLetters.filter(Boolean).length - 1));
     }
   };
 
@@ -437,18 +499,30 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
   return (
     <div
       onClick={handleScreenInteraction}
-      className={`fixed inset-0 z-[10000] w-full h-[100dvh] bg-black text-white overflow-hidden flex flex-col items-center justify-center select-none font-sans transition-all duration-700 ${
+      onTouchStart={handleScreenInteraction}
+      className={`fixed inset-0 z-[10000] w-full min-h-screen bg-black text-white overflow-hidden flex flex-col items-center justify-center select-none font-sans transition-all duration-700 ${
         isOutro ? 'opacity-0 scale-105 pointer-events-none' : 'opacity-100 scale-100'
       }`}
+      style={{
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        minHeight: '-webkit-fill-available'
+      }}
     >
       {/* 1. Fullscreen Animation Canvas for Falling Stars & Sparkles */}
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-10" />
 
       {/* 2. Top Controls: Discreet Mute & Skip buttons */}
-      <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+      <div
+        className="absolute top-4 right-4 z-30 flex items-center gap-2"
+        style={{ marginTop: 'max(0.5rem, env(safe-area-inset-top, 0.5rem))' }}
+      >
         <button
           onClick={(e) => {
             e.stopPropagation();
+            initAndUnlockAudio();
             setIsMuted(!isMuted);
           }}
           className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all cursor-pointer backdrop-blur-sm"
@@ -549,6 +623,27 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
           })}
         </div>
       </div>
+
+      {/* 4. Mobile Sound Notice (스마트폰 브라우저 오디오 자동재생 차단 해제 안내) */}
+      {!hasAudioUnlocked && !isMuted && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            initAndUnlockAudio();
+            playSparkleChime(0);
+          }}
+          onTouchStart={(e) => {
+            e.stopPropagation();
+            initAndUnlockAudio();
+            playSparkleChime(0);
+          }}
+          className="absolute bottom-6 sm:bottom-8 z-30 flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/25 text-white backdrop-blur-md cursor-pointer animate-pulse active:scale-95 transition-all text-xs font-semibold shadow-[0_4px_24px_rgba(0,0,0,0.6)]"
+          style={{ marginBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0.5rem))' }}
+        >
+          <Volume2 className="w-4 h-4 text-yellow-400 shrink-0" />
+          <span>화면을 터치하면 사운드가 켜집니다 🎵</span>
+        </div>
+      )}
     </div>
   );
 };
