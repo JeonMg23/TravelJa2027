@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { KakaoAuthUser } from '../types/auth';
-import { createKakaoUserFromPreset, getEffectivePresetMembers } from '../services/kakaoAuth';
+import {
+  createKakaoUserFromPreset,
+  getEffectivePresetMembers,
+  fetchServerProfiles,
+  subscribeToProfiles
+} from '../services/kakaoAuth';
 import { getCharacterAvatarById } from '../data/characterAvatars';
-import { X, MapPin, ChevronRight } from 'lucide-react';
+import { X, MapPin, ChevronRight, Database } from 'lucide-react';
 
 interface LoginPageProps {
   onLoginSuccess: (user: KakaoAuthUser) => void;
@@ -181,7 +186,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     return true;
   });
 
-  const effectiveMembers = getEffectivePresetMembers();
+  const [effectiveMembers, setEffectiveMembers] = useState(() => getEffectivePresetMembers());
+
+  useEffect(() => {
+    // 1. Fetch latest shared profiles from Express server DB (profiles_db.json)
+    fetchServerProfiles()
+      .then(() => {
+        setEffectiveMembers(getEffectivePresetMembers());
+      })
+      .catch(() => {});
+
+    // 2. Subscribe to profile updates across components
+    const unsubscribe = subscribeToProfiles(() => {
+      setEffectiveMembers(getEffectivePresetMembers());
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {

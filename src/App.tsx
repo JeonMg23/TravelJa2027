@@ -59,7 +59,7 @@ import { FlightTransition } from './components/FlightTransition';
 import { LoginPage } from './components/LoginPage';
 import { IntroPage } from './components/IntroPage';
 import { KakaoAuthUser } from './types/auth';
-import { getStoredKakaoUser, clearKakaoUser } from './services/kakaoAuth';
+import { getStoredKakaoUser, clearKakaoUser, fetchServerProfiles, subscribeToProfiles, getEffectivePresetMembers } from './services/kakaoAuth';
 import {
   fetchBudgetFromDB,
   addBudgetItemToDB,
@@ -155,6 +155,67 @@ export default function App() {
 
   // Kakao Talk Login & User session state (식별된 스마트폰/태블릿 접속자)
   const [currentUser, setCurrentUser] = useState<KakaoAuthUser | null>(() => getStoredKakaoUser());
+
+  // Synchronize profiles from server DB (profiles_db.json) on mount and on window focus/tab switch
+  useEffect(() => {
+    const syncCompanionsWithProfiles = () => {
+      const effective = getEffectivePresetMembers();
+      setCompanions((prev) => {
+        return prev.map((comp) => {
+          const matched = effective.find((m) => {
+            if (comp.id === 'user-1' && m.id === 'kakao_hyunwoo_mom') return true;
+            if (comp.id === 'user-2' && m.id === 'kakao_sehyun_mom') return true;
+            if (comp.id === 'user-3' && m.id === 'kakao_hyunwoo') return true;
+            if (comp.id === 'user-4' && m.id === 'kakao_sehyun') return true;
+            return false;
+          });
+          if (matched) {
+            return {
+              ...comp,
+              name: `${matched.nickname} (${matched.role === 'HYUNWOO' || matched.role === 'SEHYUN' ? '관리자' : '원정대원'})`
+            };
+          }
+          return comp;
+        });
+      });
+    };
+
+    // 1. Initial server profile sync
+    fetchServerProfiles()
+      .then(() => {
+        const refreshed = getStoredKakaoUser();
+        if (refreshed) {
+          setCurrentUser(refreshed);
+        }
+        syncCompanionsWithProfiles();
+      })
+      .catch(() => {});
+
+    // 2. Profile update subscription
+    const unsubscribe = subscribeToProfiles(() => {
+      const refreshed = getStoredKakaoUser();
+      if (refreshed) {
+        setCurrentUser(refreshed);
+      }
+      syncCompanionsWithProfiles();
+    });
+
+    // 3. Re-sync when switching back to this app tab
+    const handleFocusSync = () => {
+      if (document.visibilityState === 'visible') {
+        fetchServerProfiles()
+          .then(() => syncCompanionsWithProfiles())
+          .catch(() => {});
+      }
+    };
+    window.addEventListener('focus', handleFocusSync);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('focus', handleFocusSync);
+    };
+  }, []);
+
   const [isLoginPageOpen, setIsLoginPageOpen] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const stored = getStoredKakaoUser();

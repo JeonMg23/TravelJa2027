@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3000;
 const DB_FILE = path.join(__dirname, 'budget_db.json');
+const PROFILES_DB_FILE = path.join(__dirname, 'profiles_db.json');
 
 app.use(express.json());
 
@@ -33,6 +34,78 @@ function writeBudgetDB(items: any[]): void {
     fs.writeFileSync(DB_FILE, JSON.stringify(items, null, 2), 'utf-8');
   } catch (err) {
     console.error('Error writing budget_db.json:', err);
+  }
+}
+
+// In-memory + JSON File Persistent Database Helper for Shared User Profiles
+export interface ExpeditionProfile {
+  memberId: string;
+  nickname: string;
+  defaultNickname: string;
+  avatarId: string;
+  avatarEmoji: string;
+  profileImageUrl?: string;
+  updatedAt: string;
+}
+
+const DEFAULT_PROFILES: Record<string, ExpeditionProfile> = {
+  kakao_hyunwoo_mom: {
+    memberId: 'kakao_hyunwoo_mom',
+    nickname: '현우맘',
+    defaultNickname: '현우맘',
+    avatarId: 'disney_rapunzel',
+    avatarEmoji: '👑',
+    updatedAt: new Date().toISOString()
+  },
+  kakao_sehyun_mom: {
+    memberId: 'kakao_sehyun_mom',
+    nickname: '세현맘',
+    defaultNickname: '세현맘',
+    avatarId: 'disney_elsa',
+    avatarEmoji: '❄️',
+    updatedAt: new Date().toISOString()
+  },
+  kakao_hyunwoo: {
+    memberId: 'kakao_hyunwoo',
+    nickname: '현우',
+    defaultNickname: '현우',
+    avatarId: 'smurf_jokey',
+    avatarEmoji: '🎁',
+    updatedAt: new Date().toISOString()
+  },
+  kakao_sehyun: {
+    memberId: 'kakao_sehyun',
+    nickname: '세현',
+    defaultNickname: '세현',
+    avatarId: 'smurf_brainy',
+    avatarEmoji: '👓',
+    updatedAt: new Date().toISOString()
+  }
+};
+
+function readProfilesDB(): Record<string, ExpeditionProfile> {
+  try {
+    if (fs.existsSync(PROFILES_DB_FILE)) {
+      const data = fs.readFileSync(PROFILES_DB_FILE, 'utf-8');
+      const parsed = JSON.parse(data);
+      if (parsed && typeof parsed === 'object') {
+        return { ...DEFAULT_PROFILES, ...parsed };
+      }
+    }
+  } catch (err) {
+    console.error('Error reading profiles_db.json:', err);
+  }
+  try {
+    fs.writeFileSync(PROFILES_DB_FILE, JSON.stringify(DEFAULT_PROFILES, null, 2), 'utf-8');
+  } catch {}
+  return { ...DEFAULT_PROFILES };
+}
+
+function writeProfilesDB(profiles: Record<string, ExpeditionProfile>): void {
+  try {
+    fs.writeFileSync(PROFILES_DB_FILE, JSON.stringify(profiles, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error writing profiles_db.json:', err);
   }
 }
 
@@ -261,6 +334,105 @@ app.post('/api/budget/reset', (req, res) => {
   const itemsToSave = Array.isArray(defaultItems) ? defaultItems : [];
   writeBudgetDB(itemsToSave);
   res.json({ success: true, count: itemsToSave.length, items: itemsToSave });
+});
+
+// ==========================================
+// RESTful API Routes for Shared Expedition User Profiles
+// ==========================================
+
+// 1. Get all expedition member profiles
+app.get('/api/profiles', (req, res) => {
+  const profiles = readProfilesDB();
+  res.json({ success: true, count: Object.keys(profiles).length, profiles });
+});
+
+// 2. Update specific member profile (nickname, avatarId, avatarEmoji, custom image)
+app.put('/api/profiles/:memberId', (req, res) => {
+  const { memberId } = req.params;
+  const { nickname, avatarId, avatarEmoji, profileImageUrl } = req.body || {};
+  const profiles = readProfilesDB();
+
+  const existing = profiles[memberId] || DEFAULT_PROFILES[memberId] || {
+    memberId,
+    nickname: '도쿄원정대원',
+    defaultNickname: '도쿄원정대원',
+    avatarId: 'disney_rapunzel',
+    avatarEmoji: '🎒',
+    updatedAt: new Date().toISOString()
+  };
+
+  const updatedProfile: ExpeditionProfile = {
+    ...existing,
+    memberId,
+    nickname: typeof nickname === 'string' && nickname.trim() ? nickname.trim() : existing.nickname,
+    avatarId: avatarId || existing.avatarId,
+    avatarEmoji: avatarEmoji || existing.avatarEmoji,
+    profileImageUrl: profileImageUrl !== undefined ? profileImageUrl : existing.profileImageUrl,
+    updatedAt: new Date().toISOString()
+  };
+
+  profiles[memberId] = updatedProfile;
+  writeProfilesDB(profiles);
+
+  res.json({
+    success: true,
+    message: `'${updatedProfile.nickname}' 프로필이 서버 DB에 안전하게 동기화되었습니다.`,
+    profile: updatedProfile,
+    profiles
+  });
+});
+
+// 3. Reset specific member's profile to default preset (Admin feature)
+app.post('/api/profiles/reset/:memberId', (req, res) => {
+  const role = getAuthRole(req);
+  const { memberId } = req.params;
+  const passcode = (req.body?.passcode as string) || (req.headers['x-budget-password'] as string);
+  const isAdmin = role === 'HYUNWOO' || role === 'SEHYUN' || passcode === '3539' || passcode === '0901';
+
+  if (!isAdmin) {
+    return res.status(403).json({ success: false, message: '관리자(현우맘 또는 세현맘) 인증이 필요합니다.' });
+  }
+
+  const profiles = readProfilesDB();
+  if (DEFAULT_PROFILES[memberId]) {
+    profiles[memberId] = {
+      ...DEFAULT_PROFILES[memberId],
+      updatedAt: new Date().toISOString()
+    };
+  } else {
+    delete profiles[memberId];
+  }
+  writeProfilesDB(profiles);
+
+  res.json({
+    success: true,
+    message: '해당 멤버의 프로필이 기본 캐릭터 및 닉네임으로 복구되었습니다.',
+    profile: profiles[memberId],
+    profiles
+  });
+});
+
+// 4. Reset all member profiles to initial defaults (Admin feature)
+app.post('/api/profiles/reset-all', (req, res) => {
+  const role = getAuthRole(req);
+  const passcode = (req.body?.passcode as string) || (req.headers['x-budget-password'] as string);
+  const isAdmin = role === 'HYUNWOO' || role === 'SEHYUN' || passcode === '3539' || passcode === '0901';
+
+  if (!isAdmin) {
+    return res.status(403).json({ success: false, message: '관리자(현우맘 또는 세현맘) 인증이 필요합니다.' });
+  }
+
+  const freshDefaults = JSON.parse(JSON.stringify(DEFAULT_PROFILES));
+  Object.keys(freshDefaults).forEach((k) => {
+    freshDefaults[k].updatedAt = new Date().toISOString();
+  });
+  writeProfilesDB(freshDefaults);
+
+  res.json({
+    success: true,
+    message: '원정대 전원(4인)의 프로필이 초기 기본 상태로 복구되었습니다.',
+    profiles: freshDefaults
+  });
 });
 
 // Mobile Package ZIP Download Route

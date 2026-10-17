@@ -1,0 +1,34 @@
+{
+  "kakao_hyunwoo_mom": {
+    "memberId": "kakao_hyunwoo_mom",
+    "nickname": "현우맘",
+    "defaultNickname": "현우맘",
+    "avatarId": "disney_rapunzel",
+    "avatarEmoji": "👑",
+    "updatedAt": "2026-10-17T13:55:14.632Z"
+  },
+  "kakao_sehyun_mom": {
+    "memberId": "kakao_sehyun_mom",
+    "nickname": "세현맘",
+    "defaultNickname": "세현맘",
+    "avatarId": "disney_elsa",
+    "avatarEmoji": "❄️",
+    "updatedAt": "2026-10-17T13:55:14.633Z"
+  },
+  "kakao_hyunwoo": {
+    "memberId": "kakao_hyunwoo",
+    "nickname": "현우",
+    "defaultNickname": "현우",
+    "avatarId": "smurf_jokey",
+    "avatarEmoji": "🎁",
+    "updatedAt": "2026-10-17T13:55:27.076Z"
+  },
+  "kakao_sehyun": {
+    "memberId": "kakao_sehyun",
+    "nickname": "세현",
+    "defaultNickname": "세현",
+    "avatarId": "smurf_brainy",
+    "avatarEmoji": "👓",
+    "updatedAt": "2026-10-17T13:55:14.633Z"
+  }
+}

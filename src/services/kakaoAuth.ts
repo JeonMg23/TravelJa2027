@@ -87,6 +87,26 @@ export interface PresetMember {
 
 const PROFILE_OVERRIDES_STORAGE_KEY = 'tokyo_trip_profile_overrides';
 
+type ProfileChangeListener = () => void;
+const profileListeners = new Set<ProfileChangeListener>();
+
+export function subscribeToProfiles(listener: ProfileChangeListener): () => void {
+  profileListeners.add(listener);
+  return () => {
+    profileListeners.delete(listener);
+  };
+}
+
+export function notifyProfileChange(): void {
+  profileListeners.forEach((l) => {
+    try {
+      l();
+    } catch (e) {
+      console.error('Error notifying profile listener:', e);
+    }
+  });
+}
+
 export interface ProfileOverride {
   nickname?: string;
   avatarId?: string;
@@ -114,6 +134,7 @@ export function saveProfileOverride(memberId: string, override: ProfileOverride)
       ...override
     };
     localStorage.setItem(PROFILE_OVERRIDES_STORAGE_KEY, JSON.stringify(current));
+    notifyProfileChange();
   } catch (err) {
     console.warn('Failed to save profile override:', err);
   }
@@ -124,9 +145,111 @@ export function resetProfileOverride(memberId: string): void {
     const current = getProfileOverrides();
     delete current[memberId];
     localStorage.setItem(PROFILE_OVERRIDES_STORAGE_KEY, JSON.stringify(current));
+    notifyProfileChange();
   } catch (err) {
     console.warn('Failed to reset profile override:', err);
   }
+}
+
+// Fetch all profiles from server DB (profiles_db.json) and synchronize local cache
+export async function fetchServerProfiles(): Promise<Record<string, ProfileOverride>> {
+  try {
+    const res = await fetch('/api/profiles');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (data.success && data.profiles) {
+      const overrides: Record<string, ProfileOverride> = {};
+      Object.keys(data.profiles).forEach((key) => {
+        const item = data.profiles[key];
+        overrides[key] = {
+          nickname: item.nickname,
+          avatarId: item.avatarId,
+          avatarEmoji: item.avatarEmoji,
+          profileImageUrl: item.profileImageUrl
+        };
+      });
+      localStorage.setItem(PROFILE_OVERRIDES_STORAGE_KEY, JSON.stringify(overrides));
+      notifyProfileChange();
+      return overrides;
+    }
+  } catch (err) {
+    console.warn('Failed to fetch server profiles, keeping local cache:', err);
+  }
+  return getProfileOverrides();
+}
+
+// Save profile change both to local cache and to server DB for all users
+export async function saveProfileOverrideToServer(
+  memberId: string,
+  override: ProfileOverride
+): Promise<boolean> {
+  // 1. Immediately apply to local cache
+  saveProfileOverride(memberId, override);
+
+  // 2. Persist to Express server DB (profiles_db.json)
+  try {
+    const res = await fetch(`/api/profiles/${encodeURIComponent(memberId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(override)
+    });
+    if (!res.ok) {
+      console.warn(`Server profile sync returned status ${res.status}`);
+      return false;
+    }
+    const data = await res.json();
+    notifyProfileChange();
+    return !!data.success;
+  } catch (err) {
+    console.warn('Failed to persist profile to server DB:', err);
+    return false;
+  }
+}
+
+// Reset single member profile on server DB (Admin authorization)
+export async function resetProfileOverrideOnServer(
+  memberId: string,
+  passcode: string = '3539'
+): Promise<boolean> {
+  resetProfileOverride(memberId);
+  try {
+    const res = await fetch(`/api/profiles/reset/${encodeURIComponent(memberId)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ passcode })
+    });
+    const data = await res.json();
+    if (data.success) {
+      await fetchServerProfiles();
+      return true;
+    }
+  } catch (err) {
+    console.warn('Failed to reset profile on server:', err);
+  }
+  return false;
+}
+
+// Reset all 4 member profiles on server DB to factory defaults (Admin authorization)
+export async function resetAllProfilesOnServer(
+  passcode: string = '3539'
+): Promise<boolean> {
+  try {
+    const res = await fetch('/api/profiles/reset-all', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ passcode })
+    });
+    const data = await res.json();
+    if (data.success) {
+      localStorage.removeItem(PROFILE_OVERRIDES_STORAGE_KEY);
+      notifyProfileChange();
+      await fetchServerProfiles();
+      return true;
+    }
+  } catch (err) {
+    console.warn('Failed to reset all profiles on server:', err);
+  }
+  return false;
 }
 
 export const KAKAO_PRESET_MEMBERS: PresetMember[] = [
@@ -243,11 +366,19 @@ export function updateKakaoUserProfile(
   }
 ): KakaoAuthUser {
   const trimmedNickname = updates.nickname.trim() || user.nickname;
-  saveProfileOverride(user.id, {
+  const override: ProfileOverride = {
     nickname: trimmedNickname,
     avatarId: updates.avatarId,
     avatarEmoji: updates.avatarEmoji,
     profileImageUrl: updates.profileImageUrl
+  };
+
+  // 1. Immediately update local storage and notify UI
+  saveProfileOverride(user.id, override);
+
+  // 2. Persist to Express server DB (profiles_db.json) asynchronously
+  saveProfileOverrideToServer(user.id, override).catch((err) => {
+    console.warn('Async server profile update failed:', err);
   });
 
   const updatedUser: KakaoAuthUser = {
