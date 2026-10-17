@@ -882,6 +882,7 @@ export default function App() {
         }}
         currentUser={currentUser}
         onOpenLogin={() => setIsLoginPageOpen(true)}
+        onUpdateUser={handleKakaoLoginSuccess}
         onLogout={handleKakaoLogout}
         onOpenMobileInstall={() => setIsMobileInstallOpen(true)}
         onReplayIntro={() => setShowIntro(true)}

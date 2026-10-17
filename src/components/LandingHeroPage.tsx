@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { TripDay } from '../types/travel';
 import { MobileInstallModal } from './MobileInstallModal';
+import { ProfileEditModal } from './ProfileEditModal';
+import { getCharacterAvatarById } from '../data/characterAvatars';
 import { KakaoAuthUser } from '../types/auth';
 import tokyoTowerDesktopImg from '../assets/images/tokyo_tower_night_1792063728180.jpg';
 import tokyoTowerMobileImg from '../assets/images/tokyo_tower_mobile_1792145945594.jpg';
@@ -55,7 +57,10 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
 }) => {
   const [funSoundPlayed, setFunSoundPlayed] = useState<string | null>(null);
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
+  const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
   const [isMobile, setIsMobile] = useState<boolean>(false);
+
+  const currentAvatar = getCharacterAvatarById(currentUser?.avatarId, currentUser?.id);
 
   useEffect(() => {
     const handleResize = () => {
@@ -202,29 +207,51 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
 
           {/* Action Tools & User Profile */}
           <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar pt-0.5 md:pt-0">
-            {/* Logged in Profile Badge (클릭 시 프로필 전환) */}
-            {onOpenLogin && (
-              <button
-                onClick={onOpenLogin}
-                className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 rounded-xl border border-white/20 backdrop-blur-md transition-all cursor-pointer whitespace-nowrap shadow-sm group"
-                title={currentUser ? `${currentUser.nickname} 프로필 (클릭하여 전환)` : '프로필 선택'}
-              >
-                {currentUser ? (
-                  <>
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
-                    <span className="truncate max-w-[100px] sm:max-w-[130px] text-yellow-300 font-bold group-hover:text-yellow-200">
+            {/* Logged in Profile Badge (클릭 시 프로필 닉네임 및 캐릭터 이미지 변경 모달 오픈) */}
+            <button
+              onClick={() => setIsProfileEditOpen(true)}
+              className="flex items-center gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 rounded-xl border border-yellow-400/40 backdrop-blur-md transition-all cursor-pointer whitespace-nowrap shadow-[0_0_15px_rgba(250,204,21,0.18)] group"
+              title={
+                currentUser
+                  ? `${currentUser.nickname} 프로필 (클릭하여 닉네임 및 캐릭터 변경)`
+                  : '프로필 닉네임 및 캐릭터 설정'
+              }
+            >
+              {currentUser ? (
+                <>
+                  <div
+                    className={`w-7 h-7 rounded-lg bg-gradient-to-br ${currentAvatar.bgGradient} p-0.5 border border-yellow-300/70 flex items-center justify-center overflow-hidden shrink-0 shadow-sm`}
+                  >
+                    {currentUser.profileImageUrl ? (
+                      <img
+                        src={currentUser.profileImageUrl}
+                        alt={currentUser.nickname}
+                        className="w-full h-full object-cover rounded-md"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      currentAvatar.renderSvg('w-full h-full')
+                    )}
+                  </div>
+                  <div className="flex flex-col items-start leading-tight">
+                    <span className="truncate max-w-[100px] sm:max-w-[130px] text-yellow-300 font-bold group-hover:text-yellow-200 text-xs">
                       {currentUser.nickname}
                     </span>
-                    <span className="text-[10px] text-white/60 bg-white/10 px-1.5 py-0.5 rounded">전환</span>
-                  </>
-                ) : (
-                  <>
-                    <Users className="w-3.5 h-3.5 text-yellow-400" />
-                    <span>프로필 선택</span>
-                  </>
-                )}
-              </button>
-            )}
+                    <span className="text-[9px] text-slate-300 font-medium">
+                      {currentAvatar.name}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-black font-extrabold bg-yellow-400 group-hover:bg-yellow-300 px-1.5 py-0.5 rounded-md transition-colors">
+                    변경 ✏️
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Users className="w-3.5 h-3.5 text-yellow-400" />
+                  <span>프로필 선택 · 꾸미기</span>
+                </>
+              )}
+            </button>
 
             {/* App Install Button */}
             <button
@@ -750,6 +777,20 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
       <MobileInstallModal
         isOpen={isMobileModalOpen}
         onClose={() => setIsMobileModalOpen(false)}
+      />
+
+      {/* Profile Nickname & Character Avatar Edit Modal */}
+      <ProfileEditModal
+        isOpen={isProfileEditOpen}
+        onClose={() => setIsProfileEditOpen(false)}
+        currentUser={currentUser || null}
+        onUpdateUser={(updatedUser) => {
+          if (onSelectUser) {
+            onSelectUser(updatedUser);
+          }
+          triggerFunReaction(`✨ ${updatedUser.nickname} 프로필 및 캐릭터가 적용되었습니다!`);
+        }}
+        onOpenFullLogin={onOpenLogin}
       />
     </div>
   );

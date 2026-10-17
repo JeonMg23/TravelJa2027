@@ -15,6 +15,7 @@ export interface KakaoAuthUser {
   nickname: string;
   avatarColor: string;
   avatarEmoji?: string;
+  avatarId?: string;
   profileImageUrl?: string;
   role: KakaoUserRole;
   budgetPasscode: '3539' | '0901' | '1111';

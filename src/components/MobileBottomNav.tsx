@@ -1,6 +1,7 @@
 import React from 'react';
-import { Calendar, Compass, Wallet, Columns2, User } from 'lucide-react';
+import { Calendar, Compass, Wallet, Columns2 } from 'lucide-react';
 import { KakaoAuthUser } from '../types/auth';
+import { getCharacterAvatarById } from '../data/characterAvatars';
 
 interface MobileBottomNavProps {
   currentView: 'timeline' | 'map' | 'split';
@@ -19,6 +20,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   currentUser,
   onOpenLogin
 }) => {
+  const currentAvatar = getCharacterAvatarById(currentUser?.avatarId, currentUser?.id);
+
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-1 py-1 shadow-lg">
       <div className="grid grid-cols-5 items-center h-14">
@@ -74,18 +77,25 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         <button
           onClick={onOpenLogin}
           className="flex flex-col items-center justify-center min-h-[44px] transition-colors cursor-pointer group"
-          title={currentUser ? `${currentUser.nickname} 카카오 프로필` : '카카오 로그인'}
+          title={currentUser ? `${currentUser.nickname} 프로필` : '프로필 선택'}
         >
           {currentUser ? (
             <div className="flex flex-col items-center">
-              <div className="w-5 h-5 rounded-full bg-[#FEE500] text-[#191919] flex items-center justify-center text-[10px] font-bold shadow-2xs ring-1 ring-amber-400">
-                {currentUser.avatarEmoji || (
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 3C6.477 3 2 6.477 2 10.765c0 2.766 1.87 5.185 4.673 6.541-.205.772-.743 2.784-.852 3.223-.134.542.198.536.417.391.173-.115 2.756-1.871 3.865-2.628.625.088 1.267.135 1.897.135 5.523 0 10-3.477 10-7.765S17.523 3 12 3z" />
-                  </svg>
+              <div
+                className={`w-6 h-6 rounded-full bg-gradient-to-br ${currentAvatar.bgGradient} p-0.5 flex items-center justify-center shadow-2xs ring-1 ring-amber-400 overflow-hidden`}
+              >
+                {currentUser.profileImageUrl ? (
+                  <img
+                    src={currentUser.profileImageUrl}
+                    alt={currentUser.nickname}
+                    className="w-full h-full object-cover rounded-full"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  currentAvatar.renderSvg('w-full h-full')
                 )}
               </div>
-              <span className="text-[10px] font-bold text-amber-900 mt-1 truncate max-w-[50px]">
+              <span className="text-[10px] font-bold text-amber-900 mt-0.5 truncate max-w-[54px]">
                 {currentUser.nickname}
               </span>
             </div>
@@ -96,7 +106,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                   <path d="M12 3C6.477 3 2 6.477 2 10.765c0 2.766 1.87 5.185 4.673 6.541-.205.772-.743 2.784-.852 3.223-.134.542.198.536.417.391.173-.115 2.756-1.871 3.865-2.628.625.088 1.267.135 1.897.135 5.523 0 10-3.477 10-7.765S17.523 3 12 3z" />
                 </svg>
               </div>
-              <span className="text-[10px] tracking-tight mt-1 font-semibold">카카오</span>
+              <span className="text-[10px] tracking-tight mt-1 font-semibold">프로필</span>
             </div>
           )}
         </button>

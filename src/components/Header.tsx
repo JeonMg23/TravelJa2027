@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Calendar, Compass, Wallet, CheckSquare, Smartphone, Tablet, Laptop, LogOut, RefreshCw, UserCheck, Sparkles } from 'lucide-react';
 import { FriendCompanion } from '../types/travel';
 import { KakaoAuthUser } from '../types/auth';
+import { getCharacterAvatarById } from '../data/characterAvatars';
+import { ProfileEditModal } from './ProfileEditModal';
 
 interface HeaderProps {
   activeTab: 'timeline' | 'map' | 'budget' | 'checklist';
@@ -14,6 +16,7 @@ interface HeaderProps {
   unreadCommentCount?: number;
   currentUser?: KakaoAuthUser | null;
   onOpenLogin?: () => void;
+  onUpdateUser?: (user: KakaoAuthUser) => void;
   onLogout?: () => void;
   onReplayIntro?: () => void;
 }
@@ -24,11 +27,14 @@ export const Header: React.FC<HeaderProps> = ({
   onGoHome,
   currentUser,
   onOpenLogin,
+  onUpdateUser,
   onLogout,
   onOpenMobileInstall,
   onReplayIntro
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
+  const currentAvatar = getCharacterAvatarById(currentUser?.avatarId, currentUser?.id);
 
   const getDeviceIcon = () => {
     if (!currentUser) return null;
@@ -162,14 +168,23 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="relative">
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 border border-amber-300 text-slate-900 transition-all cursor-pointer shadow-2xs hover:shadow-sm"
-                title="카카오 로그인 프로필 확인"
+                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-amber-50 hover:bg-amber-100 border border-amber-300 text-slate-900 transition-all cursor-pointer shadow-2xs hover:shadow-sm"
+                title="내 프로필 및 캐릭터 변경"
               >
-                {/* Official Kakao Yellow Bubble Logo Icon */}
-                <div className="w-5 h-5 rounded-full bg-[#FEE500] text-[#191919] flex items-center justify-center shrink-0 shadow-2xs">
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 3C6.477 3 2 6.477 2 10.765c0 2.766 1.87 5.185 4.673 6.541-.205.772-.743 2.784-.852 3.223-.134.542.198.536.417.391.173-.115 2.756-1.871 3.865-2.628.625.088 1.267.135 1.897.135 5.523 0 10-3.477 10-7.765S17.523 3 12 3z" />
-                  </svg>
+                {/* Character Avatar Thumbnail */}
+                <div
+                  className={`w-6 h-6 rounded-full bg-gradient-to-br ${currentAvatar.bgGradient} p-0.5 border border-amber-400 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs`}
+                >
+                  {currentUser.profileImageUrl ? (
+                    <img
+                      src={currentUser.profileImageUrl}
+                      alt={currentUser.nickname}
+                      className="w-full h-full object-cover rounded-full"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    currentAvatar.renderSvg('w-full h-full')
+                  )}
                 </div>
 
                 <div className="flex items-center gap-1.5">
@@ -188,20 +203,29 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
                   <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 mb-2.5">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <div className="w-7 h-7 rounded-lg bg-[#FEE500] text-[#191919] flex items-center justify-center font-bold text-xs shadow-2xs">
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 3C6.477 3 2 6.477 2 10.765c0 2.766 1.87 5.185 4.673 6.541-.205.772-.743 2.784-.852 3.223-.134.542.198.536.417.391.173-.115 2.756-1.871 3.865-2.628.625.088 1.267.135 1.897.135 5.523 0 10-3.477 10-7.765S17.523 3 12 3z" />
-                        </svg>
+                      <div
+                        className={`w-9 h-9 rounded-xl bg-gradient-to-br ${currentAvatar.bgGradient} p-0.5 border border-amber-400 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs`}
+                      >
+                        {currentUser.profileImageUrl ? (
+                          <img
+                            src={currentUser.profileImageUrl}
+                            alt={currentUser.nickname}
+                            className="w-full h-full object-cover rounded-lg"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          currentAvatar.renderSvg('w-full h-full')
+                        )}
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <div className="text-xs font-black text-slate-900 flex items-center gap-1">
-                          <span>{currentUser.nickname}</span>
-                          <span className="text-[10px] font-semibold text-amber-800 bg-amber-200 px-1 rounded">
-                            {currentUser.roleLabel.split('·')[0]}
+                          <span className="truncate">{currentUser.nickname}</span>
+                          <span className="text-[10px] font-semibold text-amber-800 bg-amber-200 px-1 rounded shrink-0">
+                            {currentAvatar.name}
                           </span>
                         </div>
                         <div className="text-[10px] text-slate-500">
-                          카카오톡 로그인 접속 중
+                          {currentUser.roleLabel}
                         </div>
                       </div>
                     </div>
@@ -224,6 +248,16 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
 
                   <div className="space-y-1">
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        setIsProfileEditOpen(true);
+                      }}
+                      className="w-full text-left px-3 py-2 text-xs font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50/70 hover:bg-indigo-100 rounded-lg flex items-center gap-2 cursor-pointer transition-colors"
+                    >
+                      <UserCheck className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>닉네임 & 캐릭터 변경</span>
+                    </button>
                     {onReplayIntro && (
                       <button
                         onClick={() => {
@@ -245,7 +279,7 @@ export const Header: React.FC<HeaderProps> = ({
                         className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg flex items-center gap-2 cursor-pointer"
                       >
                         <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-                        <span>계정 전환 / 다시 로그인</span>
+                        <span>전체 로그인 화면 열기</span>
                       </button>
                     )}
                     {onLogout && (
@@ -278,6 +312,19 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
       </div>
+
+      {/* Profile Edit Modal inside Header */}
+      <ProfileEditModal
+        isOpen={isProfileEditOpen}
+        onClose={() => setIsProfileEditOpen(false)}
+        currentUser={currentUser || null}
+        onUpdateUser={(updatedUser) => {
+          if (onUpdateUser) {
+            onUpdateUser(updatedUser);
+          }
+        }}
+        onOpenFullLogin={onOpenLogin}
+      />
     </header>
   );
 };

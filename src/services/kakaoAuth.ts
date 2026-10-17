@@ -73,69 +73,148 @@ export function detectDeviceInfo(): DeviceInfo {
 export interface PresetMember {
   id: string;
   nickname: string;
+  defaultNickname: string;
   role: KakaoUserRole;
   roleLabel: string;
   avatarColor: string;
   avatarEmoji: string;
+  avatarId: string;
+  profileImageUrl?: string;
   budgetPasscode: '3539' | '0901' | '1111';
   description: string;
   tag: string;
+}
+
+const PROFILE_OVERRIDES_STORAGE_KEY = 'tokyo_trip_profile_overrides';
+
+export interface ProfileOverride {
+  nickname?: string;
+  avatarId?: string;
+  avatarEmoji?: string;
+  profileImageUrl?: string;
+}
+
+export function getProfileOverrides(): Record<string, ProfileOverride> {
+  try {
+    const raw = localStorage.getItem(PROFILE_OVERRIDES_STORAGE_KEY);
+    if (raw) {
+      return JSON.parse(raw) || {};
+    }
+  } catch (err) {
+    console.warn('Failed to read profile overrides:', err);
+  }
+  return {};
+}
+
+export function saveProfileOverride(memberId: string, override: ProfileOverride): void {
+  try {
+    const current = getProfileOverrides();
+    current[memberId] = {
+      ...current[memberId],
+      ...override
+    };
+    localStorage.setItem(PROFILE_OVERRIDES_STORAGE_KEY, JSON.stringify(current));
+  } catch (err) {
+    console.warn('Failed to save profile override:', err);
+  }
+}
+
+export function resetProfileOverride(memberId: string): void {
+  try {
+    const current = getProfileOverrides();
+    delete current[memberId];
+    localStorage.setItem(PROFILE_OVERRIDES_STORAGE_KEY, JSON.stringify(current));
+  } catch (err) {
+    console.warn('Failed to reset profile override:', err);
+  }
 }
 
 export const KAKAO_PRESET_MEMBERS: PresetMember[] = [
   {
     id: 'kakao_hyunwoo_mom',
     nickname: '현우맘',
+    defaultNickname: '현우맘',
     role: 'HYUNWOO',
     roleLabel: '현우가족 대표 · 관리자',
-    avatarColor: 'bg-blue-600',
-    avatarEmoji: '👩',
+    avatarColor: 'bg-amber-500',
+    avatarEmoji: '👑',
+    avatarId: 'disney_rapunzel',
     budgetPasscode: '3539',
     description: '현우가족 전용 및 공동경비 관리자 (삼성카드 결제/정산 권한)',
-    tag: '관리자'
+    tag: '디즈니 공주'
   },
   {
     id: 'kakao_sehyun_mom',
     nickname: '세현맘',
+    defaultNickname: '세현맘',
     role: 'SEHYUN',
     roleLabel: '세현가족 대표 · 관리자',
-    avatarColor: 'bg-rose-500',
-    avatarEmoji: '👩',
+    avatarColor: 'bg-sky-500',
+    avatarEmoji: '❄️',
+    avatarId: 'disney_elsa',
     budgetPasscode: '0901',
     description: '세현가족 전용 및 공동경비 관리자 (신한카드 결제/정산 권한)',
-    tag: '관리자'
+    tag: '디즈니 공주'
   },
   {
     id: 'kakao_hyunwoo',
     nickname: '현우',
+    defaultNickname: '현우',
     role: 'MEMBER',
     roleLabel: '도쿄 원정대원',
-    avatarColor: 'bg-indigo-600',
-    avatarEmoji: '👦',
+    avatarColor: 'bg-blue-500',
+    avatarEmoji: '🎁',
+    avatarId: 'smurf_jokey',
     budgetPasscode: '1111',
     description: '도쿄 디즈니씨 DPA 및 JR 교통 환승·동선 탐험 대원',
-    tag: '원정대원'
+    tag: '개구쟁이 스머프'
   },
   {
     id: 'kakao_sehyun',
     nickname: '세현',
+    defaultNickname: '세현',
     role: 'MEMBER',
     roleLabel: '도쿄 원정대원',
-    avatarColor: 'bg-emerald-600',
-    avatarEmoji: '🧒',
+    avatarColor: 'bg-emerald-500',
+    avatarEmoji: '👓',
+    avatarId: 'smurf_brainy',
     budgetPasscode: '1111',
     description: '시부야 스카이 & 롯폰기 포토존·체크리스트 전담 대원',
-    tag: '원정대원'
+    tag: '개구쟁이 스머프'
   }
 ];
+
+export function getEffectivePresetMembers(): PresetMember[] {
+  const overrides = getProfileOverrides();
+  return KAKAO_PRESET_MEMBERS.map((member) => {
+    const custom = overrides[member.id];
+    if (!custom) return member;
+    return {
+      ...member,
+      nickname: custom.nickname?.trim() || member.nickname,
+      avatarId: custom.avatarId || member.avatarId,
+      avatarEmoji: custom.avatarEmoji || member.avatarEmoji,
+      profileImageUrl: custom.profileImageUrl
+    };
+  });
+}
 
 export function getStoredKakaoUser(): KakaoAuthUser | null {
   try {
     const raw = localStorage.getItem(KAKAO_USER_STORAGE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw);
+      const parsed = JSON.parse(raw) as KakaoAuthUser;
       if (parsed && parsed.nickname) {
-        return parsed as KakaoAuthUser;
+        const overrides = getProfileOverrides();
+        const custom = overrides[parsed.id];
+        const preset = KAKAO_PRESET_MEMBERS.find((m) => m.id === parsed.id);
+        return {
+          ...parsed,
+          nickname: custom?.nickname?.trim() || parsed.nickname,
+          avatarId: custom?.avatarId || parsed.avatarId || preset?.avatarId || 'disney_rapunzel',
+          avatarEmoji: custom?.avatarEmoji || parsed.avatarEmoji || preset?.avatarEmoji || '👑',
+          profileImageUrl: custom?.profileImageUrl ?? parsed.profileImageUrl
+        };
       }
     }
   } catch (err) {
@@ -152,6 +231,35 @@ export function saveKakaoUser(user: KakaoAuthUser): void {
   } catch (err) {
     console.warn('Failed to save Kakao user:', err);
   }
+}
+
+export function updateKakaoUserProfile(
+  user: KakaoAuthUser,
+  updates: {
+    nickname: string;
+    avatarId: string;
+    avatarEmoji?: string;
+    profileImageUrl?: string;
+  }
+): KakaoAuthUser {
+  const trimmedNickname = updates.nickname.trim() || user.nickname;
+  saveProfileOverride(user.id, {
+    nickname: trimmedNickname,
+    avatarId: updates.avatarId,
+    avatarEmoji: updates.avatarEmoji,
+    profileImageUrl: updates.profileImageUrl
+  });
+
+  const updatedUser: KakaoAuthUser = {
+    ...user,
+    nickname: trimmedNickname,
+    avatarId: updates.avatarId,
+    avatarEmoji: updates.avatarEmoji || user.avatarEmoji,
+    profileImageUrl: updates.profileImageUrl
+  };
+
+  saveKakaoUser(updatedUser);
+  return updatedUser;
 }
 
 export function clearKakaoUser(): void {
@@ -181,7 +289,8 @@ export function saveStoredKakaoAppKey(key: string): void {
 }
 
 export function createKakaoUserFromPreset(presetId: string): KakaoAuthUser {
-  const preset = KAKAO_PRESET_MEMBERS.find((m) => m.id === presetId) || KAKAO_PRESET_MEMBERS[0];
+  const effectiveMembers = getEffectivePresetMembers();
+  const preset = effectiveMembers.find((m) => m.id === presetId) || effectiveMembers[0];
   const device = detectDeviceInfo();
   const now = new Date();
   const timeStr = `${now.getMonth() + 1}월 ${now.getDate()}일 ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -191,6 +300,8 @@ export function createKakaoUserFromPreset(presetId: string): KakaoAuthUser {
     nickname: preset.nickname,
     avatarColor: preset.avatarColor,
     avatarEmoji: preset.avatarEmoji,
+    avatarId: preset.avatarId,
+    profileImageUrl: preset.profileImageUrl,
     role: preset.role,
     budgetPasscode: preset.budgetPasscode,
     roleLabel: preset.roleLabel,
