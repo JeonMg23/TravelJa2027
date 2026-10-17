@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Check, Sparkles, RotateCcw, Upload, Users, UserCheck, Database, RefreshCw, ShieldCheck } from 'lucide-react';
+import { X, Check, Sparkles, RotateCcw, Upload, Users, UserCheck, Database, RefreshCw } from 'lucide-react';
 import { KakaoAuthUser } from '../types/auth';
 import {
   CHARACTER_AVATARS,
@@ -13,12 +13,8 @@ import {
   getEffectivePresetMembers,
   createKakaoUserFromPreset,
   updateKakaoUserProfile,
-  resetProfileOverride,
-  fetchServerProfiles,
   saveProfileOverrideToServer,
-  resetProfileOverrideOnServer,
-  resetAllProfilesOnServer,
-  subscribeToProfiles
+  getStoredKakaoUser
 } from '../services/kakaoAuth';
 
 interface ProfileEditModalProps {
@@ -43,55 +39,34 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   onUpdateUser,
   onOpenFullLogin
 }) => {
-  const [activeMemberId, setActiveMemberId] = useState<string>(
-    currentUser?.id || 'kakao_hyunwoo_mom'
-  );
-  const [nickname, setNickname] = useState<string>(currentUser?.nickname || '현우맘');
-  const [selectedAvatarId, setSelectedAvatarId] = useState<string>(
-    currentUser?.avatarId || DEFAULT_MEMBER_AVATAR_MAP[currentUser?.id || 'kakao_hyunwoo_mom'] || 'disney_rapunzel'
-  );
-  const [customImageUrl, setCustomImageUrl] = useState<string | undefined>(
-    currentUser?.profileImageUrl
-  );
+  const [activeMemberId, setActiveMemberId] = useState<string>('kakao_hyunwoo_mom');
+  const [nickname, setNickname] = useState<string>('현우맘');
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string>('disney_rapunzel');
+  const [customImageUrl, setCustomImageUrl] = useState<string | undefined>(undefined);
   const [selectedCategory, setSelectedCategory] = useState<CharacterCategory | 'all'>('all');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const hasOpenedRef = useRef<boolean>(false);
 
-  const isAdmin =
-    currentUser?.role === 'HYUNWOO' ||
-    currentUser?.role === 'SEHYUN' ||
-    currentUser?.budgetPasscode === '3539' ||
-    currentUser?.budgetPasscode === '0901';
-
-  const adminPasscode = currentUser?.budgetPasscode === '0901' ? '0901' : '3539';
-
-  // Load server profiles and initialize on modal open
+  // Initialize form state ONLY ONCE when modal opens
   useEffect(() => {
-    if (isOpen) {
-      fetchServerProfiles().catch(() => {});
-      const targetUser = currentUser || createKakaoUserFromPreset('kakao_hyunwoo_mom');
-      setActiveMemberId(targetUser.id);
-      setNickname(targetUser.nickname);
-      const avatar = getCharacterAvatarById(targetUser.avatarId, targetUser.id);
-      setSelectedAvatarId(avatar.id);
-      setCustomImageUrl(targetUser.profileImageUrl);
-      setSyncStatusMsg(null);
-    }
-  }, [isOpen, currentUser]);
-
-  // Subscribe to external profile updates while modal is open
-  useEffect(() => {
-    if (!isOpen) return;
-    const unsubscribe = subscribeToProfiles(() => {
+    if (isOpen && !hasOpenedRef.current) {
+      hasOpenedRef.current = true;
       const effective = getEffectivePresetMembers();
-      const currentTarget = effective.find((m) => m.id === activeMemberId);
-      if (currentTarget) {
-        setNickname((prev) => (prev === currentTarget.defaultNickname ? currentTarget.nickname : prev));
-      }
-    });
-    return unsubscribe;
-  }, [isOpen, activeMemberId]);
+      const targetId = currentUser?.id || 'kakao_hyunwoo_mom';
+      const member = effective.find((m) => m.id === targetId) || effective[0];
+
+      setActiveMemberId(member.id);
+      setNickname(member.nickname);
+      setSelectedAvatarId(member.avatarId || DEFAULT_MEMBER_AVATAR_MAP[member.id] || 'disney_rapunzel');
+      setCustomImageUrl(member.profileImageUrl);
+      setSyncStatusMsg(null);
+    } else if (!isOpen) {
+      hasOpenedRef.current = false;
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -107,51 +82,17 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     const member = effectiveMembers.find((m) => m.id === memberId) || effectiveMembers[0];
     setActiveMemberId(member.id);
     setNickname(member.nickname);
-    setSelectedAvatarId(member.avatarId);
+    setSelectedAvatarId(member.avatarId || DEFAULT_MEMBER_AVATAR_MAP[member.id] || 'disney_rapunzel');
     setCustomImageUrl(member.profileImageUrl);
     setSyncStatusMsg(null);
   };
 
   const handleResetToDefault = () => {
     const basePreset = KAKAO_PRESET_MEMBERS.find((m) => m.id === activeMemberId) || KAKAO_PRESET_MEMBERS[0];
-    resetProfileOverride(activeMemberId);
     setNickname(basePreset.defaultNickname);
     setSelectedAvatarId(basePreset.avatarId);
     setCustomImageUrl(undefined);
-    setSyncStatusMsg(`'${basePreset.defaultNickname}' 기본값으로 임시 설정되었습니다.`);
-  };
-
-  const handleAdminResetMember = async () => {
-    const targetMember = KAKAO_PRESET_MEMBERS.find((m) => m.id === activeMemberId);
-    const targetName = targetMember?.defaultNickname || activeMemberId;
-    if (!window.confirm(`[관리자] '${targetName}' 멤버의 프로필을 서버 DB에서 원래 기본 캐릭터와 닉네임으로 영구 복구하시겠습니까?`)) {
-      return;
-    }
-    setIsSaving(true);
-    const ok = await resetProfileOverrideOnServer(activeMemberId, adminPasscode);
-    setIsSaving(false);
-    if (ok && targetMember) {
-      setNickname(targetMember.defaultNickname);
-      setSelectedAvatarId(targetMember.avatarId);
-      setCustomImageUrl(undefined);
-      setSyncStatusMsg(`[관리자 복구 완료] '${targetName}' 프로필이 기본값으로 서버 DB에 동기화되었습니다.`);
-    }
-  };
-
-  const handleAdminResetAll = async () => {
-    if (!window.confirm('[관리자] 원정대 4인(현우맘, 세현맘, 현우, 세현)의 모든 프로필을 초기 기본값으로 서버 DB에서 일괄 복구하시겠습니까?')) {
-      return;
-    }
-    setIsSaving(true);
-    const ok = await resetAllProfilesOnServer(adminPasscode);
-    setIsSaving(false);
-    if (ok) {
-      const basePreset = KAKAO_PRESET_MEMBERS.find((m) => m.id === activeMemberId) || KAKAO_PRESET_MEMBERS[0];
-      setNickname(basePreset.defaultNickname);
-      setSelectedAvatarId(basePreset.avatarId);
-      setCustomImageUrl(undefined);
-      setSyncStatusMsg('[관리자 복구 완료] 원정대 4인 전원의 프로필이 초기 기본값으로 서버 DB에 동기화되었습니다.');
-    }
+    setSyncStatusMsg(`'${basePreset.defaultNickname}' 기본값으로 변경되었습니다. [저장하기]를 누르면 DB에 반영됩니다.`);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -179,17 +120,18 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
       profileImageUrl: customImageUrl
     };
 
-    // Save to Server DB (profiles_db.json) and local storage
+    // 1. Persist to Server DB (profiles_db.json) and local storage
     await saveProfileOverrideToServer(activeMemberId, overridePayload);
 
-    // Update active user state
+    // 2. Update active user session
+    const updated = updateKakaoUserProfile(baseUser, overridePayload);
     if (currentUser?.id === activeMemberId) {
-      const updated = updateKakaoUserProfile(baseUser, overridePayload);
       onUpdateUser(updated);
+    } else if (currentUser) {
+      const refreshedCurrentUser = getStoredKakaoUser() || currentUser;
+      onUpdateUser(refreshedCurrentUser);
     } else {
-      const updated = updateKakaoUserProfile(baseUser, overridePayload);
-      // If editing another member, update active user while preserving current user session
-      onUpdateUser(currentUser ? { ...currentUser } : updated);
+      onUpdateUser(updated);
     }
 
     setIsSaving(false);
@@ -322,29 +264,15 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                 <label className="text-xs font-bold text-yellow-300">
                   2. 프로필 닉네임 입력
                 </label>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleResetToDefault}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-yellow-300 transition-colors cursor-pointer"
-                    title="기본 닉네임 및 기본 캐릭터로 임시 복원"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                    <span>기본값 복원</span>
-                  </button>
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      onClick={handleAdminResetMember}
-                      disabled={isSaving}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold hover:bg-amber-500/30 transition-colors cursor-pointer disabled:opacity-50"
-                      title="관리자 권한: 서버 DB에서 이 멤버 프로필을 초기 기본값으로 영구 복구"
-                    >
-                      <ShieldCheck className="w-3 h-3" />
-                      <span>관리자 복구</span>
-                    </button>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  onClick={handleResetToDefault}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-yellow-300 transition-colors cursor-pointer"
+                  title="기본 닉네임 및 기본 캐릭터로 복원"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>기본값 복원</span>
+                </button>
               </div>
 
               <input
@@ -497,49 +425,32 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
           </div>
 
           {/* Footer Action Buttons */}
-          <div className="pt-3 border-t border-white/10 flex items-center justify-between flex-wrap gap-2.5">
-            <div>
-              {isAdmin && (
-                <button
-                  type="button"
-                  onClick={handleAdminResetAll}
-                  disabled={isSaving}
-                  className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-semibold cursor-pointer transition-colors disabled:opacity-50 flex items-center gap-1.5"
-                  title="관리자 권한: 원정대 4인 전원의 프로필을 서버 DB 초기 상태로 일괄 복구"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>원정대 전체 기본값 일괄 복구</span>
-                </button>
+          <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-2.5">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSaving}
+              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs sm:text-sm font-bold text-slate-300 cursor-pointer transition-colors disabled:opacity-50"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:brightness-110 text-black font-black text-xs sm:text-sm shadow-[0_0_25px_rgba(250,204,21,0.45)] flex items-center gap-2 cursor-pointer active:scale-95 transition-all disabled:opacity-60"
+            >
+              {isSaving ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin stroke-[2.5]" />
+                  <span>서버 DB 동기화 저장 중...</span>
+                </>
+              ) : (
+                <>
+                  <UserCheck className="w-4 h-4 stroke-[2.5]" />
+                  <span>프로필 저장 및 적용하기</span>
+                </>
               )}
-            </div>
-
-            <div className="flex items-center gap-2.5 ml-auto">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isSaving}
-                className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs sm:text-sm font-bold text-slate-300 cursor-pointer transition-colors disabled:opacity-50"
-              >
-                취소
-              </button>
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:brightness-110 text-black font-black text-xs sm:text-sm shadow-[0_0_25px_rgba(250,204,21,0.45)] flex items-center gap-2 cursor-pointer active:scale-95 transition-all disabled:opacity-60"
-              >
-                {isSaving ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin stroke-[2.5]" />
-                    <span>서버 DB 동기화 저장 중...</span>
-                  </>
-                ) : (
-                  <>
-                    <UserCheck className="w-4 h-4 stroke-[2.5]" />
-                    <span>프로필 저장 및 적용하기</span>
-                  </>
-                )}
-              </button>
-            </div>
+            </button>
           </div>
         </form>
       </div>
