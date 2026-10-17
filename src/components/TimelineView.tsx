@@ -43,6 +43,7 @@ interface TimelineViewProps {
   isSimulatedRain: boolean;
   isSplitView?: boolean;
   onSpotInView?: (spot: TravelSpot) => void;
+  onOpenSpotMap?: (spot: TravelSpot) => void;
 }
 
 export const TimelineView: React.FC<TimelineViewProps> = ({
@@ -63,7 +64,8 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   onToggleSimulatedRain,
   isSimulatedRain,
   isSplitView = false,
-  onSpotInView
+  onSpotInView,
+  onOpenSpotMap
 }) => {
   // Track which spot card is currently active in the mobile viewport
   useEffect(() => {
@@ -243,15 +245,34 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                         <h3 className="text-base font-bold text-slate-900 tracking-tight">
                           {spot.name}
                         </h3>
-                        {isSelected && (
-                          <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100/90 border border-indigo-200 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                        {isSelected ? (
+                          <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100/90 border border-indigo-200 px-2 py-0.5 rounded-full flex items-center gap-1.5 shadow-2xs">
                             <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse"></span>
-                            <span>확인 중인 순번 {index + 1}</span>
-                            {isSplitView && (
-                              <span className="text-[9px] font-extrabold text-indigo-950 bg-amber-300 px-1 py-0.2 rounded shadow-2xs">
-                                👉 옆 지도
+                            <span>선택된 일정 #{index + 1}</span>
+                            {isSplitView ? (
+                              <span className="text-[9px] font-extrabold text-indigo-950 bg-amber-300 px-1.5 py-0.2 rounded shadow-2xs">
+                                👉 옆 지도 동선 {index + 1}번
                               </span>
-                            )}
+                            ) : onOpenSpotMap ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onOpenSpotMap(spot);
+                                }}
+                                className="text-[10px] font-extrabold text-white bg-blue-600 hover:bg-blue-700 px-1.5 py-0.2 rounded shadow-2xs cursor-pointer transition-colors"
+                              >
+                                동선 {index + 1}번 지도 보기 →
+                              </button>
+                            ) : null}
+                          </span>
+                        ) : isSplitView ? (
+                          <span className="text-[10px] font-semibold text-slate-400 hover:text-indigo-600 transition-colors">
+                            클릭 시 옆에 동선 {index + 1}번 지도 표시 →
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-semibold text-slate-400 hover:text-indigo-600 transition-colors">
+                            클릭하여 {index + 1}번 일정 선택
                           </span>
                         )}
                         {spot.japaneseName && (
@@ -511,12 +532,25 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                 )}
 
                 {/* Card Bottom Toolbar */}
-                <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                <div className="mt-4 pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
                   <div className="text-[11px] text-slate-400 flex items-center gap-1">
                     <MapPin className="w-3 h-3 text-slate-400" />
                     <span>{spot.address || '도쿄도 내 위치'}</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    {!isSplitView && onOpenSpotMap && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenSpotMap(spot);
+                        }}
+                        className="text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center gap-1 px-2.5 py-1 rounded-lg shadow-2xs cursor-pointer"
+                      >
+                        <Compass className="w-3 h-3" />
+                        <span>동선 {index + 1}번 지도</span>
+                      </button>
+                    )}
                     <a
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
                         (spot.japaneseName ? `${spot.name} ${spot.japaneseName}` : spot.name) + ' Tokyo'
@@ -540,7 +574,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                         e.stopPropagation();
                         onOpenDetailModal(spot);
                       }}
-                      className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
+                      className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1 cursor-pointer"
                     >
                       <span>상세 정보 및 메모</span>
                       <ExternalLink className="w-3 h-3" />
@@ -552,7 +586,8 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
               {/* Transit Connector between spots */}
               {correspondingTransit && (
                 <div
-                  className={`px-3.5 sm:px-4 py-3 rounded-2xl border transition-all text-xs my-1 shadow-2xs w-full max-w-full overflow-hidden break-words ${
+                  onClick={() => onSelectSpot(spot)}
+                  className={`px-3.5 sm:px-4 py-3 rounded-2xl border transition-all text-xs my-1 shadow-2xs w-full max-w-full overflow-hidden break-words cursor-pointer ${
                     correspondingTransit.isReturnToHotel
                       ? 'bg-gradient-to-r from-indigo-50/90 via-purple-50/80 to-indigo-50/90 border-indigo-300 ring-1 ring-indigo-200'
                       : 'bg-gradient-to-r from-slate-50 via-blue-50/40 to-slate-50 border-blue-200/90'

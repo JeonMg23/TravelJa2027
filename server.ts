@@ -367,9 +367,15 @@ app.put('/api/profiles/:memberId', (req, res) => {
     nickname: typeof nickname === 'string' && nickname.trim() ? nickname.trim() : existing.nickname,
     avatarId: avatarId || existing.avatarId,
     avatarEmoji: avatarEmoji || existing.avatarEmoji,
-    profileImageUrl: profileImageUrl !== undefined ? profileImageUrl : existing.profileImageUrl,
     updatedAt: new Date().toISOString()
   };
+
+  // If a custom image was provided, set it; otherwise remove it so character avatar takes effect
+  if (profileImageUrl && typeof profileImageUrl === 'string' && profileImageUrl.trim()) {
+    updatedProfile.profileImageUrl = profileImageUrl.trim();
+  } else {
+    delete updatedProfile.profileImageUrl;
+  }
 
   profiles[memberId] = updatedProfile;
   writeProfilesDB(profiles);
@@ -379,59 +385,6 @@ app.put('/api/profiles/:memberId', (req, res) => {
     message: `'${updatedProfile.nickname}' 프로필이 서버 DB에 안전하게 동기화되었습니다.`,
     profile: updatedProfile,
     profiles
-  });
-});
-
-// 3. Reset specific member's profile to default preset (Admin feature)
-app.post('/api/profiles/reset/:memberId', (req, res) => {
-  const role = getAuthRole(req);
-  const { memberId } = req.params;
-  const passcode = (req.body?.passcode as string) || (req.headers['x-budget-password'] as string);
-  const isAdmin = role === 'HYUNWOO' || role === 'SEHYUN' || passcode === '3539' || passcode === '0901';
-
-  if (!isAdmin) {
-    return res.status(403).json({ success: false, message: '관리자(현우맘 또는 세현맘) 인증이 필요합니다.' });
-  }
-
-  const profiles = readProfilesDB();
-  if (DEFAULT_PROFILES[memberId]) {
-    profiles[memberId] = {
-      ...DEFAULT_PROFILES[memberId],
-      updatedAt: new Date().toISOString()
-    };
-  } else {
-    delete profiles[memberId];
-  }
-  writeProfilesDB(profiles);
-
-  res.json({
-    success: true,
-    message: '해당 멤버의 프로필이 기본 캐릭터 및 닉네임으로 복구되었습니다.',
-    profile: profiles[memberId],
-    profiles
-  });
-});
-
-// 4. Reset all member profiles to initial defaults (Admin feature)
-app.post('/api/profiles/reset-all', (req, res) => {
-  const role = getAuthRole(req);
-  const passcode = (req.body?.passcode as string) || (req.headers['x-budget-password'] as string);
-  const isAdmin = role === 'HYUNWOO' || role === 'SEHYUN' || passcode === '3539' || passcode === '0901';
-
-  if (!isAdmin) {
-    return res.status(403).json({ success: false, message: '관리자(현우맘 또는 세현맘) 인증이 필요합니다.' });
-  }
-
-  const freshDefaults = JSON.parse(JSON.stringify(DEFAULT_PROFILES));
-  Object.keys(freshDefaults).forEach((k) => {
-    freshDefaults[k].updatedAt = new Date().toISOString();
-  });
-  writeProfilesDB(freshDefaults);
-
-  res.json({
-    success: true,
-    message: '원정대 전원(4인)의 프로필이 초기 기본 상태로 복구되었습니다.',
-    profiles: freshDefaults
   });
 });
 

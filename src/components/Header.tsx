@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { Calendar, Compass, Wallet, CheckSquare, Smartphone, Tablet, Laptop, LogOut, RefreshCw, UserCheck, Sparkles } from 'lucide-react';
+import { Calendar, Compass, Wallet, CheckSquare, Smartphone, Tablet, Laptop, LogOut, RefreshCw, UserCheck, Sparkles, Columns2 } from 'lucide-react';
 import { FriendCompanion } from '../types/travel';
 import { KakaoAuthUser } from '../types/auth';
 import { getCharacterAvatarById } from '../data/characterAvatars';
 import { ProfileEditModal } from './ProfileEditModal';
 
 interface HeaderProps {
-  activeTab: 'timeline' | 'map' | 'budget' | 'checklist';
-  onSelectTab: (tab: 'timeline' | 'map' | 'budget' | 'checklist') => void;
+  activeTab: 'timeline' | 'map' | 'split' | 'budget' | 'checklist';
+  onSelectTab: (tab: 'timeline' | 'map' | 'split' | 'budget' | 'checklist') => void;
   onGoHome: () => void;
   onOpenShare?: () => void;
   onOpenCollab?: () => void;
@@ -126,6 +126,17 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Compass className="w-4 h-4 text-indigo-600" />
             동선 지도
+          </button>
+          <button
+            onClick={() => onSelectTab('split')}
+            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+              activeTab === 'split'
+                ? 'bg-slate-100 text-slate-900 font-semibold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <Columns2 className="w-4 h-4 text-indigo-600" />
+            좌우 분할
           </button>
           <button
             onClick={() => onSelectTab('budget')}

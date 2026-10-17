@@ -133,6 +133,9 @@ export function saveProfileOverride(memberId: string, override: ProfileOverride)
       ...current[memberId],
       ...override
     };
+    if (!override.profileImageUrl) {
+      delete current[memberId].profileImageUrl;
+    }
     localStorage.setItem(PROFILE_OVERRIDES_STORAGE_KEY, JSON.stringify(current));
     notifyProfileChange();
   } catch (err) {
@@ -165,8 +168,11 @@ export async function fetchServerProfiles(): Promise<Record<string, ProfileOverr
           nickname: item.nickname,
           avatarId: item.avatarId,
           avatarEmoji: item.avatarEmoji,
-          profileImageUrl: item.profileImageUrl
+          profileImageUrl: item.profileImageUrl || undefined
         };
+        if (!item.profileImageUrl) {
+          delete overrides[key].profileImageUrl;
+        }
       });
       localStorage.setItem(PROFILE_OVERRIDES_STORAGE_KEY, JSON.stringify(overrides));
       notifyProfileChange();
@@ -204,52 +210,6 @@ export async function saveProfileOverrideToServer(
     console.warn('Failed to persist profile to server DB:', err);
     return false;
   }
-}
-
-// Reset single member profile on server DB (Admin authorization)
-export async function resetProfileOverrideOnServer(
-  memberId: string,
-  passcode: string = '3539'
-): Promise<boolean> {
-  resetProfileOverride(memberId);
-  try {
-    const res = await fetch(`/api/profiles/reset/${encodeURIComponent(memberId)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ passcode })
-    });
-    const data = await res.json();
-    if (data.success) {
-      await fetchServerProfiles();
-      return true;
-    }
-  } catch (err) {
-    console.warn('Failed to reset profile on server:', err);
-  }
-  return false;
-}
-
-// Reset all 4 member profiles on server DB to factory defaults (Admin authorization)
-export async function resetAllProfilesOnServer(
-  passcode: string = '3539'
-): Promise<boolean> {
-  try {
-    const res = await fetch('/api/profiles/reset-all', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ passcode })
-    });
-    const data = await res.json();
-    if (data.success) {
-      localStorage.removeItem(PROFILE_OVERRIDES_STORAGE_KEY);
-      notifyProfileChange();
-      await fetchServerProfiles();
-      return true;
-    }
-  } catch (err) {
-    console.warn('Failed to reset all profiles on server:', err);
-  }
-  return false;
 }
 
 export const KAKAO_PRESET_MEMBERS: PresetMember[] = [
@@ -386,8 +346,12 @@ export function updateKakaoUserProfile(
     nickname: trimmedNickname,
     avatarId: updates.avatarId,
     avatarEmoji: updates.avatarEmoji || user.avatarEmoji,
-    profileImageUrl: updates.profileImageUrl
+    profileImageUrl: updates.profileImageUrl || undefined
   };
+
+  if (!updates.profileImageUrl) {
+    delete updatedUser.profileImageUrl;
+  }
 
   saveKakaoUser(updatedUser);
   return updatedUser;

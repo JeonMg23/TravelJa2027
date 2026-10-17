@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Check, Sparkles, RotateCcw, Upload, Users, UserCheck, Database, RefreshCw } from 'lucide-react';
+import { X, Check, Sparkles, Upload, Users, UserCheck, Database, RefreshCw } from 'lucide-react';
 import { KakaoAuthUser } from '../types/auth';
 import {
   CHARACTER_AVATARS,
@@ -9,12 +9,11 @@ import {
   DEFAULT_MEMBER_AVATAR_MAP
 } from '../data/characterAvatars';
 import {
-  KAKAO_PRESET_MEMBERS,
   getEffectivePresetMembers,
-  createKakaoUserFromPreset,
-  updateKakaoUserProfile,
   saveProfileOverrideToServer,
-  getStoredKakaoUser
+  saveKakaoUser,
+  getStoredKakaoUser,
+  notifyProfileChange
 } from '../services/kakaoAuth';
 
 interface ProfileEditModalProps {
@@ -48,25 +47,23 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const hasOpenedRef = useRef<boolean>(false);
 
-  // Initialize form state ONLY ONCE when modal opens
+  // Initialize form state whenever modal opens or current user changes
   useEffect(() => {
-    if (isOpen && !hasOpenedRef.current) {
-      hasOpenedRef.current = true;
+    if (isOpen) {
       const effective = getEffectivePresetMembers();
-      const targetId = currentUser?.id || 'kakao_hyunwoo_mom';
+      const targetId = currentUser?.id && effective.some((m) => m.id === currentUser.id)
+        ? currentUser.id
+        : 'kakao_hyunwoo_mom';
       const member = effective.find((m) => m.id === targetId) || effective[0];
 
       setActiveMemberId(member.id);
       setNickname(member.nickname);
       setSelectedAvatarId(member.avatarId || DEFAULT_MEMBER_AVATAR_MAP[member.id] || 'disney_rapunzel');
-      setCustomImageUrl(member.profileImageUrl);
+      setCustomImageUrl(member.profileImageUrl || undefined);
       setSyncStatusMsg(null);
-    } else if (!isOpen) {
-      hasOpenedRef.current = false;
     }
-  }, [isOpen]);
+  }, [isOpen, currentUser?.id]);
 
   if (!isOpen) return null;
 
@@ -79,20 +76,13 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
       : CHARACTER_AVATARS.filter((c) => c.category === selectedCategory);
 
   const handleSelectMemberTab = (memberId: string) => {
-    const member = effectiveMembers.find((m) => m.id === memberId) || effectiveMembers[0];
+    const effective = getEffectivePresetMembers();
+    const member = effective.find((m) => m.id === memberId) || effective[0];
     setActiveMemberId(member.id);
     setNickname(member.nickname);
     setSelectedAvatarId(member.avatarId || DEFAULT_MEMBER_AVATAR_MAP[member.id] || 'disney_rapunzel');
-    setCustomImageUrl(member.profileImageUrl);
+    setCustomImageUrl(member.profileImageUrl || undefined);
     setSyncStatusMsg(null);
-  };
-
-  const handleResetToDefault = () => {
-    const basePreset = KAKAO_PRESET_MEMBERS.find((m) => m.id === activeMemberId) || KAKAO_PRESET_MEMBERS[0];
-    setNickname(basePreset.defaultNickname);
-    setSelectedAvatarId(basePreset.avatarId);
-    setCustomImageUrl(undefined);
-    setSyncStatusMsg(`'${basePreset.defaultNickname}' 기본값으로 변경되었습니다. [저장하기]를 누르면 DB에 반영됩니다.`);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,30 +100,42 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    const baseUser = createKakaoUserFromPreset(activeMemberId);
+    const member = effectiveMembers.find((m) => m.id === activeMemberId) || effectiveMembers[0];
     const charObj = getCharacterAvatarById(selectedAvatarId, activeMemberId);
+    const trimmedNick = nickname.trim() || member.defaultNickname || member.nickname;
 
     const overridePayload = {
-      nickname: nickname.trim() || baseUser.nickname,
+      nickname: trimmedNick,
       avatarId: selectedAvatarId,
       avatarEmoji: charObj.emoji,
-      profileImageUrl: customImageUrl
+      profileImageUrl: customImageUrl ? customImageUrl : ''
     };
 
     // 1. Persist to Server DB (profiles_db.json) and local storage
     await saveProfileOverrideToServer(activeMemberId, overridePayload);
 
-    // 2. Update active user session
-    const updated = updateKakaoUserProfile(baseUser, overridePayload);
-    if (currentUser?.id === activeMemberId) {
-      onUpdateUser(updated);
-    } else if (currentUser) {
-      const refreshedCurrentUser = getStoredKakaoUser() || currentUser;
-      onUpdateUser(refreshedCurrentUser);
+    // 2. If editing the currently logged-in user, update session immediately
+    if (currentUser && currentUser.id === activeMemberId) {
+      const updatedUser: KakaoAuthUser = {
+        ...currentUser,
+        nickname: trimmedNick,
+        avatarId: selectedAvatarId,
+        avatarEmoji: charObj.emoji,
+        profileImageUrl: customImageUrl || undefined
+      };
+      if (!customImageUrl) {
+        delete updatedUser.profileImageUrl;
+      }
+      saveKakaoUser(updatedUser);
+      onUpdateUser(updatedUser);
     } else {
-      onUpdateUser(updated);
+      const refreshedCurrentUser = getStoredKakaoUser();
+      if (refreshedCurrentUser) {
+        onUpdateUser(refreshedCurrentUser);
+      }
     }
 
+    notifyProfileChange();
     setIsSaving(false);
     onClose();
   };
@@ -264,15 +266,6 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                 <label className="text-xs font-bold text-yellow-300">
                   2. 프로필 닉네임 입력
                 </label>
-                <button
-                  type="button"
-                  onClick={handleResetToDefault}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-yellow-300 transition-colors cursor-pointer"
-                  title="기본 닉네임 및 기본 캐릭터로 복원"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>기본값 복원</span>
-                </button>
               </div>
 
               <input

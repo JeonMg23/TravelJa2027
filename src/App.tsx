@@ -100,6 +100,7 @@ export default function App() {
   // Selected Day & Spot navigation
   const [selectedDayNumber, setSelectedDayNumber] = useState<number | null>(1);
   const [selectedSpot, setSelectedSpot] = useState<TravelSpot | null>(null);
+  const [spotSelectionTick, setSpotSelectionTick] = useState<number>(0);
 
   // Netflix-style Cinematic Intro Splash Screen (어플 시작 시 멋있는 도쿄원정대 인트로)
   // 스마트폰 화면을 닫았다 다시 열거나 어플을 재실행할 때 항상 인트로 화면부터 시작
@@ -156,29 +157,31 @@ export default function App() {
   // Kakao Talk Login & User session state (식별된 스마트폰/태블릿 접속자)
   const [currentUser, setCurrentUser] = useState<KakaoAuthUser | null>(() => getStoredKakaoUser());
 
+  // Synchronize companion names with effective member profiles
+  const syncCompanionsWithProfiles = useCallback(() => {
+    const effective = getEffectivePresetMembers();
+    setCompanions((prev) => {
+      return prev.map((comp) => {
+        const matched = effective.find((m) => {
+          if (comp.id === 'user-1' && m.id === 'kakao_hyunwoo_mom') return true;
+          if (comp.id === 'user-2' && m.id === 'kakao_sehyun_mom') return true;
+          if (comp.id === 'user-3' && m.id === 'kakao_hyunwoo') return true;
+          if (comp.id === 'user-4' && m.id === 'kakao_sehyun') return true;
+          return false;
+        });
+        if (matched) {
+          return {
+            ...comp,
+            name: `${matched.nickname} (${matched.role === 'HYUNWOO' || matched.role === 'SEHYUN' ? '관리자' : '원정대원'})`
+          };
+        }
+        return comp;
+      });
+    });
+  }, []);
+
   // Synchronize profiles from server DB (profiles_db.json) on mount and on window focus/tab switch
   useEffect(() => {
-    const syncCompanionsWithProfiles = () => {
-      const effective = getEffectivePresetMembers();
-      setCompanions((prev) => {
-        return prev.map((comp) => {
-          const matched = effective.find((m) => {
-            if (comp.id === 'user-1' && m.id === 'kakao_hyunwoo_mom') return true;
-            if (comp.id === 'user-2' && m.id === 'kakao_sehyun_mom') return true;
-            if (comp.id === 'user-3' && m.id === 'kakao_hyunwoo') return true;
-            if (comp.id === 'user-4' && m.id === 'kakao_sehyun') return true;
-            return false;
-          });
-          if (matched) {
-            return {
-              ...comp,
-              name: `${matched.nickname} (${matched.role === 'HYUNWOO' || matched.role === 'SEHYUN' ? '관리자' : '원정대원'})`
-            };
-          }
-          return comp;
-        });
-      });
-    };
 
     // 1. Initial server profile sync
     fetchServerProfiles()
@@ -258,6 +261,12 @@ export default function App() {
     }
   };
 
+  const handleProfileUpdate = (user: KakaoAuthUser) => {
+    setCurrentUser(user);
+    setToastMessage(`✨ ${user.nickname} 프로필 및 캐릭터가 성공적으로 변경되었습니다.`);
+    syncCompanionsWithProfiles();
+  };
+
   const handleKakaoLogout = () => {
     clearKakaoUser();
     setCurrentUser(null);
@@ -278,7 +287,7 @@ export default function App() {
   const [targetFlightView, setTargetFlightView] = useState<'timeline' | 'map'>('timeline');
 
   // Active view for mobile & desktop header tabs
-  const [activeHeaderTab, setActiveHeaderTab] = useState<'timeline' | 'map' | 'budget' | 'checklist'>('timeline');
+  const [activeHeaderTab, setActiveHeaderTab] = useState<'timeline' | 'map' | 'split' | 'budget' | 'checklist'>('timeline');
   // Active view for mobile, foldable & desktop layout ('split' for side-by-side Z-Fold/PC, 'timeline', 'map')
   const [mobileView, setMobileView] = useState<'timeline' | 'map' | 'split'>(() => {
     if (typeof window !== 'undefined') {
@@ -288,20 +297,7 @@ export default function App() {
     return 'split';
   });
 
-  // Automatically adapt if user unfolds or rotates their Galaxy Z Fold device
-  useEffect(() => {
-    const handleResize = () => {
-      if (typeof window !== 'undefined') {
-        const isWideFoldOrDesktop = window.innerWidth >= 640;
-        // If unfolded from narrow cover screen to wide inner screen
-        if (isWideFoldOrDesktop && mobileView === 'timeline') {
-          setMobileView('split');
-        }
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [mobileView]);
+
 
   // Remember last viewed / active spot and scroll position when navigating between timeline and map on mobile
   const lastActiveSpotIdRef = useRef<string | null>(null);
@@ -506,40 +502,58 @@ export default function App() {
       const gridRect = gridEl.getBoundingClientRect();
       // Calculate relative vertical offset from the top of the grid container to the spot card
       const relativeOffset = spotRect.top - gridRect.top;
-      // Allow map to align with spot card top, clamped within positive bounds
-      const maxOffset = Math.max(0, gridEl.offsetHeight - 360);
-      const clampedOffset = Math.min(Math.max(0, relativeOffset), maxOffset);
+      const clampedOffset = Math.max(0, Math.round(relativeOffset));
       setSplitMapOffsetY(clampedOffset);
     }
   }, [mobileView, selectedSpot, currentDay]);
 
   useEffect(() => {
+    if (showIntro || isLoginPageOpen || showLandingPage || isFlying) {
+      return;
+    }
     if (mobileView === 'split') {
       if (!selectedSpot && currentDay?.spots?.[0]) {
         setSelectedSpot(currentDay.spots[0]);
       }
-      const t = setTimeout(() => {
+      const t1 = setTimeout(() => {
         syncSplitMapPosition();
-      }, 70);
+      }, 50);
+      const t2 = setTimeout(() => {
+        syncSplitMapPosition();
+      }, 220);
       const handleResize = () => syncSplitMapPosition();
       window.addEventListener('resize', handleResize);
       return () => {
-        clearTimeout(t);
+        clearTimeout(t1);
+        clearTimeout(t2);
         window.removeEventListener('resize', handleResize);
       };
+    } else {
+      setSplitMapOffsetY(0);
     }
-  }, [mobileView, selectedSpot, currentDay, selectedDayNumber, syncSplitMapPosition]);
+  }, [
+    mobileView,
+    selectedSpot,
+    currentDay,
+    selectedDayNumber,
+    syncSplitMapPosition,
+    showIntro,
+    isLoginPageOpen,
+    showLandingPage,
+    isFlying
+  ]);
 
   // Spot selection
   const handleSelectSpot = (spot: TravelSpot) => {
     setSelectedSpot(spot);
+    setSpotSelectionTick((prev) => prev + 1);
     lastActiveSpotIdRef.current = spot.id;
     // Find which day this spot belongs to if on 'all days' mode
     if (selectedDayNumber === null) {
       const parentDay = days.find((d) => d.spots.some((s) => s.id === spot.id));
       if (parentDay) setSelectedDayNumber(parentDay.dayNumber);
     }
-    // If in split view, smoothly slide the map right beside this spot card and center in view
+    // If in split view, smoothly slide the map right beside this spot card and bring into view
     if (mobileView === 'split') {
       setTimeout(() => {
         syncSplitMapPosition(spot.id);
@@ -548,6 +562,20 @@ export default function App() {
           el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
       }, 40);
+    }
+  };
+
+  // Switch to Route Map view (keeping selectedSpot focused)
+  const switchToMapView = (spotToFocus?: TravelSpot) => {
+    if (spotToFocus) {
+      setSelectedSpot(spotToFocus);
+      lastActiveSpotIdRef.current = spotToFocus.id;
+    }
+    setSpotSelectionTick((prev) => prev + 1);
+    setMobileView('map');
+    setActiveHeaderTab('map');
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -824,7 +852,7 @@ export default function App() {
   };
 
   // Header Nav tab handler
-  const handleHeaderTab = (tab: 'timeline' | 'map' | 'budget' | 'checklist') => {
+  const handleHeaderTab = (tab: 'timeline' | 'map' | 'split' | 'budget' | 'checklist') => {
     setActiveHeaderTab(tab);
     if (tab === 'budget') {
       setBudgetModalView('budget');
@@ -833,9 +861,11 @@ export default function App() {
       setBudgetModalView('checklist');
       setIsBudgetChecklistOpen(true);
     } else if (tab === 'map') {
-      setMobileView('map');
+      switchToMapView();
     } else if (tab === 'timeline') {
       setMobileView('timeline');
+    } else if (tab === 'split') {
+      setMobileView('split');
     }
   };
 
@@ -844,6 +874,8 @@ export default function App() {
     const target = dayNum || 1;
     setTargetFlightDay(target);
     setSelectedDayNumber(target);
+    setSelectedSpot(null);
+    lastActiveSpotIdRef.current = null;
     setTargetFlightView('timeline');
     setIsFlying(true);
   };
@@ -852,6 +884,8 @@ export default function App() {
   const handleTriggerFlightAndOpenMap = () => {
     setTargetFlightDay(1);
     setSelectedDayNumber(1);
+    setSelectedSpot(null);
+    lastActiveSpotIdRef.current = null;
     setTargetFlightView('map');
     setIsFlying(true);
   };
@@ -930,7 +964,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-20 md:pb-0 w-full max-w-full overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-20 md:pb-0 w-full max-w-full overflow-x-clip">
       {/* Top Bar Header */}
       <Header
         activeTab={activeHeaderTab}
@@ -943,7 +977,7 @@ export default function App() {
         }}
         currentUser={currentUser}
         onOpenLogin={() => setIsLoginPageOpen(true)}
-        onUpdateUser={handleKakaoLoginSuccess}
+        onUpdateUser={handleProfileUpdate}
         onLogout={handleKakaoLogout}
         onOpenMobileInstall={() => setIsMobileInstallOpen(true)}
         onReplayIntro={() => setShowIntro(true)}
@@ -984,8 +1018,7 @@ export default function App() {
             </button>
             <button
               onClick={() => {
-                setMobileView('map');
-                setActiveHeaderTab('map');
+                switchToMapView();
               }}
               className={`flex-1 py-2 px-1 sm:px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer min-w-0 ${
                 mobileView === 'map'
@@ -994,11 +1027,16 @@ export default function App() {
               }`}
             >
               <Compass className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">동선 지도</span>
+              <span className="truncate">
+                {selectedSpot && currentDay?.spots
+                  ? `동선 지도 (${currentDay.spots.findIndex((s) => s.id === selectedSpot.id) + 1}번)`
+                  : '동선 지도'}
+              </span>
             </button>
             <button
               onClick={() => {
                 setMobileView('split');
+                setActiveHeaderTab('split');
               }}
               className={`flex-1 py-2 px-1 sm:px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer relative min-w-0 ${
                 mobileView === 'split'
@@ -1016,23 +1054,19 @@ export default function App() {
           </div>
         </div>
 
-        {/* 2-Column Responsive Split (Foldable, Mobile & PC side-by-side) */}
+        {/* Main Content Layout (Timeline, Map, or Side-by-Side Split) */}
         <div
           ref={splitGridRef}
-          className={`grid gap-2.5 sm:gap-4 md:gap-6 items-start relative ${
-            mobileView === 'split'
-              ? 'grid-cols-12'
-              : 'grid-cols-1 lg:grid-cols-12'
-          }`}
+          className="grid grid-cols-12 gap-2.5 sm:gap-4 md:gap-6 items-start relative w-full"
         >
           {/* Left Column: Itinerary Timeline List */}
           <div
             className={`space-y-4 ${
-              mobileView === 'split'
-                ? 'col-span-5 sm:col-span-6 lg:col-span-7 block'
+              mobileView === 'timeline'
+                ? 'col-span-12 max-w-4xl mx-auto w-full block'
                 : mobileView === 'map'
-                ? 'hidden lg:block'
-                : 'block lg:col-span-7'
+                ? 'hidden'
+                : 'col-span-5 sm:col-span-6 lg:col-span-7 block'
             }`}
           >
             {currentDay ? (
@@ -1042,6 +1076,9 @@ export default function App() {
                 isSplitView={mobileView === 'split'}
                 onSelectSpot={(spot) => {
                   handleSelectSpot(spot);
+                }}
+                onOpenSpotMap={(spot) => {
+                  switchToMapView(spot);
                 }}
                 onSpotInView={(spot) => {
                   lastActiveSpotIdRef.current = spot.id;
@@ -1132,7 +1169,10 @@ export default function App() {
                   {days.map((day) => (
                     <div
                       key={day.dayNumber}
-                      onClick={() => setSelectedDayNumber(day.dayNumber)}
+                      onClick={() => {
+                        setSelectedDayNumber(day.dayNumber);
+                        setSelectedSpot(null);
+                      }}
                       className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:border-indigo-400 cursor-pointer transition-all"
                     >
                       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1155,7 +1195,12 @@ export default function App() {
                         {day.spots.map((spot, sIdx) => (
                           <div
                             key={spot.id}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedDayNumber(day.dayNumber);
+                              handleSelectSpot(spot);
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-xl text-xs transition-colors"
                           >
                             <span className="font-bold text-slate-700">
                               {sIdx + 1}. {spot.name}
@@ -1179,8 +1224,8 @@ export default function App() {
               mobileView === 'split'
                 ? 'col-span-7 sm:col-span-6 lg:col-span-5 block'
                 : mobileView === 'timeline'
-                ? 'hidden lg:block'
-                : 'block lg:col-span-5 lg:sticky lg:top-24'
+                ? 'hidden'
+                : 'col-span-12 max-w-6xl mx-auto w-full block'
             }`}
             style={
               mobileView === 'split'
@@ -1199,11 +1244,16 @@ export default function App() {
                 onSelectSpot={(spot) => {
                   handleSelectSpot(spot);
                 }}
+                onClearSpot={() => {
+                  setSelectedSpot(null);
+                }}
+                spotSelectionTick={spotSelectionTick}
+                viewMode={mobileView}
                 isVisible={mobileView === 'map' || mobileView === 'split'}
                 className={
                   mobileView === 'split'
-                    ? 'h-[360px] sm:h-[420px] md:h-[480px] w-full rounded-2xl shadow-sm'
-                    : 'h-[520px] sm:h-[580px] md:h-[640px] lg:h-[calc(100vh-10.5rem)] min-h-[420px] w-full'
+                    ? 'h-[380px] sm:h-[440px] md:h-[500px] w-full rounded-2xl shadow-sm'
+                    : 'h-[520px] sm:h-[600px] md:h-[680px] lg:h-[calc(100vh-11rem)] min-h-[460px] w-full rounded-2xl shadow-sm'
                 }
               />
 
@@ -1264,11 +1314,15 @@ export default function App() {
       <MobileBottomNav
         currentView={mobileView}
         onSelectView={(v) => {
-          setMobileView(v);
-          setActiveHeaderTab(v === 'split' ? 'timeline' : v);
+          if (v === 'map') {
+            switchToMapView();
+          } else {
+            setMobileView(v);
+            setActiveHeaderTab(v);
+          }
         }}
         onOpenBudget={() => {
-          setBudgetModalView('checklist');
+          setBudgetModalView('budget');
           setIsBudgetChecklistOpen(true);
         }}
         currentUser={currentUser}
