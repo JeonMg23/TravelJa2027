@@ -1,8 +1,57 @@
+import {
+  collection,
+  doc,
+  getDocs,
+  onSnapshot,
+  query,
+  serverTimestamp,
+  setDoc,
+  where
+} from 'firebase/firestore';
 import { KakaoAuthUser, DeviceInfo, DeviceCategory, KakaoUserRole } from '../types/auth';
 import { setStoredBudgetPasscode } from './budgetAuth';
+import { db, handleFirestoreError, OperationType } from './firebase';
 
 const KAKAO_USER_STORAGE_KEY = 'tokyo_trip_kakao_user';
 const KAKAO_APP_KEY_STORAGE = 'tokyo_trip_kakao_app_key';
+const PROFILE_OVERRIDES_STORAGE_KEY = 'tokyo_trip_profile_overrides';
+
+// Blueprint validation constants (synced verbatim with firebase-blueprint.json & firestore.rules)
+export const ALLOWED_MEMBER_IDS = [
+  'kakao_hyunwoo_mom',
+  'kakao_sehyun_mom',
+  'kakao_hyunwoo',
+  'kakao_sehyun'
+] as const;
+export const MAX_NICKNAME_LENGTH = 40;
+export const MAX_AVATAR_ID_LENGTH = 64;
+export const AVATAR_ID_PATTERN = /^[a-zA-Z0-9_\-]+$/;
+export const MAX_EMOJI_LENGTH = 16;
+export const MAX_PROFILE_IMAGE_LENGTH = 500000;
+
+// Cross-tab BroadcastChannel for instant multi-tab profile sync
+let profileBroadcastChannel: BroadcastChannel | null = null;
+try {
+  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+    profileBroadcastChannel = new BroadcastChannel('tokyo_trip_profile_sync_channel');
+    profileBroadcastChannel.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'PROFILES_UPDATED' && event.data.overrides) {
+        try {
+          localStorage.setItem(
+            PROFILE_OVERRIDES_STORAGE_KEY,
+            JSON.stringify(event.data.overrides)
+          );
+          syncStoredKakaoUserWithOverrides(event.data.overrides);
+          notifyProfileChange();
+        } catch {
+          // ignore storage errors
+        }
+      }
+    });
+  }
+} catch {
+  profileBroadcastChannel = null;
+}
 
 // Real-time device and platform detection for smartphone/tablet/desktop identification
 export function detectDeviceInfo(): DeviceInfo {
@@ -85,146 +134,6 @@ export interface PresetMember {
   tag: string;
 }
 
-const PROFILE_OVERRIDES_STORAGE_KEY = 'tokyo_trip_profile_overrides';
-
-type ProfileChangeListener = () => void;
-const profileListeners = new Set<ProfileChangeListener>();
-
-export function subscribeToProfiles(listener: ProfileChangeListener): () => void {
-  profileListeners.add(listener);
-  return () => {
-    profileListeners.delete(listener);
-  };
-}
-
-export function notifyProfileChange(): void {
-  profileListeners.forEach((l) => {
-    try {
-      l();
-    } catch (e) {
-      console.error('Error notifying profile listener:', e);
-    }
-  });
-}
-
-export interface ProfileOverride {
-  nickname?: string;
-  avatarId?: string;
-  avatarEmoji?: string;
-  profileImageUrl?: string;
-}
-
-export function getProfileOverrides(): Record<string, ProfileOverride> {
-  try {
-    const raw = localStorage.getItem(PROFILE_OVERRIDES_STORAGE_KEY);
-    if (raw) {
-      return JSON.parse(raw) || {};
-    }
-  } catch (err) {
-    console.warn('Failed to read profile overrides:', err);
-  }
-  return {};
-}
-
-export function saveProfileOverride(memberId: string, override: ProfileOverride): void {
-  try {
-    const current = getProfileOverrides();
-    current[memberId] = {
-      ...current[memberId],
-      ...override
-    };
-    if (!override.profileImageUrl) {
-      delete current[memberId].profileImageUrl;
-    }
-    localStorage.setItem(PROFILE_OVERRIDES_STORAGE_KEY, JSON.stringify(current));
-    notifyProfileChange();
-  } catch (err) {
-    console.warn('Failed to save profile override:', err);
-  }
-}
-
-export function resetProfileOverride(memberId: string): void {
-  try {
-    const current = getProfileOverrides();
-    delete current[memberId];
-    localStorage.setItem(PROFILE_OVERRIDES_STORAGE_KEY, JSON.stringify(current));
-    notifyProfileChange();
-  } catch (err) {
-    console.warn('Failed to reset profile override:', err);
-  }
-}
-
-// Fetch all profiles from server DB (profiles_db.json) and synchronize local cache
-export async function fetchServerProfiles(): Promise<Record<string, ProfileOverride>> {
-  try {
-    const res = await fetch('/api/profiles', {
-      cache: 'no-store',
-      headers: { Accept: 'application/json' }
-    });
-    const contentType = res.headers.get('content-type') || '';
-    if (!res.ok || !contentType.includes('application/json')) {
-      return getProfileOverrides();
-    }
-    const data = await res.json();
-    if (data && data.success && data.profiles) {
-      const overrides: Record<string, ProfileOverride> = {};
-      Object.keys(data.profiles).forEach((key) => {
-        const item = data.profiles[key];
-        overrides[key] = {
-          nickname: item.nickname,
-          avatarId: item.avatarId,
-          avatarEmoji: item.avatarEmoji,
-          profileImageUrl: item.profileImageUrl || undefined
-        };
-        if (!item.profileImageUrl) {
-          delete overrides[key].profileImageUrl;
-        }
-      });
-      const prevRaw = localStorage.getItem(PROFILE_OVERRIDES_STORAGE_KEY);
-      const nextRaw = JSON.stringify(overrides);
-      if (prevRaw !== nextRaw) {
-        localStorage.setItem(PROFILE_OVERRIDES_STORAGE_KEY, nextRaw);
-        notifyProfileChange();
-      }
-      return overrides;
-    }
-  } catch {
-    // Offline or static preview: fallback to local cache without noisy errors
-  }
-  return getProfileOverrides();
-}
-
-// Save profile change both to local cache and to server DB for all users
-export async function saveProfileOverrideToServer(
-  memberId: string,
-  override: ProfileOverride
-): Promise<boolean> {
-  // 1. Immediately apply to local cache
-  saveProfileOverride(memberId, override);
-
-  // 2. Persist to Express / Serverless DB (profiles_db.json)
-  try {
-    const res = await fetch(`/api/profiles/${encodeURIComponent(memberId)}`, {
-      method: 'PUT',
-      cache: 'no-store',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json'
-      },
-      body: JSON.stringify(override)
-    });
-    const contentType = res.headers.get('content-type') || '';
-    if (!res.ok || !contentType.includes('application/json')) {
-      return false;
-    }
-    const data = await res.json();
-    notifyProfileChange();
-    return !!data?.success;
-  } catch {
-    return false;
-  }
-}
-
 export const KAKAO_PRESET_MEMBERS: PresetMember[] = [
   {
     id: 'kakao_hyunwoo_mom',
@@ -280,6 +189,369 @@ export const KAKAO_PRESET_MEMBERS: PresetMember[] = [
   }
 ];
 
+type ProfileChangeListener = () => void;
+const profileListeners = new Set<ProfileChangeListener>();
+
+export function subscribeToProfiles(listener: ProfileChangeListener): () => void {
+  profileListeners.add(listener);
+  ensureRealtimeFirestoreProfileListener();
+  return () => {
+    profileListeners.delete(listener);
+  };
+}
+
+export function notifyProfileChange(): void {
+  profileListeners.forEach((l) => {
+    try {
+      l();
+    } catch (e) {
+      console.error('Error notifying profile listener:', e);
+    }
+  });
+}
+
+export interface ProfileOverride {
+  nickname?: string;
+  avatarId?: string;
+  avatarEmoji?: string;
+  profileImageUrl?: string;
+}
+
+function sanitizeProfileOverride(
+  memberId: string,
+  override: ProfileOverride
+): {
+  nickname: string;
+  defaultNickname: string;
+  avatarId: string;
+  avatarEmoji: string;
+  profileImageUrl?: string;
+} {
+  const preset =
+    KAKAO_PRESET_MEMBERS.find((m) => m.id === memberId) || KAKAO_PRESET_MEMBERS[0];
+
+  const rawNickname = (override.nickname ?? preset.nickname).trim();
+  const safeNickname =
+    rawNickname.length >= 1
+      ? rawNickname.slice(0, MAX_NICKNAME_LENGTH)
+      : preset.nickname;
+
+  const rawAvatarId = (override.avatarId ?? preset.avatarId).trim();
+  const safeAvatarId =
+    rawAvatarId.length >= 1 &&
+    rawAvatarId.length <= MAX_AVATAR_ID_LENGTH &&
+    AVATAR_ID_PATTERN.test(rawAvatarId)
+      ? rawAvatarId
+      : preset.avatarId;
+
+  const rawEmoji = (override.avatarEmoji ?? preset.avatarEmoji).trim();
+  const safeEmoji =
+    rawEmoji.length >= 1 ? rawEmoji.slice(0, MAX_EMOJI_LENGTH) : preset.avatarEmoji;
+
+  const rawImg = override.profileImageUrl?.trim();
+  const safeProfileImageUrl =
+    rawImg && rawImg.length >= 1 && rawImg.length <= MAX_PROFILE_IMAGE_LENGTH
+      ? rawImg
+      : undefined;
+
+  return {
+    nickname: safeNickname,
+    defaultNickname: preset.defaultNickname,
+    avatarId: safeAvatarId,
+    avatarEmoji: safeEmoji,
+    profileImageUrl: safeProfileImageUrl
+  };
+}
+
+export function getProfileOverrides(): Record<string, ProfileOverride> {
+  try {
+    const raw = localStorage.getItem(PROFILE_OVERRIDES_STORAGE_KEY);
+    if (raw) {
+      return JSON.parse(raw) || {};
+    }
+  } catch (err) {
+    console.warn('Failed to read profile overrides:', err);
+  }
+  return {};
+}
+
+function syncStoredKakaoUserWithOverrides(
+  overrides: Record<string, ProfileOverride>
+): void {
+  try {
+    const raw = localStorage.getItem(KAKAO_USER_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as KakaoAuthUser;
+    if (!parsed || !parsed.id) return;
+
+    const custom = overrides[parsed.id];
+    const preset = KAKAO_PRESET_MEMBERS.find((m) => m.id === parsed.id);
+    if (!custom && !preset) return;
+
+    const nextUser: KakaoAuthUser = {
+      ...parsed,
+      nickname: custom?.nickname?.trim() || preset?.nickname || parsed.nickname,
+      avatarId: custom?.avatarId || preset?.avatarId || parsed.avatarId || 'disney_rapunzel',
+      avatarEmoji: custom?.avatarEmoji || preset?.avatarEmoji || parsed.avatarEmoji || '👑'
+    };
+
+    if (custom?.profileImageUrl) {
+      nextUser.profileImageUrl = custom.profileImageUrl;
+    } else {
+      delete nextUser.profileImageUrl;
+    }
+
+    localStorage.setItem(KAKAO_USER_STORAGE_KEY, JSON.stringify(nextUser));
+  } catch {
+    // ignore storage sync errors
+  }
+}
+
+export function saveProfileOverride(memberId: string, override: ProfileOverride): void {
+  try {
+    const current = getProfileOverrides();
+    const sanitized = sanitizeProfileOverride(memberId, override);
+    current[memberId] = {
+      nickname: sanitized.nickname,
+      avatarId: sanitized.avatarId,
+      avatarEmoji: sanitized.avatarEmoji,
+      ...(sanitized.profileImageUrl ? { profileImageUrl: sanitized.profileImageUrl } : {})
+    };
+    localStorage.setItem(PROFILE_OVERRIDES_STORAGE_KEY, JSON.stringify(current));
+    syncStoredKakaoUserWithOverrides(current);
+    profileBroadcastChannel?.postMessage({
+      type: 'PROFILES_UPDATED',
+      overrides: current
+    });
+    notifyProfileChange();
+  } catch (err) {
+    console.warn('Failed to save profile override:', err);
+  }
+}
+
+export function resetProfileOverride(memberId: string): void {
+  try {
+    const current = getProfileOverrides();
+    delete current[memberId];
+    localStorage.setItem(PROFILE_OVERRIDES_STORAGE_KEY, JSON.stringify(current));
+    syncStoredKakaoUserWithOverrides(current);
+    notifyProfileChange();
+  } catch (err) {
+    console.warn('Failed to reset profile override:', err);
+  }
+}
+
+// Real-time Firestore listener state
+let firestoreUnsubscribe: (() => void) | null = null;
+let hasSeededInitialProfiles = false;
+
+async function writeMemberProfileToFirestore(
+  memberId: string,
+  override: ProfileOverride
+): Promise<void> {
+  if (!ALLOWED_MEMBER_IDS.includes(memberId as (typeof ALLOWED_MEMBER_IDS)[number])) {
+    return;
+  }
+  const sanitized = sanitizeProfileOverride(memberId, override);
+  const payload: Record<string, unknown> = {
+    memberId,
+    nickname: sanitized.nickname,
+    defaultNickname: sanitized.defaultNickname,
+    avatarId: sanitized.avatarId,
+    avatarEmoji: sanitized.avatarEmoji,
+    updatedAt: serverTimestamp()
+  };
+  if (sanitized.profileImageUrl) {
+    payload.profileImageUrl = sanitized.profileImageUrl;
+  }
+
+  const path = `profiles/${memberId}`;
+  try {
+    await setDoc(doc(db, 'profiles', memberId), payload);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+function applyFirestoreDocsToCache(
+  docsData: Array<Record<string, unknown>>
+): Record<string, ProfileOverride> {
+  const currentOverrides = getProfileOverrides();
+  const nextOverrides: Record<string, ProfileOverride> = { ...currentOverrides };
+
+  docsData.forEach((item) => {
+    const memberId = typeof item.memberId === 'string' ? item.memberId : '';
+    if (!memberId) return;
+    const sanitized = sanitizeProfileOverride(memberId, {
+      nickname: typeof item.nickname === 'string' ? item.nickname : undefined,
+      avatarId: typeof item.avatarId === 'string' ? item.avatarId : undefined,
+      avatarEmoji: typeof item.avatarEmoji === 'string' ? item.avatarEmoji : undefined,
+      profileImageUrl:
+        typeof item.profileImageUrl === 'string' && item.profileImageUrl.trim()
+          ? item.profileImageUrl.trim()
+          : undefined
+    });
+    nextOverrides[memberId] = {
+      nickname: sanitized.nickname,
+      avatarId: sanitized.avatarId,
+      avatarEmoji: sanitized.avatarEmoji,
+      ...(sanitized.profileImageUrl ? { profileImageUrl: sanitized.profileImageUrl } : {})
+    };
+  });
+
+  const prevRaw = localStorage.getItem(PROFILE_OVERRIDES_STORAGE_KEY);
+  const nextRaw = JSON.stringify(nextOverrides);
+  if (prevRaw !== nextRaw) {
+    localStorage.setItem(PROFILE_OVERRIDES_STORAGE_KEY, nextRaw);
+    syncStoredKakaoUserWithOverrides(nextOverrides);
+    notifyProfileChange();
+  } else {
+    syncStoredKakaoUserWithOverrides(nextOverrides);
+  }
+
+  return nextOverrides;
+}
+
+export function ensureRealtimeFirestoreProfileListener(): void {
+  if (typeof window === 'undefined' || firestoreUnsubscribe) {
+    return;
+  }
+
+  const profilesQuery = query(
+    collection(db, 'profiles'),
+    where('memberId', 'in', [...ALLOWED_MEMBER_IDS])
+  );
+
+  firestoreUnsubscribe = onSnapshot(
+    profilesQuery,
+    (snapshot) => {
+      if (snapshot.empty && !hasSeededInitialProfiles) {
+        hasSeededInitialProfiles = true;
+        const localOverrides = getProfileOverrides();
+        KAKAO_PRESET_MEMBERS.forEach((member) => {
+          const existingLocal = localOverrides[member.id] || {
+            nickname: member.nickname,
+            avatarId: member.avatarId,
+            avatarEmoji: member.avatarEmoji,
+            profileImageUrl: member.profileImageUrl
+          };
+          writeMemberProfileToFirestore(member.id, existingLocal).catch(() => {});
+        });
+        return;
+      }
+
+      const docsData = snapshot.docs.map((d) => d.data() as Record<string, unknown>);
+      applyFirestoreDocsToCache(docsData);
+    },
+    (error) => {
+      try {
+        handleFirestoreError(error, OperationType.LIST, 'profiles');
+      } catch {
+        // Logged by handleFirestoreError; keep app functional with local cache
+      }
+    }
+  );
+}
+
+// Fetch all profiles from Firebase Cloud Firestore (with Express API fallback) and synchronize local cache
+export async function fetchServerProfiles(): Promise<Record<string, ProfileOverride>> {
+  ensureRealtimeFirestoreProfileListener();
+
+  // 1. Primary Cloud DB: Firebase Cloud Firestore
+  try {
+    const profilesQuery = query(
+      collection(db, 'profiles'),
+      where('memberId', 'in', [...ALLOWED_MEMBER_IDS])
+    );
+    let snapshot;
+    try {
+      snapshot = await getDocs(profilesQuery);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, 'profiles');
+    }
+
+    if (snapshot && !snapshot.empty) {
+      const docsData = snapshot.docs.map((d) => d.data() as Record<string, unknown>);
+      return applyFirestoreDocsToCache(docsData);
+    }
+  } catch {
+    // Fallback to server API / local cache if Firestore query fails
+  }
+
+  // 2. Secondary fallback: Express / Serverless API
+  try {
+    const res = await fetch('/api/profiles', {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' }
+    });
+    const contentType = res.headers.get('content-type') || '';
+    if (res.ok && contentType.includes('application/json')) {
+      const data = await res.json();
+      if (data && data.success && data.profiles) {
+        const docsList = Object.keys(data.profiles).map((key) => ({
+          memberId: key,
+          ...data.profiles[key]
+        }));
+        return applyFirestoreDocsToCache(docsList);
+      }
+    }
+  } catch {
+    // Offline or static preview: fallback to local cache
+  }
+
+  return getProfileOverrides();
+}
+
+// Save profile change to local cache, Firebase Cloud Firestore, and Express API for all users & devices
+export async function saveProfileOverrideToServer(
+  memberId: string,
+  override: ProfileOverride
+): Promise<boolean> {
+  // 1. Immediately apply to local cache & broadcast to tabs
+  saveProfileOverride(memberId, override);
+
+  let savedToCloud = false;
+
+  // 2. Primary Cloud Persistence: Firebase Cloud Firestore (shared across all devices & deployments)
+  try {
+    await writeMemberProfileToFirestore(memberId, override);
+    savedToCloud = true;
+  } catch (err) {
+    console.warn('Firestore profile write error:', err);
+  }
+
+  // 3. Secondary Persistence: Express / Serverless DB (profiles_db.json)
+  try {
+    const sanitized = sanitizeProfileOverride(memberId, override);
+    const res = await fetch(`/api/profiles/${encodeURIComponent(memberId)}`, {
+      method: 'PUT',
+      cache: 'no-store',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      body: JSON.stringify({
+        nickname: sanitized.nickname,
+        avatarId: sanitized.avatarId,
+        avatarEmoji: sanitized.avatarEmoji,
+        profileImageUrl: sanitized.profileImageUrl || ''
+      })
+    });
+    const contentType = res.headers.get('content-type') || '';
+    if (res.ok && contentType.includes('application/json')) {
+      const data = await res.json();
+      if (data?.success) {
+        savedToCloud = true;
+      }
+    }
+  } catch {
+    // Ignore secondary API error if running on static host
+  }
+
+  notifyProfileChange();
+  return savedToCloud;
+}
+
 export function getEffectivePresetMembers(): PresetMember[] {
   const overrides = getProfileOverrides();
   return KAKAO_PRESET_MEMBERS.map((member) => {
@@ -290,7 +562,7 @@ export function getEffectivePresetMembers(): PresetMember[] {
       nickname: custom.nickname?.trim() || member.nickname,
       avatarId: custom.avatarId || member.avatarId,
       avatarEmoji: custom.avatarEmoji || member.avatarEmoji,
-      profileImageUrl: custom.profileImageUrl
+      profileImageUrl: custom.profileImageUrl || undefined
     };
   });
 }
@@ -300,17 +572,28 @@ export function getStoredKakaoUser(): KakaoAuthUser | null {
     const raw = localStorage.getItem(KAKAO_USER_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as KakaoAuthUser;
-      if (parsed && parsed.nickname) {
+      if (parsed && parsed.id) {
         const overrides = getProfileOverrides();
         const custom = overrides[parsed.id];
         const preset = KAKAO_PRESET_MEMBERS.find((m) => m.id === parsed.id);
-        return {
-          ...parsed,
-          nickname: custom?.nickname?.trim() || parsed.nickname,
-          avatarId: custom?.avatarId || parsed.avatarId || preset?.avatarId || 'disney_rapunzel',
-          avatarEmoji: custom?.avatarEmoji || parsed.avatarEmoji || preset?.avatarEmoji || '👑',
-          profileImageUrl: custom?.profileImageUrl ?? parsed.profileImageUrl
-        };
+        if (preset) {
+          return {
+            ...parsed,
+            nickname: custom?.nickname?.trim() || preset.nickname,
+            avatarId: custom?.avatarId || preset.avatarId,
+            avatarEmoji: custom?.avatarEmoji || preset.avatarEmoji,
+            profileImageUrl: custom?.profileImageUrl || undefined
+          };
+        }
+        if (parsed.nickname) {
+          return {
+            ...parsed,
+            nickname: custom?.nickname?.trim() || parsed.nickname,
+            avatarId: custom?.avatarId || parsed.avatarId || 'disney_rapunzel',
+            avatarEmoji: custom?.avatarEmoji || parsed.avatarEmoji || '👑',
+            profileImageUrl: custom ? custom.profileImageUrl : parsed.profileImageUrl
+          };
+        }
       }
     }
   } catch (err) {
@@ -338,7 +621,10 @@ export function updateKakaoUserProfile(
     profileImageUrl?: string;
   }
 ): KakaoAuthUser {
-  const trimmedNickname = updates.nickname.trim() || user.nickname;
+  const trimmedNickname = (updates.nickname.trim() || user.nickname).slice(
+    0,
+    MAX_NICKNAME_LENGTH
+  );
   const override: ProfileOverride = {
     nickname: trimmedNickname,
     avatarId: updates.avatarId,
@@ -346,12 +632,9 @@ export function updateKakaoUserProfile(
     profileImageUrl: updates.profileImageUrl
   };
 
-  // 1. Immediately update local storage and notify UI
-  saveProfileOverride(user.id, override);
-
-  // 2. Persist to Express server DB (profiles_db.json) asynchronously
+  // 1. Immediately update local storage & persist to Firebase Cloud Firestore + Express DB
   saveProfileOverrideToServer(user.id, override).catch((err) => {
-    console.warn('Async server profile update failed:', err);
+    console.warn('Async cloud profile update failed:', err);
   });
 
   const updatedUser: KakaoAuthUser = {
@@ -418,6 +701,10 @@ export function createKakaoUserFromPreset(presetId: string): KakaoAuthUser {
     loginMethod: 'kakao_quick'
   };
 
+  if (!preset.profileImageUrl) {
+    delete user.profileImageUrl;
+  }
+
   saveKakaoUser(user);
   return user;
 }
@@ -468,7 +755,7 @@ export function createCustomKakaoUser(
 
   const user: KakaoAuthUser = {
     id: `kakao_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-    nickname: nickname.trim(),
+    nickname: nickname.trim().slice(0, MAX_NICKNAME_LENGTH),
     avatarColor,
     avatarEmoji,
     role: finalRole,
@@ -481,6 +768,11 @@ export function createCustomKakaoUser(
 
   saveKakaoUser(user);
   return user;
+}
+
+// Start real-time Firestore profile sync automatically in browser
+if (typeof window !== 'undefined') {
+  ensureRealtimeFirestoreProfileListener();
 }
 
 // Kakao JavaScript SDK Dynamic Loader and Auth Handler

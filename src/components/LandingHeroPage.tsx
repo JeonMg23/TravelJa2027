@@ -14,6 +14,7 @@ import { TripDay } from '../types/travel';
 import { MobileInstallModal } from './MobileInstallModal';
 import { ProfileEditModal } from './ProfileEditModal';
 import { getCharacterAvatarById } from '../data/characterAvatars';
+import { getEffectivePresetMembers, subscribeToProfiles } from '../services/kakaoAuth';
 import { KakaoAuthUser } from '../types/auth';
 import tokyoTowerDesktopImg from '../assets/images/tokyo_tower_night_1792063728180.jpg';
 import tokyoTowerMobileImg from '../assets/images/tokyo_tower_mobile_1792145945594.jpg';
@@ -59,8 +60,24 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
   const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [, setProfileSyncTick] = useState(0);
 
-  const currentAvatar = getCharacterAvatarById(currentUser?.avatarId, currentUser?.id);
+  useEffect(() => {
+    const unsubscribe = subscribeToProfiles(() => {
+      setProfileSyncTick((t) => t + 1);
+    });
+    return unsubscribe;
+  }, []);
+
+  const effectivePreset = currentUser
+    ? getEffectivePresetMembers().find((m) => m.id === currentUser.id)
+    : undefined;
+  const displayNickname = effectivePreset?.nickname || currentUser?.nickname || '';
+  const displayAvatarId = effectivePreset?.avatarId || currentUser?.avatarId;
+  const displayProfileImageUrl = effectivePreset
+    ? effectivePreset.profileImageUrl
+    : currentUser?.profileImageUrl;
+  const currentAvatar = getCharacterAvatarById(displayAvatarId, currentUser?.id);
 
   useEffect(() => {
     const handleResize = () => {
@@ -213,7 +230,7 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
               className="flex items-center gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 rounded-xl border border-yellow-400/40 backdrop-blur-md transition-all cursor-pointer whitespace-nowrap shadow-[0_0_15px_rgba(250,204,21,0.18)] group"
               title={
                 currentUser
-                  ? `${currentUser.nickname} 프로필 (클릭하여 닉네임 및 캐릭터 변경)`
+                  ? `${displayNickname} 프로필 (클릭하여 닉네임 및 캐릭터 변경)`
                   : '프로필 닉네임 및 캐릭터 설정'
               }
             >
@@ -222,10 +239,10 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
                   <div
                     className={`w-7 h-7 rounded-lg bg-gradient-to-br ${currentAvatar.bgGradient} p-0 border border-yellow-300/70 flex items-center justify-center overflow-hidden shrink-0 shadow-sm`}
                   >
-                    {currentUser.profileImageUrl ? (
+                    {displayProfileImageUrl ? (
                       <img
-                        src={currentUser.profileImageUrl}
-                        alt={currentUser.nickname}
+                        src={displayProfileImageUrl}
+                        alt={displayNickname}
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
                       />
@@ -235,7 +252,7 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
                   </div>
                   <div className="flex flex-col items-start leading-tight">
                     <span className="truncate max-w-[100px] sm:max-w-[130px] text-yellow-300 font-bold group-hover:text-yellow-200 text-xs">
-                      {currentUser.nickname}
+                      {displayNickname}
                     </span>
                     <span className="text-[9px] text-slate-300 font-medium">
                       {currentAvatar.name}

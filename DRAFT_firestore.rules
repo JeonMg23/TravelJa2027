@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Reusable Hardened Primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 64 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isAllowedMemberId(id) {
+      return id in ['kakao_hyunwoo_mom', 'kakao_sehyun_mom', 'kakao_hyunwoo', 'kakao_sehyun'];
+    }
+
+    function isValidExpeditionProfile(data) {
+      return data.keys().hasAll(['memberId', 'nickname', 'defaultNickname', 'avatarId', 'avatarEmoji', 'updatedAt'])
+        && data.keys().hasOnly(['memberId', 'nickname', 'defaultNickname', 'avatarId', 'avatarEmoji', 'profileImageUrl', 'updatedAt'])
+        && isValidId(data.memberId)
+        && isAllowedMemberId(data.memberId)
+        && data.nickname is string
+        && data.nickname.size() >= 1
+        && data.nickname.size() <= 40
+        && data.defaultNickname is string
+        && data.defaultNickname.size() >= 1
+        && data.defaultNickname.size() <= 20
+        && data.defaultNickname in ['현우맘', '세현맘', '현우', '세현']
+        && data.avatarId is string
+        && data.avatarId.size() >= 1
+        && data.avatarId.size() <= 64
+        && data.avatarId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.avatarEmoji is string
+        && data.avatarEmoji.size() >= 1
+        && data.avatarEmoji.size() <= 16
+        && (!('profileImageUrl' in data) || (data.profileImageUrl is string && data.profileImageUrl.size() >= 1 && data.profileImageUrl.size() <= 500000))
+        && data.updatedAt is timestamp;
+    }
+
+    // 3. Expedition Profiles Collection (/profiles/{memberId})
+    match /profiles/{memberId} {
+      allow get: if isValidId(memberId) && isAllowedMemberId(memberId);
+      allow list: if existing().memberId in ['kakao_hyunwoo_mom', 'kakao_sehyun_mom', 'kakao_hyunwoo', 'kakao_sehyun'];
+
+      allow create: if isValidId(memberId)
+        && isAllowedMemberId(memberId)
+        && isValidExpeditionProfile(incoming())
+        && incoming().memberId == memberId
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(memberId)
+        && isAllowedMemberId(memberId)
+        && isValidExpeditionProfile(incoming())
+        && incoming().memberId == existing().memberId
+        && incoming().defaultNickname == existing().defaultNickname
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['nickname', 'avatarId', 'avatarEmoji', 'profileImageUrl', 'updatedAt']);
+
+      allow delete: if false;
+    }
+
+    // 4. Connectivity Validation Path (/test/{docId})
+    match /test/{docId} {
+      allow get: if isValidId(docId) && docId == 'connection';
+      allow list, create, update, delete: if false;
+    }
+  }
+}

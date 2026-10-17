@@ -11,9 +11,11 @@ import {
 import {
   getEffectivePresetMembers,
   saveProfileOverrideToServer,
-  saveKakaoUser,
-  getStoredKakaoUser,
-  notifyProfileChange
+  createKakaoUserFromPreset,
+  subscribeToProfiles,
+  notifyProfileChange,
+  MAX_NICKNAME_LENGTH,
+  MAX_PROFILE_IMAGE_LENGTH
 } from '../services/kakaoAuth';
 
 interface ProfileEditModalProps {
@@ -31,6 +33,53 @@ const NICKNAME_SUGGESTIONS: Record<string, string[]> = {
   kakao_sehyun: ['세현', '똘똘이 스머프 세현 👓', '오멘 고수 세현 👻', '네온 스피드 세현 ⚡']
 };
 
+function compressImageToDataUrl(file: File, maxDim = 256, quality = 0.82): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('File read error'));
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== 'string') {
+        reject(new Error('Invalid image data'));
+        return;
+      }
+      const img = new Image();
+      img.onerror = () => resolve(result.slice(0, MAX_PROFILE_IMAGE_LENGTH));
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          let { width, height } = img;
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(result.slice(0, MAX_PROFILE_IMAGE_LENGTH));
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL('image/jpeg', quality);
+          resolve(compressed.slice(0, MAX_PROFILE_IMAGE_LENGTH));
+        } catch {
+          resolve(result.slice(0, MAX_PROFILE_IMAGE_LENGTH));
+        }
+      };
+      img.src = result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   isOpen,
   onClose,
@@ -38,6 +87,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   onUpdateUser,
   onOpenFullLogin
 }) => {
+  const [effectiveMembers, setEffectiveMembers] = useState(() => getEffectivePresetMembers());
   const [activeMemberId, setActiveMemberId] = useState<string>('kakao_hyunwoo_mom');
   const [nickname, setNickname] = useState<string>('현우맘');
   const [selectedAvatarId, setSelectedAvatarId] = useState<string>('disney_rapunzel');
@@ -52,22 +102,34 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       const effective = getEffectivePresetMembers();
-      const targetId = currentUser?.id && effective.some((m) => m.id === currentUser.id)
-        ? currentUser.id
-        : 'kakao_hyunwoo_mom';
+      setEffectiveMembers(effective);
+      const targetId =
+        currentUser?.id && effective.some((m) => m.id === currentUser.id)
+          ? currentUser.id
+          : 'kakao_hyunwoo_mom';
       const member = effective.find((m) => m.id === targetId) || effective[0];
 
       setActiveMemberId(member.id);
       setNickname(member.nickname);
-      setSelectedAvatarId(member.avatarId || DEFAULT_MEMBER_AVATAR_MAP[member.id] || 'disney_rapunzel');
+      setSelectedAvatarId(
+        member.avatarId || DEFAULT_MEMBER_AVATAR_MAP[member.id] || 'disney_rapunzel'
+      );
       setCustomImageUrl(member.profileImageUrl || undefined);
       setSyncStatusMsg(null);
     }
   }, [isOpen, currentUser?.id]);
 
+  // Keep member cards synced in real-time with Firestore while modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+    const unsubscribe = subscribeToProfiles(() => {
+      setEffectiveMembers(getEffectivePresetMembers());
+    });
+    return unsubscribe;
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
-  const effectiveMembers = getEffectivePresetMembers();
   const selectedCharacter = getCharacterAvatarById(selectedAvatarId, activeMemberId);
 
   const filteredCharacters =
@@ -77,24 +139,26 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
   const handleSelectMemberTab = (memberId: string) => {
     const effective = getEffectivePresetMembers();
+    setEffectiveMembers(effective);
     const member = effective.find((m) => m.id === memberId) || effective[0];
     setActiveMemberId(member.id);
     setNickname(member.nickname);
-    setSelectedAvatarId(member.avatarId || DEFAULT_MEMBER_AVATAR_MAP[member.id] || 'disney_rapunzel');
+    setSelectedAvatarId(
+      member.avatarId || DEFAULT_MEMBER_AVATAR_MAP[member.id] || 'disney_rapunzel'
+    );
     setCustomImageUrl(member.profileImageUrl || undefined);
     setSyncStatusMsg(null);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setCustomImageUrl(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressedDataUrl = await compressImageToDataUrl(file);
+      setCustomImageUrl(compressedDataUrl);
+    } catch {
+      // ignore invalid image
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -102,45 +166,32 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     setIsSaving(true);
     const member = effectiveMembers.find((m) => m.id === activeMemberId) || effectiveMembers[0];
     const charObj = getCharacterAvatarById(selectedAvatarId, activeMemberId);
-    const trimmedNick = nickname.trim() || member.defaultNickname || member.nickname;
+    const trimmedNick = (nickname.trim() || member.defaultNickname || member.nickname).slice(
+      0,
+      MAX_NICKNAME_LENGTH
+    );
 
     const overridePayload = {
       nickname: trimmedNick,
       avatarId: selectedAvatarId,
       avatarEmoji: charObj.emoji,
-      profileImageUrl: customImageUrl ? customImageUrl : ''
+      profileImageUrl: customImageUrl ? customImageUrl.slice(0, MAX_PROFILE_IMAGE_LENGTH) : ''
     };
 
-    // 1. Persist to Server DB (profiles_db.json) and local storage
+    // 1. Persist to Firebase Cloud Firestore & local storage for real-time cross-device sharing
     await saveProfileOverrideToServer(activeMemberId, overridePayload);
 
-    // 2. If editing the currently logged-in user, update session immediately
-    if (currentUser && currentUser.id === activeMemberId) {
-      const updatedUser: KakaoAuthUser = {
-        ...currentUser,
-        nickname: trimmedNick,
-        avatarId: selectedAvatarId,
-        avatarEmoji: charObj.emoji,
-        profileImageUrl: customImageUrl || undefined
-      };
-      if (!customImageUrl) {
-        delete updatedUser.profileImageUrl;
-      }
-      saveKakaoUser(updatedUser);
-      onUpdateUser(updatedUser);
-    } else {
-      const refreshedCurrentUser = getStoredKakaoUser();
-      if (refreshedCurrentUser) {
-        onUpdateUser(refreshedCurrentUser);
-      }
-    }
+    // 2. Apply & switch active user session to the edited member so the top header updates immediately
+    const updatedUser = createKakaoUserFromPreset(activeMemberId);
+    onUpdateUser(updatedUser);
 
     notifyProfileChange();
     setIsSaving(false);
     onClose();
   };
 
-  const suggestions = NICKNAME_SUGGESTIONS[activeMemberId] || NICKNAME_SUGGESTIONS.kakao_hyunwoo_mom;
+  const suggestions =
+    NICKNAME_SUGGESTIONS[activeMemberId] || NICKNAME_SUGGESTIONS.kakao_hyunwoo_mom;
 
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-200 select-none">
@@ -155,7 +206,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
               <h2 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-2">
                 <span>프로필 닉네임 & 캐릭터 변경</span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-400/40">
-                  CUSTOMIZE
+                  CLOUD DB SYNC
                 </span>
               </h2>
               <p className="text-xs text-slate-400">
@@ -227,7 +278,9 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     </div>
                     <div className="text-center min-w-0 w-full">
                       <div className="text-xs font-bold text-white truncate">{member.nickname}</div>
-                      <div className="text-[10px] text-slate-400 truncate">{member.defaultNickname} 계정</div>
+                      <div className="text-[10px] text-slate-400 truncate">
+                        {member.defaultNickname} 계정
+                      </div>
                     </div>
                   </button>
                 );
@@ -255,7 +308,9 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                 <div className="absolute inset-0 rounded-3xl bg-gradient-to-t from-black/25 via-transparent to-white/10 pointer-events-none" />
               </div>
               <span className={`mt-2 text-xs font-bold ${selectedCharacter.badgeColor}`}>
-                {customImageUrl ? '📷 내 커스텀 사진' : `${selectedCharacter.emoji} ${selectedCharacter.name}`}
+                {customImageUrl
+                  ? '📷 내 커스텀 사진'
+                  : `${selectedCharacter.emoji} ${selectedCharacter.name}`}
               </span>
               <span className="text-[10px] text-slate-400">{selectedCharacter.subtitle}</span>
             </div>
@@ -263,15 +318,13 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
             {/* Nickname Input & Quick Chips */}
             <div className="flex-1 w-full space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <label className="text-xs font-bold text-yellow-300">
-                  2. 프로필 닉네임 입력
-                </label>
+                <label className="text-xs font-bold text-yellow-300">2. 프로필 닉네임 입력</label>
               </div>
 
               <input
                 type="text"
                 value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
+                onChange={(e) => setNickname(e.target.value.slice(0, MAX_NICKNAME_LENGTH))}
                 maxLength={18}
                 placeholder="변경할 닉네임을 입력하세요"
                 className="w-full px-4 py-2.5 rounded-xl bg-black/80 border border-white/20 focus:border-yellow-400 focus:outline-none text-sm sm:text-base font-bold text-white placeholder:text-slate-500"
@@ -307,7 +360,9 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
               ) : (
                 <div className="text-[10px] text-slate-400 flex items-center gap-1.5 pt-0.5">
                   <Database className="w-3 h-3 text-yellow-400/80 shrink-0" />
-                  <span>저장 시 서버 DB에 자동 기록되어 모든 사용자 기기에 즉시 반영됩니다.</span>
+                  <span>
+                    저장 시 Firebase 클라우드 DB에 실시간 기록되어 모든 기기와 사용자에게 즉시 공유됩니다.
+                  </span>
                 </div>
               )}
             </div>
@@ -394,7 +449,9 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                         isSelected ? 'border-yellow-300' : 'border-white/15'
                       } flex items-center justify-center overflow-hidden relative`}
                     >
-                      {char.renderSvg('w-full h-full group-hover:scale-105 transition-transform duration-300')}
+                      {char.renderSvg(
+                        'w-full h-full group-hover:scale-105 transition-transform duration-300'
+                      )}
                       {isSelected && (
                         <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-yellow-400 text-black flex items-center justify-center shadow">
                           <Check className="w-3 h-3 stroke-[3]" />
@@ -435,7 +492,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
               {isSaving ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin stroke-[2.5]" />
-                  <span>서버 DB 동기화 저장 중...</span>
+                  <span>클라우드 DB 동기화 저장 중...</span>
                 </>
               ) : (
                 <>

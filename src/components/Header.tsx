@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Compass, Wallet, CheckSquare, Smartphone, Tablet, Laptop, LogOut, RefreshCw, UserCheck, Sparkles, Columns2 } from 'lucide-react';
 import { FriendCompanion } from '../types/travel';
 import { KakaoAuthUser } from '../types/auth';
 import { getCharacterAvatarById } from '../data/characterAvatars';
+import { getEffectivePresetMembers, subscribeToProfiles } from '../services/kakaoAuth';
 import { ProfileEditModal } from './ProfileEditModal';
 
 interface HeaderProps {
@@ -34,7 +35,24 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
-  const currentAvatar = getCharacterAvatarById(currentUser?.avatarId, currentUser?.id);
+  const [, setProfileSyncTick] = useState(0);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToProfiles(() => {
+      setProfileSyncTick((t) => t + 1);
+    });
+    return unsubscribe;
+  }, []);
+
+  const effectivePreset = currentUser
+    ? getEffectivePresetMembers().find((m) => m.id === currentUser.id)
+    : undefined;
+  const displayNickname = effectivePreset?.nickname || currentUser?.nickname || '';
+  const displayAvatarId = effectivePreset?.avatarId || currentUser?.avatarId;
+  const displayProfileImageUrl = effectivePreset
+    ? effectivePreset.profileImageUrl
+    : currentUser?.profileImageUrl;
+  const currentAvatar = getCharacterAvatarById(displayAvatarId, currentUser?.id);
 
   const getDeviceIcon = () => {
     if (!currentUser) return null;
@@ -186,10 +204,10 @@ export const Header: React.FC<HeaderProps> = ({
                 <div
                   className={`w-6 h-6 rounded-full bg-gradient-to-br ${currentAvatar.bgGradient} p-0 border border-amber-400 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs`}
                 >
-                  {currentUser.profileImageUrl ? (
+                  {displayProfileImageUrl ? (
                     <img
-                      src={currentUser.profileImageUrl}
-                      alt={currentUser.nickname}
+                      src={displayProfileImageUrl}
+                      alt={displayNickname}
                       className="w-full h-full object-cover"
                       referrerPolicy="no-referrer"
                     />
@@ -200,7 +218,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs sm:text-sm font-bold text-slate-900 truncate max-w-[70px] sm:max-w-[100px]">
-                    {currentUser.nickname}
+                    {displayNickname}
                   </span>
                   <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600 bg-white px-1.5 py-0.5 rounded-md border border-slate-200">
                     {getDeviceIcon()}
@@ -217,10 +235,10 @@ export const Header: React.FC<HeaderProps> = ({
                       <div
                         className={`w-9 h-9 rounded-xl bg-gradient-to-br ${currentAvatar.bgGradient} p-0 border border-amber-400 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs`}
                       >
-                        {currentUser.profileImageUrl ? (
+                        {displayProfileImageUrl ? (
                           <img
-                            src={currentUser.profileImageUrl}
-                            alt={currentUser.nickname}
+                            src={displayProfileImageUrl}
+                            alt={displayNickname}
                             className="w-full h-full object-cover"
                             referrerPolicy="no-referrer"
                           />
@@ -230,7 +248,7 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
                       <div className="min-w-0">
                         <div className="text-xs font-black text-slate-900 flex items-center gap-1">
-                          <span className="truncate">{currentUser.nickname}</span>
+                          <span className="truncate">{displayNickname}</span>
                           <span className="text-[10px] font-semibold text-amber-800 bg-amber-200 px-1 rounded shrink-0">
                             {currentAvatar.name}
                           </span>

@@ -100,8 +100,9 @@ function readProfilesDB(): Record<string, ExpeditionProfile> {
     if (fs.existsSync(TMP_PROFILES_FILE)) {
       const parsed = JSON.parse(fs.readFileSync(TMP_PROFILES_FILE, 'utf-8'));
       if (parsed && typeof parsed === 'object') {
-        globalStore.__tokyoProfilesCache = { ...DEFAULT_PROFILES, ...parsed };
-        return globalStore.__tokyoProfilesCache;
+        const merged: Record<string, ExpeditionProfile> = { ...DEFAULT_PROFILES, ...parsed };
+        globalStore.__tokyoProfilesCache = merged;
+        return merged;
       }
     }
   } catch {}
@@ -109,13 +110,15 @@ function readProfilesDB(): Record<string, ExpeditionProfile> {
     if (fs.existsSync(SEED_PROFILES_FILE)) {
       const parsed = JSON.parse(fs.readFileSync(SEED_PROFILES_FILE, 'utf-8'));
       if (parsed && typeof parsed === 'object') {
-        globalStore.__tokyoProfilesCache = { ...DEFAULT_PROFILES, ...parsed };
-        return globalStore.__tokyoProfilesCache;
+        const merged: Record<string, ExpeditionProfile> = { ...DEFAULT_PROFILES, ...parsed };
+        globalStore.__tokyoProfilesCache = merged;
+        return merged;
       }
     }
   } catch {}
-  globalStore.__tokyoProfilesCache = { ...DEFAULT_PROFILES };
-  return globalStore.__tokyoProfilesCache;
+  const fallback: Record<string, ExpeditionProfile> = { ...DEFAULT_PROFILES };
+  globalStore.__tokyoProfilesCache = fallback;
+  return fallback;
 }
 
 function writeProfilesDB(profiles: Record<string, ExpeditionProfile>): void {

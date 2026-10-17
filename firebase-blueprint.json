@@ -1,0 +1,97 @@
+{
+  "entities": {
+    "ExpeditionProfile": {
+      "title": "ExpeditionProfile",
+      "description": "Shared profile configuration (nickname and character avatar) for each of the 4 Tokyo expedition members.",
+      "type": "object",
+      "properties": {
+        "memberId": {
+          "type": "string",
+          "description": "Unique preset identifier of the expedition member.",
+          "enum": [
+            "kakao_hyunwoo_mom",
+            "kakao_sehyun_mom",
+            "kakao_hyunwoo",
+            "kakao_sehyun"
+          ],
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "nickname": {
+          "type": "string",
+          "description": "Customized display nickname shared across all devices.",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "defaultNickname": {
+          "type": "string",
+          "description": "Original default nickname of the member.",
+          "enum": ["현우맘", "세현맘", "현우", "세현"],
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "avatarId": {
+          "type": "string",
+          "description": "Selected character avatar identifier (Disney Princess, Smurf, or Valorant agent).",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "avatarEmoji": {
+          "type": "string",
+          "description": "Emoji badge associated with the selected character avatar.",
+          "minLength": 1,
+          "maxLength": 16
+        },
+        "profileImageUrl": {
+          "type": "string",
+          "description": "Optional base64 data URL or HTTPS image URL for a custom uploaded profile photo.",
+          "minLength": 1,
+          "maxLength": 500000
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of the last profile modification."
+        }
+      },
+      "required": [
+        "memberId",
+        "nickname",
+        "defaultNickname",
+        "avatarId",
+        "avatarEmoji",
+        "updatedAt"
+      ]
+    },
+    "ConnectionTest": {
+      "title": "ConnectionTest",
+      "description": "Read-only document used to verify Firestore connectivity on startup.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "Connection status indicator.",
+          "minLength": 1,
+          "maxLength": 32
+        }
+      },
+      "required": ["status"]
+    }
+  },
+  "firestore": {
+    "/profiles/{memberId}": {
+      "schema": {
+        "$ref": "#/entities/ExpeditionProfile"
+      },
+      "description": "Stores shared character avatars and nicknames for the 4 expedition members."
+    },
+    "/test/{docId}": {
+      "schema": {
+        "$ref": "#/entities/ConnectionTest"
+      },
+      "description": "Read-only connectivity check path."
+    }
+  }
+}
