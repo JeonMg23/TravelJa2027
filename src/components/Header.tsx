@@ -173,13 +173,13 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 {/* Character Avatar Thumbnail */}
                 <div
-                  className={`w-6 h-6 rounded-full bg-gradient-to-br ${currentAvatar.bgGradient} p-0.5 border border-amber-400 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs`}
+                  className={`w-6 h-6 rounded-full bg-gradient-to-br ${currentAvatar.bgGradient} p-0 border border-amber-400 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs`}
                 >
                   {currentUser.profileImageUrl ? (
                     <img
                       src={currentUser.profileImageUrl}
                       alt={currentUser.nickname}
-                      className="w-full h-full object-cover rounded-full"
+                      className="w-full h-full object-cover"
                       referrerPolicy="no-referrer"
                     />
                   ) : (
@@ -204,13 +204,13 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 mb-2.5">
                     <div className="flex items-center gap-2 mb-1.5">
                       <div
-                        className={`w-9 h-9 rounded-xl bg-gradient-to-br ${currentAvatar.bgGradient} p-0.5 border border-amber-400 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs`}
+                        className={`w-9 h-9 rounded-xl bg-gradient-to-br ${currentAvatar.bgGradient} p-0 border border-amber-400 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs`}
                       >
                         {currentUser.profileImageUrl ? (
                           <img
                             src={currentUser.profileImageUrl}
                             alt={currentUser.nickname}
-                            className="w-full h-full object-cover rounded-lg"
+                            className="w-full h-full object-cover"
                             referrerPolicy="no-referrer"
                           />
                         ) : (

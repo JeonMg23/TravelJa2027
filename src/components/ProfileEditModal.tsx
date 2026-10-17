@@ -186,7 +186,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     }`}
                   >
                     <div
-                      className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br ${memberChar.bgGradient} p-1 border ${
+                      className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br ${memberChar.bgGradient} p-0 border ${
                         isSelectedMember ? 'border-yellow-300' : 'border-white/20'
                       } overflow-hidden flex items-center justify-center`}
                     >
@@ -194,7 +194,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                         <img
                           src={member.profileImageUrl}
                           alt={member.nickname}
-                          className="w-full h-full object-cover rounded-lg"
+                          className="w-full h-full object-cover"
                           referrerPolicy="no-referrer"
                         />
                       ) : (
@@ -216,19 +216,19 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
             {/* Selected Avatar Preview Squircle */}
             <div className="flex flex-col items-center shrink-0">
               <div
-                className={`relative w-22 h-22 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-br ${selectedCharacter.bgGradient} p-1.5 border-2 ${selectedCharacter.cardBorder} flex items-center justify-center overflow-hidden`}
+                className={`relative w-22 h-22 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-br ${selectedCharacter.bgGradient} p-0 border-2 ${selectedCharacter.cardBorder} flex items-center justify-center overflow-hidden`}
               >
                 {customImageUrl ? (
                   <img
                     src={customImageUrl}
                     alt={nickname}
-                    className="w-full h-full object-cover rounded-2xl"
+                    className="w-full h-full object-cover"
                     referrerPolicy="no-referrer"
                   />
                 ) : (
                   selectedCharacter.renderSvg('w-full h-full')
                 )}
-                <div className="absolute inset-0 rounded-3xl bg-gradient-to-t from-black/30 via-transparent to-white/10 pointer-events-none" />
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-t from-black/25 via-transparent to-white/10 pointer-events-none" />
               </div>
               <span className={`mt-2 text-xs font-bold ${selectedCharacter.badgeColor}`}>
                 {customImageUrl ? '📷 내 커스텀 사진' : `${selectedCharacter.emoji} ${selectedCharacter.name}`}
@@ -362,11 +362,11 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     }`}
                   >
                     <div
-                      className={`w-14 h-14 sm:w-15 sm:h-15 rounded-2xl bg-gradient-to-br ${char.bgGradient} p-1 border ${
+                      className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br ${char.bgGradient} p-0 border ${
                         isSelected ? 'border-yellow-300' : 'border-white/15'
                       } flex items-center justify-center overflow-hidden relative`}
                     >
-                      {char.renderSvg('w-full h-full')}
+                      {char.renderSvg('w-full h-full group-hover:scale-105 transition-transform duration-300')}
                       {isSelected && (
                         <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-yellow-400 text-black flex items-center justify-center shadow">
                           <Check className="w-3 h-3 stroke-[3]" />

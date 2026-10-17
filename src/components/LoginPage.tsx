@@ -233,26 +233,26 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 <div
                   className={`relative w-16 h-16 sm:w-22 sm:h-22 rounded-2xl sm:rounded-3xl bg-gradient-to-br ${
                     charAvatar.bgGradient
-                  } p-1 transition-all duration-200 overflow-hidden flex items-center justify-center border-2 ${
+                  } p-0 transition-all duration-200 overflow-hidden flex items-center justify-center border-2 ${
                     isPressed
                       ? 'border-yellow-300 ring-4 ring-yellow-400/60 scale-105 shadow-[0_0_25px_rgba(250,204,21,0.7)]'
                       : `${charAvatar.cardBorder} group-hover:border-yellow-300 group-hover:scale-105 group-hover:shadow-[0_0_22px_rgba(250,204,21,0.45)]`
                   }`}
                 >
-                  {/* Avatar Portrait (Custom uploaded photo or SVG Character) */}
+                  {/* Avatar Portrait (Custom uploaded photo or Movie/Game Character) */}
                   {member.profileImageUrl ? (
                     <img
                       src={member.profileImageUrl}
                       alt={member.nickname}
-                      className="w-full h-full object-cover rounded-xl sm:rounded-2xl"
+                      className="w-full h-full object-cover"
                       referrerPolicy="no-referrer"
                     />
                   ) : (
-                    charAvatar.renderSvg('w-full h-full p-0.5')
+                    charAvatar.renderSvg('w-full h-full group-hover:scale-105 transition-transform duration-300')
                   )}
 
                   {/* Inner bevel overlay with subtle golden rim */}
-                  <div className="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-t from-black/30 via-transparent to-yellow-400/15 pointer-events-none" />
+                  <div className="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-t from-black/25 via-transparent to-yellow-400/10 pointer-events-none" />
                 </div>
 
                 {/* Profile Name Text below avatar */}

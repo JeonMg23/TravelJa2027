@@ -220,13 +220,13 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
               {currentUser ? (
                 <>
                   <div
-                    className={`w-7 h-7 rounded-lg bg-gradient-to-br ${currentAvatar.bgGradient} p-0.5 border border-yellow-300/70 flex items-center justify-center overflow-hidden shrink-0 shadow-sm`}
+                    className={`w-7 h-7 rounded-lg bg-gradient-to-br ${currentAvatar.bgGradient} p-0 border border-yellow-300/70 flex items-center justify-center overflow-hidden shrink-0 shadow-sm`}
                   >
                     {currentUser.profileImageUrl ? (
                       <img
                         src={currentUser.profileImageUrl}
                         alt={currentUser.nickname}
-                        className="w-full h-full object-cover rounded-md"
+                        className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
                       />
                     ) : (
