@@ -41,15 +41,19 @@ interface ShockwaveRing {
 interface ElectricArc {
   points: { x: number; y: number }[];
   alpha: number;
+  decay: number;
   color: string;
   width: number;
 }
 
-interface TrailNode {
-  x: number;
-  y: number;
-  alpha: number;
-  size: number;
+interface StepNode {
+  targetIndex: number; // 0..4 for letters, 5 for central lightning
+  startTime: number;
+  duration: number;
+  isYellow: boolean;
+  status: 'waiting' | 'forging' | 'landed';
+  landedX: number;
+  landedY: number;
 }
 
 export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
@@ -136,8 +140,8 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
     };
   }, [initAndUnlockAudio]);
 
-  // Studio-grade Web Audio Synthesizer: Crystal Arpeggio Chimes + Cinematic Thunder Finale
-  const playSparkleChime = useCallback((stepIndex: number) => {
+  // 3D Metal Forge & High-Voltage Electric Thunder Synthesizer
+  const playForgeSound = useCallback((stepIndex: number) => {
     if (isMutedRef.current) return;
     try {
       const AudioCtx =
@@ -154,57 +158,59 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
       }
 
       const now = ctx.currentTime;
+      const isLightning = stepIndex === 5;
 
-      // Ascending crystal harmonic progressions for 도 -> 쿄 -> 원 -> 정 -> 대 -> ⚡번개
+      // Heavy Sub-Bass Anvil Punch
+      const subOsc = ctx.createOscillator();
+      const subGain = ctx.createGain();
+      subOsc.type = isLightning ? 'sine' : 'triangle';
+      const startFreq = isLightning ? 130 : 145;
+      const endFreq = isLightning ? 36 : 46;
+      const subDur = isLightning ? 1.6 : 0.55;
+
+      subOsc.frequency.setValueAtTime(startFreq, now);
+      subOsc.frequency.exponentialRampToValueAtTime(endFreq, now + subDur * 0.75);
+
+      subGain.gain.setValueAtTime(0.001, now);
+      subGain.gain.linearRampToValueAtTime(isLightning ? 0.32 : 0.18, now + 0.016);
+      subGain.gain.exponentialRampToValueAtTime(0.0001, now + subDur);
+
+      subOsc.connect(subGain);
+      subGain.connect(ctx.destination);
+      subOsc.start(now);
+      subOsc.stop(now + subDur + 0.05);
+
+      // Ascending Metallic Anvil Harmonics for 도(0) -> 쿄(1) -> 원(2) -> 정(3) -> 대(4) -> ⚡번개(5)
       const noteGroups: number[][] = [
-        [523.25, 659.25, 783.99, 1046.5], // 도 (C5 Major9)
-        [587.33, 739.99, 880.0, 1174.66], // 쿄 (D5 Major9)
-        [659.25, 830.61, 987.77, 1318.51], // 원 (E5 Major9)
-        [783.99, 987.77, 1174.66, 1567.98], // 정 (G5 Major9)
-        [880.0, 1108.73, 1318.51, 1760.0], // 대 (A5 Major9)
-        [523.25, 783.99, 1046.5, 1318.51, 1567.98, 2093.0, 2637.02] // ⚡ Golden Finale Chord
+        [523.25, 659.25, 783.99, 1046.5], // 도 (C5)
+        [587.33, 739.99, 880.0, 1174.66], // 쿄 (D5)
+        [659.25, 830.61, 987.77, 1318.51], // 원 (E5)
+        [783.99, 987.77, 1174.66, 1567.98], // 정 (G5)
+        [880.0, 1108.73, 1318.51, 1760.0], // 대 (A5)
+        [523.25, 783.99, 1046.5, 1318.51, 1567.98, 2093.0, 2637.02] // ⚡ Grand Golden Finale
       ];
 
       const frequencies = noteGroups[stepIndex] || noteGroups[0];
-      const isLightning = stepIndex === 5;
-
-      // Cinematic warm sub-bass impact on the Golden Lightning strike
-      if (isLightning) {
-        const subOsc = ctx.createOscillator();
-        const subGain = ctx.createGain();
-        subOsc.type = 'sine';
-        subOsc.frequency.setValueAtTime(110, now);
-        subOsc.frequency.exponentialRampToValueAtTime(42, now + 0.9);
-
-        subGain.gain.setValueAtTime(0.001, now);
-        subGain.gain.linearRampToValueAtTime(0.28, now + 0.02);
-        subGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.4);
-
-        subOsc.connect(subGain);
-        subGain.connect(ctx.destination);
-        subOsc.start(now);
-        subOsc.stop(now + 1.45);
-      }
 
       frequencies.forEach((freq, idx) => {
-        const noteTime = now + idx * (isLightning ? 0.036 : 0.042);
-        const duration = isLightning ? 2.1 : 1.3;
+        const noteTime = now + idx * (isLightning ? 0.035 : 0.038);
+        const duration = isLightning ? 2.2 : 1.05;
 
-        // Primary bell tone
+        // Primary metallic clang
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+        osc.type = idx === 0 ? 'square' : 'triangle';
         osc.frequency.setValueAtTime(freq, noteTime);
-        osc.frequency.exponentialRampToValueAtTime(freq * 1.005, noteTime + 0.045);
-        osc.frequency.exponentialRampToValueAtTime(freq, noteTime + 0.22);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.008, noteTime + 0.035);
+        osc.frequency.exponentialRampToValueAtTime(freq, noteTime + 0.18);
 
         const filter = ctx.createBiquadFilter();
         filter.type = 'bandpass';
-        filter.frequency.setValueAtTime(freq * 1.7, noteTime);
-        filter.Q.setValueAtTime(1.0, noteTime);
+        filter.frequency.setValueAtTime(freq * 1.9, noteTime);
+        filter.Q.setValueAtTime(1.2, noteTime);
 
         gain.gain.setValueAtTime(0.0001, noteTime);
-        gain.gain.linearRampToValueAtTime(isLightning ? 0.2 : 0.16, noteTime + 0.012);
+        gain.gain.linearRampToValueAtTime(isLightning ? 0.22 : 0.16, noteTime + 0.012);
         gain.gain.exponentialRampToValueAtTime(0.0001, noteTime + duration);
 
         osc.connect(filter);
@@ -214,14 +220,14 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
         osc.start(noteTime);
         osc.stop(noteTime + duration);
 
-        // Shimmering harmonic overtone
+        // High metallic overtone
         const overtone = ctx.createOscillator();
         const overGain = ctx.createGain();
         overtone.type = 'sine';
-        overtone.frequency.setValueAtTime(freq * 2, noteTime);
+        overtone.frequency.setValueAtTime(freq * 2.5, noteTime);
 
         overGain.gain.setValueAtTime(0.0001, noteTime);
-        overGain.gain.linearRampToValueAtTime(isLightning ? 0.08 : 0.05, noteTime + 0.015);
+        overGain.gain.linearRampToValueAtTime(isLightning ? 0.085 : 0.05, noteTime + 0.015);
         overGain.gain.exponentialRampToValueAtTime(0.0001, noteTime + duration * 0.65);
 
         overtone.connect(overGain);
@@ -231,7 +237,7 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
         overtone.stop(noteTime + duration);
       });
     } catch {
-      // Fallback for autoplay restrictions
+      // Ignore autoplay errors
     }
   }, []);
 
@@ -248,7 +254,7 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
     [onComplete]
   );
 
-  // High-FPS Canvas Engine: Deep Starfield + Wavy Ribbon Comets + Shockwaves + Electric Lightning Arcs
+  // High-FPS 3D Metal Forge & Chained Electric Arc Engine
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -271,7 +277,7 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
     updateCanvasSize();
     window.addEventListener('resize', updateCanvasSize);
 
-    // 1. Ambient Night Sky Stars
+    // 1. Ambient Gold/Amber Starlight in Obsidian Space
     const bgStars: BgStar[] = Array.from({ length: 85 }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
@@ -279,49 +285,81 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
       baseAlpha: Math.random() * 0.55 + 0.15,
       twinkleSpeed: Math.random() * 0.003 + 0.001,
       twinklePhase: Math.random() * Math.PI * 2,
-      color: ['#FFFFFF', '#E0F2FE', '#FEF08A', '#CBD5E1'][Math.floor(Math.random() * 4)]
+      color: ['#FFFFFF', '#FEF08A', '#FACC15', '#FDE68A'][Math.floor(Math.random() * 4)]
     }));
 
     const particles: Particle[] = [];
     const shockwaves: ShockwaveRing[] = [];
     const electricArcs: ElectricArc[] = [];
 
-    // Spawn procedural electric lightning branches from (cx, cy)
-    const spawnElectricArcs = (cx: number, cy: number, isGrand: boolean) => {
-      const branchCount = isGrand ? 9 : 3;
+    // Create jagged high-voltage electric polyline
+    const createJaggedBolt = (
+      x1: number,
+      y1: number,
+      x2: number,
+      y2: number,
+      segments: number,
+      jitterAmount: number,
+      color: string,
+      lineWidth: number,
+      decay = 0.035
+    ) => {
+      const pts: { x: number; y: number }[] = [{ x: x1, y: y1 }];
+      for (let i = 1; i < segments; i++) {
+        const t = i / segments;
+        const bx = x1 + (x2 - x1) * t;
+        const by = y1 + (y2 - y1) * t;
+        const perpX = -(y2 - y1);
+        const perpY = x2 - x1;
+        const len = Math.hypot(perpX, perpY) || 1;
+        const offset = (Math.random() - 0.5) * jitterAmount;
+        pts.push({
+          x: bx + (perpX / len) * offset,
+          y: by + (perpY / len) * offset
+        });
+      }
+      pts.push({ x: x2, y: y2 });
+      electricArcs.push({
+        points: pts,
+        alpha: 1,
+        decay,
+        color,
+        width: lineWidth
+      });
+    };
+
+    // Radial electric arcs from impact center
+    const spawnRadialElectricArcs = (cx: number, cy: number, isGrand: boolean) => {
+      const branchCount = isGrand ? 10 : 4;
       for (let b = 0; b < branchCount; b++) {
         const angle = (Math.PI * 2 * b) / branchCount + (Math.random() - 0.5) * 0.5;
-        const segments = isGrand ? 8 : 5;
-        const stepLen = isGrand ? 22 : 12;
-        const pts: { x: number; y: number }[] = [{ x: cx, y: cy }];
-        let curX = cx;
-        let curY = cy;
-        for (let s = 1; s <= segments; s++) {
-          const jitter = (Math.random() - 0.5) * 26;
-          curX += Math.cos(angle) * stepLen + Math.sin(angle) * jitter;
-          curY += Math.sin(angle) * stepLen - Math.cos(angle) * jitter;
-          pts.push({ x: curX, y: curY });
-        }
-        electricArcs.push({
-          points: pts,
-          alpha: 1,
-          color: isGrand ? (b % 2 === 0 ? '#FEF08A' : '#FACC15') : '#E0F2FE',
-          width: isGrand ? 2.4 : 1.5
-        });
+        const dist = isGrand ? 120 + Math.random() * 65 : 50 + Math.random() * 25;
+        const ex = cx + Math.cos(angle) * dist;
+        const ey = cy + Math.sin(angle) * dist;
+        createJaggedBolt(
+          cx,
+          cy,
+          ex,
+          ey,
+          isGrand ? 8 : 5,
+          isGrand ? 28 : 16,
+          isGrand ? (b % 2 === 0 ? '#FEF08A' : '#FACC15') : '#FEF08A',
+          isGrand ? 2.6 : 1.6,
+          isGrand ? 0.028 : 0.045
+        );
       }
     };
 
-    // Spawn luminous starburst + shockwave ring
+    // Molten anvil impact burst: shockwaves + sparks + arcs
     const createImpactBurst = (x: number, y: number, isYellow: boolean) => {
-      // Shockwave rings
       shockwaves.push({
         x,
         y,
         radius: 6,
-        maxRadius: isYellow ? 160 : 78,
-        color: isYellow ? '#FACC15' : '#FFFFFF',
-        alpha: 0.9,
-        lineWidth: isYellow ? 3.5 : 2.2
+        maxRadius: isYellow ? 185 : 85,
+        color: isYellow ? '#FACC15' : '#F59E0B',
+        alpha: 0.95,
+        lineWidth: isYellow ? 3.8 : 2.4
       });
 
       if (isYellow) {
@@ -329,132 +367,108 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
           x,
           y,
           radius: 2,
-          maxRadius: 240,
+          maxRadius: 270,
           color: '#FEF08A',
-          alpha: 0.65,
-          lineWidth: 1.8
+          alpha: 0.75,
+          lineWidth: 2.0
         });
       }
 
-      // Particle explosion
-      const count = isYellow ? 75 : 38;
+      // Molten metal forge sparks flying with gravity
+      const count = isYellow ? 90 : 45;
       for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * (isYellow ? 7.2 : 4.6) + 1.2;
+        const speed = Math.random() * (isYellow ? 8.2 : 5.0) + 1.2;
         particles.push({
           x,
           y,
           vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          size: Math.random() * (isYellow ? 3.8 : 2.6) + 1.0,
+          vy: Math.sin(angle) * speed - 1.4,
+          size: Math.random() * (isYellow ? 4.2 : 2.8) + 1.0,
           color: isYellow
             ? ['#FFFFFF', '#FFFBEB', '#FEF08A', '#FACC15', '#F59E0B'][
                 Math.floor(Math.random() * 5)
               ]
-            : ['#FFFFFF', '#F8FAFC', '#BAE6FD', '#FEF08A'][Math.floor(Math.random() * 4)],
+            : ['#FFFFFF', '#FEF08A', '#FACC15', '#F97316'][Math.floor(Math.random() * 4)],
           alpha: 1,
           decay: Math.random() * 0.018 + 0.012,
-          gravity: 0.035,
-          isSparkle: Math.random() > 0.45
+          gravity: 0.08,
+          isSparkle: Math.random() > 0.35
         });
       }
 
-      spawnElectricArcs(x, y, isYellow);
+      spawnRadialElectricArcs(x, y, isYellow);
+
+      if (isYellow) {
+        for (let k = 0; k < 3; k++) {
+          const topX = x + (Math.random() - 0.5) * 140;
+          createJaggedBolt(topX, -10, x, y, 12, 36, '#FACC15', 3.2, 0.025);
+        }
+      }
     };
 
-    interface StarFlight {
-      startXRatio: number;
-      targetIndex: number; // 0..4 for letters, 5 for central lightning
-      startTime: number;
-      duration: number;
-      wavePhase: number;
-      waveFreq: number;
-      waveAmp: number;
-      isYellow: boolean;
-      status: 'waiting' | 'flying' | 'landed';
-      ribbonHistory: TrailNode[];
-    }
-
-    const starFlights: StarFlight[] = [
+    const steps: StepNode[] = [
       {
-        startXRatio: 0.14,
         targetIndex: 0,
-        startTime: 320,
-        duration: 680,
-        wavePhase: 0.2,
-        waveFreq: 3.5,
-        waveAmp: 44,
+        startTime: 280,
+        duration: 620,
         isYellow: false,
         status: 'waiting',
-        ribbonHistory: []
+        landedX: 0,
+        landedY: 0
       },
       {
-        startXRatio: 0.34,
         targetIndex: 1,
-        startTime: 1020,
-        duration: 680,
-        wavePhase: 1.8,
-        waveFreq: 4.0,
-        waveAmp: -40,
+        startTime: 950,
+        duration: 620,
         isYellow: false,
         status: 'waiting',
-        ribbonHistory: []
+        landedX: 0,
+        landedY: 0
       },
       {
-        startXRatio: 0.52,
         targetIndex: 2,
-        startTime: 1720,
-        duration: 680,
-        wavePhase: 3.1,
-        waveFreq: 3.6,
-        waveAmp: 42,
+        startTime: 1620,
+        duration: 620,
         isYellow: false,
         status: 'waiting',
-        ribbonHistory: []
+        landedX: 0,
+        landedY: 0
       },
       {
-        startXRatio: 0.7,
         targetIndex: 3,
-        startTime: 2420,
-        duration: 680,
-        wavePhase: 4.5,
-        waveFreq: 4.2,
-        waveAmp: -44,
+        startTime: 2290,
+        duration: 620,
         isYellow: false,
         status: 'waiting',
-        ribbonHistory: []
+        landedX: 0,
+        landedY: 0
       },
       {
-        startXRatio: 0.88,
         targetIndex: 4,
-        startTime: 3120,
-        duration: 680,
-        wavePhase: 5.7,
-        waveFreq: 3.8,
-        waveAmp: 46,
+        startTime: 2960,
+        duration: 620,
         isYellow: false,
         status: 'waiting',
-        ribbonHistory: []
+        landedX: 0,
+        landedY: 0
       },
-      // 6th Grand Golden Star descending to ignite the 3x Golden Lightning Bolt
+      // 5: Grand Finale Yellow Lightning Bolt
       {
-        startXRatio: 0.5,
         targetIndex: 5,
-        startTime: 3900,
-        duration: 760,
-        wavePhase: 1.1,
-        waveFreq: 4.4,
-        waveAmp: 58,
+        startTime: 3700,
+        duration: 720,
         isYellow: true,
         status: 'waiting',
-        ribbonHistory: []
+        landedX: 0,
+        landedY: 0
       }
     ];
 
     const animStartTime = performance.now();
     let flashIntensity = 0;
 
-    const drawCinematicStarHead = (
+    const drawCinematicFlare = (
       c: CanvasRenderingContext2D,
       x: number,
       y: number,
@@ -465,23 +479,16 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
       c.save();
       c.translate(x, y);
 
-      // 1. Wide atmospheric halo
       const haloGrad = c.createRadialGradient(0, 0, 1, 0, 0, size * 4.5);
-      if (isYellow) {
-        haloGrad.addColorStop(0, 'rgba(254, 240, 138, 0.95)');
-        haloGrad.addColorStop(0.35, 'rgba(250, 204, 21, 0.55)');
-        haloGrad.addColorStop(1, 'transparent');
-      } else {
-        haloGrad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
-        haloGrad.addColorStop(0.35, 'rgba(186, 230, 253, 0.5)');
-        haloGrad.addColorStop(1, 'transparent');
-      }
+      haloGrad.addColorStop(0, 'rgba(254, 240, 138, 0.95)');
+      haloGrad.addColorStop(0.35, 'rgba(250, 204, 21, 0.55)');
+      haloGrad.addColorStop(1, 'transparent');
+
       c.fillStyle = haloGrad;
       c.beginPath();
       c.arc(0, 0, size * 4.5, 0, Math.PI * 2);
       c.fill();
 
-      // 2. Rotating 4-point primary flare + diagonal sub-flare
       c.rotate(time * 0.0025);
       c.fillStyle = isYellow ? '#FEF08A' : '#FFFFFF';
       for (let i = 0; i < 4; i++) {
@@ -495,7 +502,6 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
         c.fill();
       }
 
-      // 3. Hot diamond core
       c.fillStyle = '#FFFFFF';
       c.beginPath();
       c.arc(0, 0, size * 0.72, 0, Math.PI * 2);
@@ -507,29 +513,29 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
     const render = (currentTime: number) => {
       const elapsed = currentTime - animStartTime;
 
-      // 1. Deep Night Sky Backdrop
+      // 1. Pure Obsidian Black Backdrop
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
 
-      // Subtle central ambient aura once letters begin revealing
-      if (elapsed > 900) {
-        const auraAlpha = Math.min(0.18, ((elapsed - 900) / 4000) * 0.18);
+      // Warm amber-gold ambient aura in center
+      if (elapsed > 700) {
+        const auraAlpha = Math.min(0.24, ((elapsed - 700) / 3800) * 0.24);
         const centerGrad = ctx.createRadialGradient(
           width / 2,
-          height / 2 - 20,
+          height / 2 - 40,
           10,
           width / 2,
-          height / 2 - 20,
-          Math.max(width, height) * 0.45
+          height / 2 - 40,
+          Math.max(width, height) * 0.46
         );
         centerGrad.addColorStop(0, `rgba(250, 204, 21, ${auraAlpha})`);
-        centerGrad.addColorStop(0.5, `rgba(56, 189, 248, ${auraAlpha * 0.35})`);
+        centerGrad.addColorStop(0.5, `rgba(245, 158, 11, ${auraAlpha * 0.45})`);
         centerGrad.addColorStop(1, 'transparent');
         ctx.fillStyle = centerGrad;
         ctx.fillRect(0, 0, width, height);
       }
 
-      // 2. Twinkling Starfield
+      // 2. Ambient Stars
       bgStars.forEach((st) => {
         const twinkle =
           st.baseAlpha + Math.sin(currentTime * st.twinkleSpeed + st.twinklePhase) * 0.22;
@@ -542,18 +548,18 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
         ctx.restore();
       });
 
-      // 3. Process Each Shooting Star & Smooth Ribbon Trail
-      starFlights.forEach((star) => {
-        if (elapsed < star.startTime) return;
+      // 3. Process 3D Metal Forge Steps
+      steps.forEach((step) => {
+        if (elapsed < step.startTime) return;
 
-        const flightElapsed = elapsed - star.startTime;
-        const progress = Math.min(1, flightElapsed / star.duration);
+        const flightElapsed = elapsed - step.startTime;
+        const progress = Math.min(1, flightElapsed / step.duration);
 
         let targetX = width / 2;
         let targetY = height / 2;
 
-        if (star.targetIndex < 5) {
-          const el = letterRefs.current[star.targetIndex];
+        if (step.targetIndex < 5) {
+          const el = letterRefs.current[step.targetIndex];
           if (el) {
             const rect = el.getBoundingClientRect();
             targetX = rect.left + rect.width / 2;
@@ -568,62 +574,94 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
           }
         }
 
-        const startX = width * star.startXRatio;
-        const startY = -45;
-
         if (progress < 1) {
-          star.status = 'flying';
+          step.status = 'forging';
 
-          // Organic wavy trajectory ("흐물흐물 유려한 별빛 궤적")
-          const easeProgress = 1 - Math.pow(1 - progress, 2.25);
-          const curBaseX = startX + (targetX - startX) * easeProgress;
-          const curBaseY = startY + (targetY - startY) * easeProgress;
+          // Vertical molten gold forge beam slamming down
+          const easeIn = Math.pow(progress, 2.4);
+          const startY = -60;
+          const currentY = startY + (targetY - startY) * easeIn;
 
-          const waveFactor = Math.sin(progress * Math.PI * star.waveFreq + star.wavePhase);
-          const damping = 1 - easeProgress * 0.78;
-          const currentX = curBaseX + waveFactor * star.waveAmp * damping;
-          const currentY = curBaseY + Math.cos(progress * Math.PI * 3) * 9 * damping;
+          const beamGrad = ctx.createLinearGradient(targetX, startY, targetX, currentY);
+          beamGrad.addColorStop(0, 'transparent');
+          beamGrad.addColorStop(0.5, 'rgba(245, 158, 11, 0.45)');
+          beamGrad.addColorStop(1, 'rgba(254, 240, 138, 0.95)');
 
-          star.ribbonHistory.push({
-            x: currentX,
-            y: currentY,
-            alpha: 1,
-            size: star.isYellow ? 5.2 : 3.8
-          });
+          ctx.save();
+          ctx.strokeStyle = beamGrad;
+          ctx.lineWidth = step.isYellow ? 15 : 7.5;
+          ctx.lineCap = 'round';
+          ctx.shadowColor = '#F59E0B';
+          ctx.shadowBlur = 22;
+          ctx.beginPath();
+          ctx.moveTo(targetX, Math.max(-40, currentY - 180));
+          ctx.lineTo(targetX, currentY);
+          ctx.stroke();
+          ctx.restore();
 
-          // Fine stardust along the path
-          if (Math.random() < 0.55) {
-            particles.push({
-              x: currentX + (Math.random() - 0.5) * 14,
-              y: currentY + (Math.random() - 0.5) * 14,
-              vx: (Math.random() - 0.5) * 0.7,
-              vy: (Math.random() - 0.5) * 0.7 + 0.2,
-              size: Math.random() * 2 + 0.8,
-              color: star.isYellow ? '#FEF08A' : '#E0F2FE',
-              alpha: 0.85,
-              decay: 0.028,
-              gravity: 0.01,
-              isSparkle: true
-            });
-          }
-
-          // Draw comet head
-          drawCinematicStarHead(
+          drawCinematicFlare(
             ctx,
-            currentX,
+            targetX,
             currentY,
-            star.isYellow ? 9.5 : 7.2,
-            star.isYellow,
+            step.isYellow ? 11 : 8,
+            true,
             currentTime
           );
-        } else if (star.status === 'flying') {
-          star.status = 'landed';
 
-          playSparkleChime(star.targetIndex);
-          createImpactBurst(targetX, targetY, star.isYellow);
+          // Anvil ring warming up on target spot
+          ctx.save();
+          ctx.strokeStyle = `rgba(250, 204, 21, ${progress * 0.7})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(targetX, targetY, (1 - progress) * 42 + 8, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        } else if (step.status === 'forging') {
+          step.status = 'landed';
+          step.landedX = targetX;
+          step.landedY = targetY;
 
-          if (star.targetIndex < 5) {
-            const idx = star.targetIndex;
+          playForgeSound(step.targetIndex);
+          createImpactBurst(targetX, targetY, step.isYellow);
+
+          // Connect newly forged letter with yellow electric arc to previous letter!
+          if (step.targetIndex > 0 && step.targetIndex < 5) {
+            const prevStep = steps[step.targetIndex - 1];
+            if (prevStep.landedX && prevStep.landedY) {
+              createJaggedBolt(
+                prevStep.landedX,
+                prevStep.landedY,
+                targetX,
+                targetY,
+                7,
+                18,
+                '#FACC15',
+                2.4,
+                0.025
+              );
+            }
+          } else if (step.targetIndex === 5) {
+            // Climax: connect all 5 letters to the central Golden Lightning Bolt!
+            for (let idx = 0; idx < 5; idx++) {
+              const lStep = steps[idx];
+              if (lStep.landedX && lStep.landedY) {
+                createJaggedBolt(
+                  lStep.landedX,
+                  lStep.landedY,
+                  targetX,
+                  targetY,
+                  8,
+                  24,
+                  '#FEF08A',
+                  2.6,
+                  0.02
+                );
+              }
+            }
+          }
+
+          if (step.targetIndex < 5) {
+            const idx = step.targetIndex;
             setActiveImpactIndex(idx);
             setRevealedLetters((prev) => {
               const next = [...prev];
@@ -631,49 +669,43 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
               return next;
             });
           } else {
-            flashIntensity = 0.38;
+            flashIntensity = 0.48;
             setRevealedLightning(true);
             setTimeout(() => {
               setRevealedSubtitle(true);
-            }, 220);
-          }
-        }
-
-        // Render smooth tapered ribbon trail for this star
-        if (star.ribbonHistory.length > 1) {
-          for (let i = star.ribbonHistory.length - 1; i >= 0; i--) {
-            star.ribbonHistory[i].alpha -= 0.032;
-            if (star.ribbonHistory[i].alpha <= 0) {
-              star.ribbonHistory.splice(i, 1);
-            }
-          }
-
-          for (let i = 1; i < star.ribbonHistory.length; i++) {
-            const prev = star.ribbonHistory[i - 1];
-            const curr = star.ribbonHistory[i];
-            const ratio = i / star.ribbonHistory.length;
-            ctx.save();
-            ctx.beginPath();
-            ctx.moveTo(prev.x, prev.y);
-            ctx.lineTo(curr.x, curr.y);
-            ctx.strokeStyle = star.isYellow
-              ? `rgba(250, 204, 21, ${curr.alpha * ratio})`
-              : `rgba(255, 255, 255, ${curr.alpha * ratio})`;
-            ctx.lineWidth = curr.size * ratio;
-            ctx.lineCap = 'round';
-            ctx.shadowColor = star.isYellow ? '#FACC15' : '#BAE6FD';
-            ctx.shadowBlur = star.isYellow ? 14 : 10;
-            ctx.stroke();
-            ctx.restore();
+            }, 200);
           }
         }
       });
 
-      // 4. Draw Expanding Shockwave Rings
+      // Ambient golden electric sparks around the lightning bolt
+      if (elapsed > 4450 && Math.random() < 0.16) {
+        const boltEl = lightningRef.current;
+        if (boltEl) {
+          const rect = boltEl.getBoundingClientRect();
+          const cx = rect.left + rect.width / 2;
+          const cy = rect.top + rect.height / 2;
+          const ang = Math.random() * Math.PI * 2;
+          const r = 35 + Math.random() * 55;
+          createJaggedBolt(
+            cx + Math.cos(ang) * 14,
+            cy + Math.sin(ang) * 14,
+            cx + Math.cos(ang) * r,
+            cy + Math.sin(ang) * r,
+            5,
+            14,
+            '#FACC15',
+            1.8,
+            0.06
+          );
+        }
+      }
+
+      // 4. Expanding Shockwave Rings
       for (let i = shockwaves.length - 1; i >= 0; i--) {
         const sw = shockwaves[i];
         sw.radius += (sw.maxRadius - sw.radius) * 0.14;
-        sw.alpha -= 0.032;
+        sw.alpha -= 0.03;
         if (sw.alpha <= 0.01) {
           shockwaves.splice(i, 1);
           continue;
@@ -690,10 +722,10 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
         ctx.restore();
       }
 
-      // 5. Draw Procedural Electric Lightning Arcs
+      // 5. Electric Lightning Arcs
       for (let i = electricArcs.length - 1; i >= 0; i--) {
         const arc = electricArcs[i];
-        arc.alpha -= 0.055;
+        arc.alpha -= arc.decay;
         if (arc.alpha <= 0) {
           electricArcs.splice(i, 1);
           continue;
@@ -703,17 +735,17 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
         ctx.strokeStyle = arc.color;
         ctx.lineWidth = arc.width;
         ctx.shadowColor = '#FACC15';
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 16;
         ctx.beginPath();
         arc.points.forEach((pt, idx) => {
           if (idx === 0) ctx.moveTo(pt.x, pt.y);
-          else ctx.lineTo(pt.x + (Math.random() - 0.5) * 3, pt.y + (Math.random() - 0.5) * 3);
+          else ctx.lineTo(pt.x + (Math.random() - 0.5) * 2.5, pt.y + (Math.random() - 0.5) * 2.5);
         });
         ctx.stroke();
         ctx.restore();
       }
 
-      // 6. Draw Burst & Stardust Particles
+      // 6. Molten Spark Particles
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.x += p.vx;
@@ -736,22 +768,22 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
         ctx.restore();
       }
 
-      // 7. Subtle Golden Screen Flash on Lightning Strike
+      // 7. Golden Screen Flash on Lightning Strike
       if (flashIntensity > 0.005) {
         ctx.save();
         ctx.fillStyle = `rgba(254, 240, 138, ${flashIntensity})`;
         ctx.fillRect(0, 0, width, height);
         ctx.restore();
-        flashIntensity *= 0.88;
+        flashIntensity *= 0.87;
       }
 
-      // 8. Complete Intro Sequence
-      if (elapsed > 6000 && !hasFinishedRef.current) {
+      // 8. Auto-advance smoothly after full presentation completes (~5.8s)
+      if (elapsed > 5800 && !hasFinishedRef.current) {
         hasFinishedRef.current = true;
         setIsOutro(true);
         setTimeout(() => {
           onComplete();
-        }, 780);
+        }, 550);
       }
 
       animationFrameId = requestAnimationFrame(render);
@@ -762,18 +794,24 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', updateCanvasSize);
+    };
+  }, [playForgeSound, onComplete]);
+
+  // Clean up audio context
+  useEffect(() => {
+    return () => {
       if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
         try {
           audioContextRef.current.close();
         } catch {}
       }
     };
-  }, [playSparkleChime, onComplete]);
+  }, []);
 
   const handleScreenInteraction = () => {
     initAndUnlockAudio();
     if (!hasAudioUnlocked && !isMutedRef.current) {
-      playSparkleChime(
+      playForgeSound(
         revealedLightning ? 5 : Math.max(0, revealedLetters.filter(Boolean).length - 1)
       );
     }
@@ -796,13 +834,13 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
         minHeight: '-webkit-fill-available'
       }}
     >
-      {/* 1. Fullscreen High-DPI Canvas for Starlight Comets, Ribbons & Electric Arcs */}
+      {/* 1. Fullscreen Canvas for 3D Metal Forge & Electric Lightning Engine */}
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full pointer-events-none z-10"
       />
 
-      {/* 2. Top Controls: Mute & Skip */}
+      {/* 2. Top Controls: Sound Toggle & Skip */}
       <div
         className="absolute top-4 right-4 z-30 flex items-center gap-2"
         style={{ marginTop: 'max(0.5rem, env(safe-area-inset-top, 0.5rem))' }}
@@ -826,14 +864,14 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
 
         <button
           onClick={handleSkip}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-white/85 hover:text-white text-xs font-semibold tracking-tight transition-all cursor-pointer backdrop-blur-md active:scale-95"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-white/85 hover:text-white text-xs font-semibold tracking-tight transition-all cursor-pointer backdrop-blur-md active:scale-95 whitespace-nowrap"
         >
           <span>건너뛰기</span>
           <FastForward className="w-3.5 h-3.5 text-yellow-400" />
         </button>
       </div>
 
-      {/* 3. Main Centerpiece Stage: 3x Golden Lightning Emblem + "도 쿄 원 정 대" */}
+      {/* 3. Main Centerpiece Stage: 3D Faceted Golden Lightning Emblem + "도 쿄 원 정 대" */}
       <div className="relative z-20 flex flex-col items-center justify-center pointer-events-none select-none px-4">
         {/* Golden Lightning Bolt Emblem (3x Letter Size) */}
         <div
@@ -851,15 +889,15 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
             }`}
           />
 
-          {/* Crisp Golden Halo Ring */}
+          {/* 3D Metallic Amber-Gold Halo Ring */}
           <div
-            className={`absolute w-32 h-32 sm:w-42 sm:h-42 rounded-full border border-yellow-300/40 shadow-[0_0_50px_rgba(250,204,21,0.5)] transition-all duration-700 ${
+            className={`absolute w-32 h-32 sm:w-42 sm:h-42 rounded-full border-2 border-amber-400/60 shadow-[0_0_60px_rgba(245,158,11,0.8)] transition-all duration-700 ${
               revealedLightning ? 'opacity-100 scale-100' : 'opacity-0 scale-50'
             }`}
           />
 
           <svg
-            className="w-28 h-28 sm:w-38 sm:h-38 drop-shadow-[0_0_32px_rgba(250,204,21,0.95)]"
+            className="w-28 h-28 sm:w-38 sm:h-38 drop-shadow-[0_0_36px_rgba(250,204,21,0.98)]"
             viewBox="0 0 512 512"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
@@ -877,7 +915,13 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
                 <stop offset="100%" stopColor="#F59E0B" />
               </linearGradient>
               <filter id="argonBoltGlow" x="-25%" y="-25%" width="150%" height="150%">
-                <feDropShadow dx="0" dy="0" stdDeviation="12" floodColor="#FACC15" floodOpacity="0.95" />
+                <feDropShadow
+                  dx="0"
+                  dy="0"
+                  stdDeviation="12"
+                  floodColor="#FACC15"
+                  floodOpacity="0.95"
+                />
               </filter>
             </defs>
             {/* Main 3D Faceted Lightning Bolt */}
@@ -901,12 +945,12 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
             <path
               d="M 288 84 L 166 256 L 256 256 L 212 395 L 340 242 L 254 242 Z"
               fill="#FFFFFF"
-              fillOpacity="0.28"
+              fillOpacity="0.32"
             />
           </svg>
         </div>
 
-        {/* 5 Starlight Characters: "도 쿄 원 정 대" */}
+        {/* 5 Forged 3D Characters: "도 쿄 원 정 대" */}
         <div className="flex items-center justify-center gap-2.5 sm:gap-5">
           {letters.map((char, index) => {
             const isRevealed = revealedLetters[index];
@@ -917,7 +961,7 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
                 ref={(el) => {
                   letterRefs.current[index] = el;
                 }}
-                className={`relative text-[38px] sm:text-[54px] font-black tracking-tight leading-none transition-all duration-500 ease-out select-none inline-block text-center ${
+                className={`relative text-[38px] sm:text-[56px] font-black tracking-tight leading-none transition-all duration-500 ease-out select-none inline-block text-center ${
                   isRevealed
                     ? 'opacity-100 scale-100 translate-y-0 text-white'
                     : 'opacity-0 scale-50 translate-y-3 text-white/10'
@@ -925,10 +969,10 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
                 style={{
                   textShadow: isRevealed
                     ? revealedLightning
-                      ? '0 0 18px rgba(255,255,255,0.98), 0 0 36px rgba(250,204,21,0.75), 0 4px 12px rgba(0,0,0,0.9)'
+                      ? '0 0 18px rgba(255,255,255,0.98), 0 0 38px rgba(250,204,21,0.85), 0 4px 14px rgba(0,0,0,0.95)'
                       : isFreshImpact
-                      ? '0 0 24px rgba(255,255,255,1), 0 0 45px rgba(186,230,253,0.9)'
-                      : '0 0 16px rgba(255,255,255,0.95), 0 0 30px rgba(255,255,255,0.45)'
+                      ? '0 0 28px rgba(254,240,138,1), 0 0 50px rgba(245,158,11,0.95)'
+                      : '0 2px 0 rgba(180,83,9,0.9), 0 0 22px rgba(250,204,21,0.65)'
                     : 'none'
                 }}
               >
@@ -938,12 +982,10 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
           })}
         </div>
 
-        {/* Cinematic Expedition Subtitle (Appears smoothly as the Golden Lightning ignites) */}
+        {/* Cinematic Expedition Subtitle (Ignites as the Golden Lightning is forged) */}
         <div
-          className={`mt-4 sm:mt-5 flex items-center gap-2.5 text-xs sm:text-sm font-mono font-bold tracking-[0.22em] text-yellow-300/90 uppercase transition-all duration-700 ${
-            revealedSubtitle
-              ? 'opacity-100 translate-y-0'
-              : 'opacity-0 translate-y-2'
+          className={`mt-4 sm:mt-5 flex items-center gap-2.5 text-xs sm:text-sm font-mono font-bold tracking-[0.22em] text-yellow-300/95 uppercase transition-all duration-700 ${
+            revealedSubtitle ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
           }`}
           style={{
             textShadow: '0 0 14px rgba(250, 204, 21, 0.65)'
@@ -961,12 +1003,12 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
           onClick={(e) => {
             e.stopPropagation();
             initAndUnlockAudio();
-            playSparkleChime(0);
+            playForgeSound(0);
           }}
           onTouchStart={(e) => {
             e.stopPropagation();
             initAndUnlockAudio();
-            playSparkleChime(0);
+            playForgeSound(0);
           }}
           className="absolute bottom-6 sm:bottom-8 z-30 flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/25 text-white backdrop-blur-md cursor-pointer animate-pulse active:scale-95 transition-all text-xs font-semibold shadow-[0_4px_24px_rgba(0,0,0,0.6)]"
           style={{ marginBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0.5rem))' }}
