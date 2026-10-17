@@ -1,5 +1,5 @@
 // Tokyo Trip PWA Service Worker for Android / Samsung Internet / Chrome
-const CACHE_NAME = 'tokyo-trip-pwa-v1';
+const CACHE_NAME = 'tokyo-trip-pwa-v2';
 
 const STATIC_ASSETS = [
   '/',

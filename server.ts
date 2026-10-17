@@ -245,8 +245,24 @@ app.post('/api/budget', (req, res) => {
   res.status(201).json({ success: true, item: createdItem });
 });
 
+// Sync all budget items (must be registered BEFORE /api/budget/:id)
+app.put('/api/budget/sync', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  const role = getAuthRole(req);
+  if (!role || role === 'READ_ONLY') {
+    return res.status(403).json({ success: false, message: '동기화 권한이 없습니다.' });
+  }
+  const { items } = req.body;
+  if (!Array.isArray(items)) {
+    return res.status(400).json({ success: false, message: 'Items array required' });
+  }
+  writeBudgetDB(items);
+  res.json({ success: true, count: items.length, items });
+});
+
 // Update budget item
 app.put('/api/budget/:id', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   const role = getAuthRole(req);
   if (!role) {
     return res.status(401).json({ success: false, message: '비밀번호 인증이 필요합니다.' });
@@ -283,20 +299,8 @@ app.put('/api/budget/:id', (req, res) => {
   res.json({ success: true, item: items[targetIndex] });
 });
 
-app.put('/api/budget/sync', (req, res) => {
-  const role = getAuthRole(req);
-  if (!role || role === 'READ_ONLY') {
-    return res.status(403).json({ success: false, message: '동기화 권한이 없습니다.' });
-  }
-  const { items } = req.body;
-  if (!Array.isArray(items)) {
-    return res.status(400).json({ success: false, message: 'Items array required' });
-  }
-  writeBudgetDB(items);
-  res.json({ success: true, count: items.length, items });
-});
-
 app.delete('/api/budget/:id', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   const role = getAuthRole(req);
   if (!role) {
     return res.status(401).json({ success: false, message: '비밀번호 인증이 필요합니다.' });
@@ -326,6 +330,7 @@ app.delete('/api/budget/:id', (req, res) => {
 });
 
 app.post('/api/budget/reset', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   const role = getAuthRole(req);
   if (!role || role === 'READ_ONLY') {
     return res.status(403).json({ success: false, message: '초기화 권한이 없습니다.' });
@@ -342,12 +347,14 @@ app.post('/api/budget/reset', (req, res) => {
 
 // 1. Get all expedition member profiles
 app.get('/api/profiles', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   const profiles = readProfilesDB();
   res.json({ success: true, count: Object.keys(profiles).length, profiles });
 });
 
 // 2. Update specific member profile (nickname, avatarId, avatarEmoji, custom image)
 app.put('/api/profiles/:memberId', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   const { memberId } = req.params;
   const { nickname, avatarId, avatarEmoji, profileImageUrl } = req.body || {};
   const profiles = readProfilesDB();
@@ -397,6 +404,14 @@ app.get('/api/download/mobile-package', (req, res) => {
     return res.sendFile(zipPath);
   }
   return res.status(404).json({ success: false, message: '패키지 파일을 찾을 수 없습니다.' });
+});
+
+// Ensure any unmatched /api/* route always returns JSON and never falls through to Vite/SPA index.html
+app.all('/api/*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `API route not found: ${req.method} ${req.originalUrl}`
+  });
 });
 
 async function startServer() {

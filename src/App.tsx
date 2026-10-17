@@ -180,19 +180,22 @@ export default function App() {
     });
   }, []);
 
-  // Synchronize profiles from server DB (profiles_db.json) on mount and on window focus/tab switch
+  // Synchronize profiles from server DB (profiles_db.json) on mount, focus, and periodic polling across devices
   useEffect(() => {
+    const runProfileSync = () => {
+      fetchServerProfiles()
+        .then(() => {
+          const refreshed = getStoredKakaoUser();
+          if (refreshed) {
+            setCurrentUser(refreshed);
+          }
+          syncCompanionsWithProfiles();
+        })
+        .catch(() => {});
+    };
 
     // 1. Initial server profile sync
-    fetchServerProfiles()
-      .then(() => {
-        const refreshed = getStoredKakaoUser();
-        if (refreshed) {
-          setCurrentUser(refreshed);
-        }
-        syncCompanionsWithProfiles();
-      })
-      .catch(() => {});
+    runProfileSync();
 
     // 2. Profile update subscription
     const unsubscribe = subscribeToProfiles(() => {
@@ -206,18 +209,24 @@ export default function App() {
     // 3. Re-sync when switching back to this app tab
     const handleFocusSync = () => {
       if (document.visibilityState === 'visible') {
-        fetchServerProfiles()
-          .then(() => syncCompanionsWithProfiles())
-          .catch(() => {});
+        runProfileSync();
       }
     };
     window.addEventListener('focus', handleFocusSync);
 
+    // 4. Periodic cross-device polling every 8 seconds while visible
+    const pollInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        runProfileSync();
+      }
+    }, 8000);
+
     return () => {
       unsubscribe();
       window.removeEventListener('focus', handleFocusSync);
+      clearInterval(pollInterval);
     };
-  }, []);
+  }, [syncCompanionsWithProfiles]);
 
   const [isLoginPageOpen, setIsLoginPageOpen] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {

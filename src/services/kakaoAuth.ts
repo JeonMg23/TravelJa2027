@@ -157,10 +157,16 @@ export function resetProfileOverride(memberId: string): void {
 // Fetch all profiles from server DB (profiles_db.json) and synchronize local cache
 export async function fetchServerProfiles(): Promise<Record<string, ProfileOverride>> {
   try {
-    const res = await fetch('/api/profiles');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const res = await fetch('/api/profiles', {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' }
+    });
+    const contentType = res.headers.get('content-type') || '';
+    if (!res.ok || !contentType.includes('application/json')) {
+      return getProfileOverrides();
+    }
     const data = await res.json();
-    if (data.success && data.profiles) {
+    if (data && data.success && data.profiles) {
       const overrides: Record<string, ProfileOverride> = {};
       Object.keys(data.profiles).forEach((key) => {
         const item = data.profiles[key];
@@ -174,12 +180,16 @@ export async function fetchServerProfiles(): Promise<Record<string, ProfileOverr
           delete overrides[key].profileImageUrl;
         }
       });
-      localStorage.setItem(PROFILE_OVERRIDES_STORAGE_KEY, JSON.stringify(overrides));
-      notifyProfileChange();
+      const prevRaw = localStorage.getItem(PROFILE_OVERRIDES_STORAGE_KEY);
+      const nextRaw = JSON.stringify(overrides);
+      if (prevRaw !== nextRaw) {
+        localStorage.setItem(PROFILE_OVERRIDES_STORAGE_KEY, nextRaw);
+        notifyProfileChange();
+      }
       return overrides;
     }
-  } catch (err) {
-    console.warn('Failed to fetch server profiles, keeping local cache:', err);
+  } catch {
+    // Offline or static preview: fallback to local cache without noisy errors
   }
   return getProfileOverrides();
 }
@@ -192,22 +202,25 @@ export async function saveProfileOverrideToServer(
   // 1. Immediately apply to local cache
   saveProfileOverride(memberId, override);
 
-  // 2. Persist to Express server DB (profiles_db.json)
+  // 2. Persist to Express / Serverless DB (profiles_db.json)
   try {
     const res = await fetch(`/api/profiles/${encodeURIComponent(memberId)}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
       body: JSON.stringify(override)
     });
-    if (!res.ok) {
-      console.warn(`Server profile sync returned status ${res.status}`);
+    const contentType = res.headers.get('content-type') || '';
+    if (!res.ok || !contentType.includes('application/json')) {
       return false;
     }
     const data = await res.json();
     notifyProfileChange();
-    return !!data.success;
-  } catch (err) {
-    console.warn('Failed to persist profile to server DB:', err);
+    return !!data?.success;
+  } catch {
     return false;
   }
 }

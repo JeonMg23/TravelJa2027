@@ -21,6 +21,18 @@ function getAuthHeaders(): HeadersInit {
   return headers;
 }
 
+async function safeParseJson(res: Response): Promise<BudgetApiResponse | null> {
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    return null;
+  }
+  try {
+    return (await res.json()) as BudgetApiResponse;
+  } catch {
+    return null;
+  }
+}
+
 // Fetch all budget items from DB
 export async function fetchBudgetFromDB(passcodeOverride?: string): Promise<BudgetItem[] | null> {
   try {
@@ -28,7 +40,9 @@ export async function fetchBudgetFromDB(passcodeOverride?: string): Promise<Budg
     if (!passcode) return null;
 
     const res = await fetch('/api/budget', {
+      cache: 'no-store',
       headers: {
+        Accept: 'application/json',
         'x-budget-password': passcode
       }
     });
@@ -38,12 +52,12 @@ export async function fetchBudgetFromDB(passcodeOverride?: string): Promise<Budg
       }
       return null;
     }
-    const data: BudgetApiResponse = await res.json();
-    if (data.success && Array.isArray(data.items)) {
+    const data = await safeParseJson(res);
+    if (data && data.success && Array.isArray(data.items)) {
       return data.items;
     }
-  } catch (err) {
-    console.warn('Backend DB not available or offline, fallback to local cache:', err);
+  } catch {
+    // Offline or static preview mode: silently fallback to local cache
   }
   return null;
 }
@@ -56,11 +70,10 @@ export async function syncBudgetToDB(items: BudgetItem[]): Promise<boolean> {
       headers: getAuthHeaders(),
       body: JSON.stringify({ items })
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data: BudgetApiResponse = await res.json();
-    return !!data.success;
-  } catch (err) {
-    console.warn('Failed to sync budget to DB:', err);
+    if (!res.ok) return false;
+    const data = await safeParseJson(res);
+    return !!data?.success;
+  } catch {
     return false;
   }
 }
@@ -73,13 +86,13 @@ export async function addBudgetItemToDB(item: BudgetItem): Promise<BudgetItem | 
       headers: getAuthHeaders(),
       body: JSON.stringify(item)
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data: BudgetApiResponse = await res.json();
-    if (data.success && data.item) {
+    if (!res.ok) return null;
+    const data = await safeParseJson(res);
+    if (data?.success && data.item) {
       return data.item;
     }
-  } catch (err) {
-    console.warn('Failed to add budget item to DB:', err);
+  } catch {
+    // Fallback to local state
   }
   return null;
 }
@@ -95,13 +108,13 @@ export async function updateBudgetItemInDB(
       headers: getAuthHeaders(),
       body: JSON.stringify(updates)
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data: BudgetApiResponse = await res.json();
-    if (data.success && data.item) {
+    if (!res.ok) return null;
+    const data = await safeParseJson(res);
+    if (data?.success && data.item) {
       return data.item;
     }
-  } catch (err) {
-    console.warn('Failed to update budget item in DB:', err);
+  } catch {
+    // Fallback to local state
   }
   return null;
 }
@@ -113,11 +126,10 @@ export async function deleteBudgetItemFromDB(id: string): Promise<boolean> {
       method: 'DELETE',
       headers: getAuthHeaders()
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data: BudgetApiResponse = await res.json();
-    return !!data.success;
-  } catch (err) {
-    console.warn('Failed to delete budget item from DB:', err);
+    if (!res.ok) return false;
+    const data = await safeParseJson(res);
+    return !!data?.success;
+  } catch {
     return false;
   }
 }
@@ -130,11 +142,10 @@ export async function resetBudgetInDB(defaultItems: BudgetItem[]): Promise<boole
       headers: getAuthHeaders(),
       body: JSON.stringify({ defaultItems })
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data: BudgetApiResponse = await res.json();
-    return !!data.success;
-  } catch (err) {
-    console.warn('Failed to reset budget in DB:', err);
+    if (!res.ok) return false;
+    const data = await safeParseJson(res);
+    return !!data?.success;
+  } catch {
     return false;
   }
 }
