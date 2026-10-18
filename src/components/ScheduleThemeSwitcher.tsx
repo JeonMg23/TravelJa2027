@@ -216,10 +216,10 @@ export const ScheduleAmbientBackdrop: React.FC<{ themeId: ScheduleThemeId }> = (
   if (themeId === 'tokyo-night-glass') {
     return (
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        {/* Tokyo Tower Emerald & Lime Green Glass Atmosphere */}
-        <div className="absolute -top-24 right-1/4 w-[550px] h-[550px] rounded-full bg-emerald-500/18 blur-[140px]" />
-        <div className="absolute top-1/2 -left-24 w-[500px] h-[500px] rounded-full bg-lime-500/16 blur-[140px]" />
-        <div className="absolute bottom-0 right-1/3 w-[600px] h-[450px] rounded-full bg-teal-600/18 blur-[150px]" />
+        {/* Tokyo Tower Soft Pale Lime & Mint Glass Atmosphere (Calm and gentle) */}
+        <div className="absolute -top-24 right-1/4 w-[550px] h-[550px] rounded-full bg-lime-400/8 blur-[150px]" />
+        <div className="absolute top-1/2 -left-24 w-[500px] h-[500px] rounded-full bg-emerald-300/7 blur-[140px]" />
+        <div className="absolute bottom-0 right-1/3 w-[600px] h-[450px] rounded-full bg-teal-400/7 blur-[150px]" />
       </div>
     );
   }
