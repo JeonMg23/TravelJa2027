@@ -18,15 +18,29 @@ export const FlightTransition: React.FC<FlightTransitionProps> = ({
   const [statusBadge, setStatusBadge] = useState('출발 준비 🛫');
   const [isFadingOut, setIsFadingOut] = useState(false);
 
-  useEffect(() => {
-    // 1.6 seconds total fast flight journey (shortened by 2 seconds for snappy transition)
-    const startTime = Date.now();
-    const duration = 1600;
+  // Store callbacks and target props in refs so re-renders NEVER reset the flight midway
+  const onCompleteRef = React.useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  const targetDayNumberRef = React.useRef(targetDayNumber);
+  targetDayNumberRef.current = targetDayNumber;
+  const targetViewRef = React.useRef(targetView);
+  targetViewRef.current = targetView;
 
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const pct = Math.min(100, Math.round((elapsed / duration) * 100));
-      setProgress(pct);
+  useEffect(() => {
+    // 1.8 seconds total smooth flight journey
+    const startTime = performance.now();
+    const duration = 1800;
+    let animFrameId: number;
+    let isFinished = false;
+
+    const frame = (now: number) => {
+      if (isFinished) return;
+      const elapsed = now - startTime;
+      const pct = Math.min(100, (elapsed / duration) * 100);
+      setProgress(Math.round(pct * 10) / 10);
+
+      const targetDay = targetDayNumberRef.current;
+      const view = targetViewRef.current;
 
       if (pct < 20) {
         setStatusBadge('인천 이륙 🛫');
@@ -42,49 +56,73 @@ export const FlightTransition: React.FC<FlightTransitionProps> = ({
         setStageText('도쿄 나리타 국제공항(NRT) 활주로 안전 착륙 완료! 도쿄 원정 개시!');
       } else {
         setStatusBadge('도쿄 도착 완료! 🎉');
-        if (targetView === 'map') {
+        if (view === 'map') {
           setStageText('개구쟁이들의 도쿄 대모험 구글 동선 지도 화면으로 진입합니다! 🗺️');
         } else {
-          setStageText(`개구쟁이들의 도쿄 대모험 Day ${targetDayNumber} 화면으로 진입합니다!`);
+          setStageText(`개구쟁이들의 도쿄 대모험 Day ${targetDay} 화면으로 진입합니다!`);
         }
       }
 
       if (pct >= 100) {
-        clearInterval(interval);
-        // Start smooth fade out into the app
+        isFinished = true;
         setIsFadingOut(true);
         setTimeout(() => {
-          onComplete();
-        }, 300);
+          onCompleteRef.current();
+        }, 280);
+        return;
       }
-    }, 25);
 
-    return () => clearInterval(interval);
-  }, [onComplete, targetDayNumber, targetView]);
+      animFrameId = requestAnimationFrame(frame);
+    };
+
+    animFrameId = requestAnimationFrame(frame);
+
+    return () => {
+      isFinished = true;
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+    };
+  }, []); // Run exactly once on mount so parent re-renders can never interrupt or reset the animation
 
   const handleSkip = () => {
     setIsFadingOut(true);
     setTimeout(() => {
-      onComplete();
-    }, 200);
+      onCompleteRef.current();
+    }, 180);
   };
 
   // Precise Coordinates matching the High-Fidelity East Asia Aeronautical Map:
   // ViewBox: 0 0 1000 520
-  // Incheon Airport (ICN): X = 158, Y = 230 (in %: X = 15.8%, Y = 44.2%)
-  // Narita Airport (NRT): X = 770, Y = 275 (in %: X = 77.0%, Y = 52.9%)
+  // Incheon Airport (ICN): X = 158, Y = 230 (in %: X = 15.8%, Y = 44.23%)
+  // Narita Airport (NRT): X = 770, Y = 275 (in %: X = 77.0%, Y = 52.88%)
   const startX = 15.8;
-  const startY = 44.2;
+  const startY = 44.23;
   const endX = 77.0;
-  const endY = 52.9;
+  const endY = 52.88;
 
-  const t = progress / 100;
-  // Dynamic position along the high-altitude parabolic flight curve:
-  const currentX = startX + t * (endX - startX);
-  // Parabolic arch across East Sea: arch peak reaches ~18% altitude
-  const currentY = (startY + (endY - startY) * t) - 28 * Math.sin(t * Math.PI);
-  // Flight angle calculation
-  const planeAngle = progress < 20 ? 18 : progress < 55 ? 6 : progress < 85 ? 12 : 4;
+  // Exact Quadratic Bézier Curve (matching SVG: M 158 230 Q 460 40 770 275)
+  // Control point P1 is (460, 40)
+  const P0x = 158;
+  const P0y = 230;
+  const P1x = 460;
+  const P1y = 40;
+  const P2x = 770;
+  const P2y = 275;
+
+  const t = Math.max(0, Math.min(1, progress / 100));
+
+  // Exact Bézier position in 1000 x 520 coordinate system
+  const bx = (1 - t) * (1 - t) * P0x + 2 * (1 - t) * t * P1x + t * t * P2x;
+  const by = (1 - t) * (1 - t) * P0y + 2 * (1 - t) * t * P1y + t * t * P2y;
+
+  // Percentage position relative to map container (0% to 100%)
+  const currentX = (bx / 1000) * 100;
+  const currentY = (by / 520) * 100;
+
+  // Derivative vector B'(t) for exact tangent flight angle along the curve
+  const dx = 2 * (1 - t) * (P1x - P0x) + 2 * t * (P2x - P1x);
+  const dy = 2 * (1 - t) * (P1y - P0y) + 2 * t * (P2y - P1y);
+  // Tangent angle in degrees: smoothly curves from -32° (climbing) -> 0° (peak) -> +37° (descending)
+  const planeAngle = Math.atan2(dy, dx) * (180 / Math.PI);
 
   return (
     <div
@@ -699,7 +737,7 @@ export const FlightTransition: React.FC<FlightTransitionProps> = ({
               FLYING AIRPLANE JET (Flies seamlessly from Korea ICN to Japan NRT)
              ========================================================================= */}
           <div
-            className="absolute z-30 -translate-x-1/2 -translate-y-1/2 transition-all duration-75 pointer-events-none"
+            className="absolute z-30 pointer-events-none"
             style={{
               left: `${currentX}%`,
               top: `${currentY}%`,
@@ -707,13 +745,13 @@ export const FlightTransition: React.FC<FlightTransitionProps> = ({
             }}
           >
             <div className="relative">
-              {/* Jet Vapor Contrail Streams */}
+              {/* Jet Vapor Contrail Streams (Stream behind the jet tail) */}
               <div className="absolute -left-14 sm:-left-20 top-1/2 -translate-y-1/2 w-16 sm:w-24 h-2.5 bg-gradient-to-l from-cyan-400 via-amber-300 to-transparent rounded-full opacity-90 blur-[1px] animate-pulse" />
               <div className="absolute -left-18 sm:-left-24 top-1/2 -translate-y-1/2 w-20 sm:w-28 h-1.5 bg-white/80 rounded-full blur-[0.5px]" />
 
-              {/* Main Animated Plane Icon */}
-              <div className="relative w-15 h-15 sm:w-20 sm:h-20 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 rounded-2xl sm:rounded-3xl border-2 sm:border-3 border-white shadow-[0_0_35px_rgba(251,191,36,1)] flex items-center justify-center rotate-45 transform">
-                <Plane className="w-9 h-9 sm:w-12 sm:h-12 text-slate-950 fill-slate-950 -rotate-45" />
+              {/* Main Animated Plane Icon (Rotated to point East along tangent trajectory) */}
+              <div className="relative w-15 h-15 sm:w-20 sm:h-20 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 rounded-2xl sm:rounded-3xl border-2 sm:border-3 border-white shadow-[0_0_35px_rgba(251,191,36,1)] flex items-center justify-center shadow-lg">
+                <Plane className="w-9 h-9 sm:w-12 sm:h-12 text-slate-950 fill-slate-950 rotate-45" />
                 <span className="absolute -top-1 -right-1 text-xs sm:text-sm">💨</span>
               </div>
 

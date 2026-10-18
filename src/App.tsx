@@ -58,6 +58,16 @@ import { LandingHeroPage } from './components/LandingHeroPage';
 import { FlightTransition } from './components/FlightTransition';
 import { LoginPage } from './components/LoginPage';
 import { IntroPage } from './components/IntroPage';
+import {
+  ScheduleThemeSwitcher,
+  ScheduleAmbientBackdrop
+} from './components/ScheduleThemeSwitcher';
+import {
+  ScheduleThemeId,
+  SCHEDULE_THEMES,
+  loadSavedScheduleTheme,
+  saveScheduleTheme
+} from './data/scheduleThemes';
 import { KakaoAuthUser } from './types/auth';
 import { getStoredKakaoUser, clearKakaoUser, fetchServerProfiles, subscribeToProfiles, getEffectivePresetMembers } from './services/kakaoAuth';
 import {
@@ -101,6 +111,24 @@ export default function App() {
   const [selectedDayNumber, setSelectedDayNumber] = useState<number | null>(1);
   const [selectedSpot, setSelectedSpot] = useState<TravelSpot | null>(null);
   const [spotSelectionTick, setSpotSelectionTick] = useState<number>(0);
+
+  // Schedule Page Design Theme State (5 selectable styles: 4 Intro/Hero dark themes + 1 classic light)
+  const [scheduleThemeId, setScheduleThemeId] = useState<ScheduleThemeId>(() =>
+    loadSavedScheduleTheme()
+  );
+  const currentScheduleTheme =
+    SCHEDULE_THEMES[scheduleThemeId] || SCHEDULE_THEMES['classic-light'];
+
+  const handleSelectScheduleTheme = (themeId: ScheduleThemeId) => {
+    setScheduleThemeId(themeId);
+    saveScheduleTheme(themeId);
+    const chosen = SCHEDULE_THEMES[themeId];
+    if (chosen) {
+      setToastMessage(
+        `🎨 일정 페이지 디자인이 '${chosen.shortName}' 스타일로 변경되었습니다!`
+      );
+    }
+  };
 
   // Netflix-style Cinematic Intro Splash Screen (어플 시작 시 멋있는 도쿄원정대 인트로)
   // 스마트폰 화면을 닫았다 다시 열거나 어플을 재실행할 때 항상 인트로 화면부터 시작
@@ -492,30 +520,9 @@ export default function App() {
     return days.find((d) => d.dayNumber === selectedDayNumber) || days[0];
   }, [days, selectedDayNumber]);
 
-  // Split View: Track vertical position of the selected spot card so the RouteMap aligns right beside it
-  const [splitMapOffsetY, setSplitMapOffsetY] = useState<number>(0);
   const splitGridRef = useRef<HTMLDivElement | null>(null);
 
-  const syncSplitMapPosition = useCallback((targetSpotId?: string) => {
-    if (mobileView !== 'split') {
-      setSplitMapOffsetY(0);
-      return;
-    }
-    const spotId = targetSpotId || selectedSpot?.id || currentDay?.spots?.[0]?.id;
-    if (!spotId) return;
-
-    const spotEl = document.getElementById(`spot-card-${spotId}`);
-    const gridEl = splitGridRef.current;
-    if (spotEl && gridEl) {
-      const spotRect = spotEl.getBoundingClientRect();
-      const gridRect = gridEl.getBoundingClientRect();
-      // Calculate relative vertical offset from the top of the grid container to the spot card
-      const relativeOffset = spotRect.top - gridRect.top;
-      const clampedOffset = Math.max(0, Math.round(relativeOffset));
-      setSplitMapOffsetY(clampedOffset);
-    }
-  }, [mobileView, selectedSpot, currentDay]);
-
+  // Auto select first spot when entering split view if none selected
   useEffect(() => {
     if (showIntro || isLoginPageOpen || showLandingPage || isFlying) {
       return;
@@ -524,28 +531,12 @@ export default function App() {
       if (!selectedSpot && currentDay?.spots?.[0]) {
         setSelectedSpot(currentDay.spots[0]);
       }
-      const t1 = setTimeout(() => {
-        syncSplitMapPosition();
-      }, 50);
-      const t2 = setTimeout(() => {
-        syncSplitMapPosition();
-      }, 220);
-      const handleResize = () => syncSplitMapPosition();
-      window.addEventListener('resize', handleResize);
-      return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-        window.removeEventListener('resize', handleResize);
-      };
-    } else {
-      setSplitMapOffsetY(0);
     }
   }, [
     mobileView,
     selectedSpot,
     currentDay,
     selectedDayNumber,
-    syncSplitMapPosition,
     showIntro,
     isLoginPageOpen,
     showLandingPage,
@@ -562,19 +553,9 @@ export default function App() {
       const parentDay = days.find((d) => d.spots.some((s) => s.id === spot.id));
       if (parentDay) setSelectedDayNumber(parentDay.dayNumber);
     }
-    // If in split view, smoothly slide the map right beside this spot card and bring into view
-    if (mobileView === 'split') {
-      setTimeout(() => {
-        syncSplitMapPosition(spot.id);
-        const el = document.getElementById(`spot-card-${spot.id}`);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-      }, 40);
-    }
   };
 
-  // Switch to Route Map view (keeping selectedSpot focused)
+  // Switch to Route Map view (keeping selectedSpot focused and centering map on screen)
   const switchToMapView = (spotToFocus?: TravelSpot) => {
     if (spotToFocus) {
       setSelectedSpot(spotToFocus);
@@ -583,9 +564,15 @@ export default function App() {
     setSpotSelectionTick((prev) => prev + 1);
     setMobileView('map');
     setActiveHeaderTab('map');
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    // Smoothly bring the map container into optical center of viewport
+    setTimeout(() => {
+      const mapEl = document.getElementById('route-map-section');
+      if (mapEl) {
+        mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 60);
   };
 
   // Toggle Spot Heart / Like reaction
@@ -899,7 +886,7 @@ export default function App() {
     setIsFlying(true);
   };
 
-  const handleFlightComplete = () => {
+  const handleFlightComplete = useCallback(() => {
     setIsFlying(false);
     setShowLandingPage(false);
     try {
@@ -912,7 +899,7 @@ export default function App() {
       setActiveHeaderTab('timeline');
       setMobileView('timeline');
     }
-  };
+  }, [targetFlightView]);
 
   if (showIntro) {
     return <IntroPage onComplete={handleIntroComplete} />;
@@ -973,7 +960,12 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-20 md:pb-0 w-full max-w-full overflow-x-clip">
+    <div
+      className={`min-h-screen flex flex-col font-sans pb-20 md:pb-0 w-full max-w-full overflow-x-clip relative transition-colors duration-300 ${currentScheduleTheme.pageBg}`}
+    >
+      {/* Ambient Backdrop for Intro / Tokyo Night / Cyber / Sakura Dark Themes */}
+      <ScheduleAmbientBackdrop themeId={scheduleThemeId} />
+
       {/* Top Bar Header */}
       <Header
         activeTab={activeHeaderTab}
@@ -990,6 +982,7 @@ export default function App() {
         onLogout={handleKakaoLogout}
         onOpenMobileInstall={() => setIsMobileInstallOpen(true)}
         onReplayIntro={() => setShowIntro(true)}
+        scheduleThemeId={scheduleThemeId}
       />
 
       {/* Day Selector Bar */}
@@ -1003,12 +996,30 @@ export default function App() {
           lastTimelineScrollYRef.current = 0;
         }}
         onGoHome={() => setShowLandingPage(true)}
+        scheduleThemeId={scheduleThemeId}
       />
 
       {/* Main View Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 md:p-6 lg:p-8">
+      <main
+        className={`flex-1 max-w-7xl w-full mx-auto relative z-10 transition-all duration-300 ${
+          mobileView === 'split'
+            ? 'p-2 sm:p-3 md:p-4'
+            : mobileView === 'map'
+            ? 'p-2 sm:p-3 max-w-6xl'
+            : 'p-2 sm:p-4 md:p-6 lg:p-8'
+        }`}
+      >
+        {/* Real-Time Schedule Page Design Theme Switcher (4 Intro/First-Page Dark Themes + Original Classic Light) */}
+        <ScheduleThemeSwitcher
+          currentThemeId={scheduleThemeId}
+          onSelectTheme={handleSelectScheduleTheme}
+          viewMode={mobileView}
+        />
+
         {/* Mobile, Foldable & Desktop View Selector Bar */}
-        <div className="flex items-center justify-between gap-1.5 sm:gap-2 p-1.5 bg-slate-200/90 rounded-2xl mb-4 shadow-2xs w-full max-w-full overflow-hidden">
+        <div
+          className={`flex items-center justify-between gap-1.5 sm:gap-2 p-1.5 rounded-2xl mb-3 sm:mb-4 shadow-2xs w-full max-w-full overflow-hidden transition-colors duration-300 ${currentScheduleTheme.viewBarBg}`}
+        >
           <div className="flex items-center gap-1 sm:gap-1.5 flex-1 min-w-0">
             <button
               onClick={() => {
@@ -1017,8 +1028,8 @@ export default function App() {
               }}
               className={`flex-1 py-2 px-1 sm:px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer min-w-0 ${
                 mobileView === 'timeline'
-                  ? 'bg-white text-indigo-700 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? currentScheduleTheme.viewBtnTimelineActive
+                  : currentScheduleTheme.viewBtnInactive
               }`}
             >
               <Calendar className="w-3.5 h-3.5 shrink-0" />
@@ -1031,8 +1042,8 @@ export default function App() {
               }}
               className={`flex-1 py-2 px-1 sm:px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer min-w-0 ${
                 mobileView === 'map'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? currentScheduleTheme.viewBtnMapActive
+                  : currentScheduleTheme.viewBtnInactive
               }`}
             >
               <Compass className="w-3.5 h-3.5 shrink-0" />
@@ -1049,8 +1060,8 @@ export default function App() {
               }}
               className={`flex-1 py-2 px-1 sm:px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer relative min-w-0 ${
                 mobileView === 'split'
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-slate-700 hover:text-slate-900'
+                  ? currentScheduleTheme.viewBtnSplitActive
+                  : currentScheduleTheme.viewBtnInactive
               }`}
               title="갤럭시 Z폴드 및 태블릿, PC처럼 좌우로 분할하여 타임라인과 지도를 동시에 봅니다"
             >
@@ -1066,16 +1077,16 @@ export default function App() {
         {/* Main Content Layout (Timeline, Map, or Side-by-Side Split) */}
         <div
           ref={splitGridRef}
-          className="grid grid-cols-12 gap-2.5 sm:gap-4 md:gap-6 items-start relative w-full"
+          className="grid grid-cols-12 gap-2.5 sm:gap-4 md:gap-5 items-start relative w-full"
         >
-          {/* Left Column: Itinerary Timeline List */}
+          {/* Left Column: Itinerary Timeline List (Independently scrollable in Split View) */}
           <div
             className={`space-y-4 ${
               mobileView === 'timeline'
                 ? 'col-span-12 max-w-4xl mx-auto w-full block'
                 : mobileView === 'map'
                 ? 'hidden'
-                : 'col-span-5 sm:col-span-6 lg:col-span-7 block'
+                : 'col-span-12 md:col-span-6 lg:col-span-7 block h-[calc(100dvh-13.5rem)] overflow-y-auto pr-1.5 sm:pr-2.5 overscroll-contain scroll-smooth'
             }`}
           >
             {currentDay ? (
@@ -1083,6 +1094,7 @@ export default function App() {
                 currentDay={currentDay}
                 selectedSpot={selectedSpot}
                 isSplitView={mobileView === 'split'}
+                scheduleThemeId={scheduleThemeId}
                 onSelectSpot={(spot) => {
                   handleSelectSpot(spot);
                 }}
@@ -1118,13 +1130,23 @@ export default function App() {
               /* All Days Overview List */
               <div className="space-y-6">
                 {/* 6-Day Weather Strip */}
-                <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs">
-                  <div className="text-xs font-bold text-slate-700 mb-2.5 flex items-center justify-between">
+                <div
+                  className={`rounded-2xl border p-4 shadow-xs transition-all duration-300 ${currentScheduleTheme.cardBg} ${currentScheduleTheme.cardBorder}`}
+                >
+                  <div
+                    className={`text-xs font-bold mb-2.5 flex items-center justify-between ${currentScheduleTheme.textSecondary}`}
+                  >
                     <span className="flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4 text-indigo-600" />
+                      <Sparkles
+                        className={`w-4 h-4 ${
+                          currentScheduleTheme.isDark
+                            ? currentScheduleTheme.accentText
+                            : 'text-indigo-600'
+                        }`}
+                      />
                       도쿄 6일간 날씨 예보 (OpenWeatherMap)
                     </span>
-                    <span className="text-[11px] text-slate-400 font-normal">
+                    <span className={`text-[11px] font-normal ${currentScheduleTheme.textMuted}`}>
                       {isLiveWeather ? '● 실시간 기상 데이터' : '1월 도쿄 표준 기상'}
                     </span>
                   </div>
@@ -1136,22 +1158,32 @@ export default function App() {
                         <div
                           key={w.dayNumber}
                           onClick={() => setSelectedDayNumber(w.dayNumber)}
-                          className={`p-2.5 rounded-xl border text-center text-xs cursor-pointer hover:border-indigo-400 transition-all ${
+                          className={`p-2.5 rounded-xl border text-center text-xs cursor-pointer transition-all ${
                             isRain
-                              ? 'bg-indigo-50/80 border-indigo-200 text-indigo-950'
-                              : 'bg-slate-50 border-slate-200 text-slate-800'
+                              ? currentScheduleTheme.isDark
+                                ? 'bg-sky-950/60 border-sky-400/50 text-sky-100'
+                                : 'bg-indigo-50/80 border-indigo-200 text-indigo-950'
+                              : `${currentScheduleTheme.subCardBg} ${currentScheduleTheme.subCardBorder} ${currentScheduleTheme.textPrimary} ${currentScheduleTheme.cardHover}`
                           }`}
                         >
                           <div className="font-bold text-xs">Day {w.dayNumber}</div>
-                          <div className="text-[10px] text-slate-400">{w.date}</div>
+                          <div className={`text-[10px] font-mono ${currentScheduleTheme.textMuted}`}>
+                            {w.date}
+                          </div>
                           <div className="font-mono font-bold text-sm my-1">
                             {w.tempDay}° / {w.tempNight}°
                           </div>
-                          <div className="text-[10px] text-slate-600 truncate">
+                          <div className={`text-[10px] truncate ${currentScheduleTheme.textSecondary}`}>
                             {isRain ? '비 예보' : w.description}
                           </div>
                           {isRain && (
-                            <div className="text-[10px] text-indigo-700 font-bold mt-1 bg-indigo-100/80 rounded px-1 py-0.5">
+                            <div
+                              className={`text-[10px] font-bold mt-1 rounded px-1 py-0.5 ${
+                                currentScheduleTheme.isDark
+                                  ? 'text-sky-200 bg-sky-500/25'
+                                  : 'text-indigo-700 bg-indigo-100/80'
+                              }`}
+                            >
                               ☔ 실내 추천
                             </div>
                           )}
@@ -1161,15 +1193,23 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
-                  <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 uppercase">
+                <div
+                  className={`rounded-2xl border p-5 shadow-xs transition-all duration-300 ${currentScheduleTheme.cardBg} ${currentScheduleTheme.cardBorder}`}
+                >
+                  <div
+                    className={`flex items-center gap-2 text-xs font-bold uppercase ${
+                      currentScheduleTheme.isDark
+                        ? currentScheduleTheme.accentText
+                        : 'text-indigo-600'
+                    }`}
+                  >
                     <Navigation className="w-4 h-4" />
                     <span>전체 6일 여정 요약</span>
                   </div>
-                  <h2 className="text-lg font-bold text-slate-900 mt-1">
+                  <h2 className={`text-lg font-bold mt-1 ${currentScheduleTheme.textPrimary}`}>
                     도쿄 5박 6일 최적화 동선 총괄
                   </h2>
-                  <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+                  <p className={`text-xs sm:text-sm mt-2 leading-relaxed ${currentScheduleTheme.textSecondary}`}>
                     긴시초 롯데시티호텔을 거점으로 나리타 공항 소부선 쾌속 직통부터 아사쿠사, 디즈니씨, 해리포터 스튜디오, 후지산 투어, 쓰키지 및 롯폰기 힐스까지 동선 낭비 없는 스케줄입니다.
                   </p>
                 </div>
@@ -1182,21 +1222,31 @@ export default function App() {
                         setSelectedDayNumber(day.dayNumber);
                         setSelectedSpot(null);
                       }}
-                      className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:border-indigo-400 cursor-pointer transition-all"
+                      className={`rounded-2xl border p-5 shadow-xs cursor-pointer transition-all ${currentScheduleTheme.cardBg} ${currentScheduleTheme.cardBorder} ${currentScheduleTheme.cardHover}`}
                     >
-                      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                      <div
+                        className={`flex items-center justify-between border-b pb-3 ${currentScheduleTheme.dividerBorder}`}
+                      >
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
+                          <span
+                            className={`text-xs font-bold px-2 py-0.5 rounded-md ${currentScheduleTheme.accentBadge}`}
+                          >
                             Day {day.dayNumber}
                           </span>
-                          <span className="text-xs text-slate-400">
+                          <span className={`text-xs font-mono ${currentScheduleTheme.textMuted}`}>
                             {day.date}
                           </span>
-                          <h3 className="text-sm font-bold text-slate-900">
+                          <h3 className={`text-sm font-bold ${currentScheduleTheme.textPrimary}`}>
                             {day.theme}
                           </h3>
                         </div>
-                        <span className="text-xs font-semibold text-indigo-600">
+                        <span
+                          className={`text-xs font-semibold ${
+                            currentScheduleTheme.isDark
+                              ? currentScheduleTheme.accentText
+                              : 'text-indigo-600'
+                          }`}
+                        >
                           상세보기 →
                         </span>
                       </div>
@@ -1209,12 +1259,18 @@ export default function App() {
                               setSelectedDayNumber(day.dayNumber);
                               handleSelectSpot(spot);
                             }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-xl text-xs transition-colors"
+                            className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-xl text-xs transition-colors ${currentScheduleTheme.subCardBg} ${currentScheduleTheme.subCardBorder} ${currentScheduleTheme.cardHover}`}
                           >
-                            <span className="font-bold text-slate-700">
+                            <span className={`font-bold ${currentScheduleTheme.textSecondary}`}>
                               {sIdx + 1}. {spot.name}
                             </span>
-                            <span className="text-[10px] text-amber-600 font-semibold">
+                            <span
+                              className={`text-[10px] font-semibold font-mono ${
+                                currentScheduleTheme.isDark
+                                  ? 'text-amber-300'
+                                  : 'text-amber-600'
+                              }`}
+                            >
                               ★{spot.rating}
                             </span>
                           </div>
@@ -1227,31 +1283,27 @@ export default function App() {
             )}
           </div>
 
-          {/* Right Column: Interactive Leaflet Route Map */}
+          {/* Right Column: Interactive Leaflet Route Map (Fixed & Stationary in Split View) */}
           <div
-            className={`isolate z-0 ${
+            className={`isolate z-10 ${
               mobileView === 'split'
-                ? 'col-span-7 sm:col-span-6 lg:col-span-5 block'
+                ? 'col-span-12 md:col-span-6 lg:col-span-5 block sticky top-14 sm:top-18 self-start h-[calc(100dvh-13.5rem)] flex flex-col justify-start'
                 : mobileView === 'timeline'
                 ? 'hidden'
                 : 'col-span-12 max-w-6xl mx-auto w-full block'
             }`}
-            style={
-              mobileView === 'split'
-                ? {
-                    transform: `translateY(${splitMapOffsetY}px)`,
-                    transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
-                  }
-                : undefined
-            }
           >
-            <div className="space-y-3">
+            <div className={`space-y-2.5 ${mobileView === 'split' ? 'h-full flex flex-col min-h-0' : 'space-y-3'}`}>
               <RouteMap
                 currentDay={currentDay}
                 allDays={days}
                 selectedSpot={selectedSpot}
                 onSelectSpot={(spot) => {
                   handleSelectSpot(spot);
+                  const el = document.getElementById(`spot-card-${spot.id}`);
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                  }
                 }}
                 onClearSpot={() => {
                   setSelectedSpot(null);
@@ -1261,25 +1313,35 @@ export default function App() {
                 isVisible={mobileView === 'map' || mobileView === 'split'}
                 className={
                   mobileView === 'split'
-                    ? 'h-[380px] sm:h-[440px] md:h-[500px] w-full rounded-2xl shadow-sm'
-                    : 'h-[520px] sm:h-[600px] md:h-[680px] lg:h-[calc(100vh-11rem)] min-h-[460px] w-full rounded-2xl shadow-sm'
+                    ? 'flex-1 min-h-[280px] w-full rounded-2xl shadow-sm'
+                    : 'h-[540px] sm:h-[620px] md:h-[700px] lg:h-[calc(100vh-10rem)] min-h-[460px] w-full rounded-2xl shadow-sm'
                 }
               />
 
               {/* Selected Spot Quick Info Card below map on desktop & mobile */}
               {selectedSpot && (
-                <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-xs animate-in fade-in duration-200">
+                <div
+                  className={`rounded-xl border p-2.5 sm:p-3 shadow-xs animate-in fade-in duration-200 shrink-0 ${currentScheduleTheme.cardBg} ${currentScheduleTheme.cardBorder}`}
+                >
                   <div className="flex items-center justify-between">
                     <div className="truncate pr-2">
-                      <div className="text-[11px] font-bold text-indigo-600 flex items-center gap-1.5">
+                      <div
+                        className={`text-[11px] font-bold flex items-center gap-1.5 ${
+                          currentScheduleTheme.isDark
+                            ? currentScheduleTheme.accentText
+                            : 'text-indigo-600'
+                        }`}
+                      >
                         <span>선택된 거점</span>
                         {currentDay?.spots && (
-                          <span className="bg-indigo-100 text-indigo-700 px-1.5 py-0.2 rounded-md text-[10px] font-bold">
+                          <span
+                            className={`px-1.5 py-0.2 rounded-md text-[10px] font-bold ${currentScheduleTheme.accentBadge}`}
+                          >
                             순번 {currentDay.spots.findIndex((s) => s.id === selectedSpot.id) + 1}번
                           </span>
                         )}
                       </div>
-                      <div className="text-sm font-bold text-slate-900 truncate">
+                      <div className={`text-sm font-bold truncate ${currentScheduleTheme.textPrimary}`}>
                         {selectedSpot.name}
                       </div>
                     </div>
@@ -1299,13 +1361,13 @@ export default function App() {
                       )}
                       <button
                         onClick={() => setIsDetailModalOpen(true)}
-                        className="text-xs font-semibold text-slate-600 hover:text-slate-900 hover:underline cursor-pointer"
+                        className={`text-xs font-semibold hover:underline cursor-pointer ${currentScheduleTheme.textSecondary}`}
                       >
                         상세 정보
                       </button>
                       <button
                         onClick={() => setSelectedSpot(null)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${currentScheduleTheme.textMuted} hover:bg-white/10`}
                         title="선택 해제 및 닫기"
                       >
                         <X className="w-4 h-4" />
@@ -1322,6 +1384,7 @@ export default function App() {
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav
         currentView={mobileView}
+        scheduleThemeId={scheduleThemeId}
         onSelectView={(v) => {
           if (v === 'map') {
             switchToMapView();
@@ -1410,6 +1473,8 @@ export default function App() {
         }}
         activeView={budgetModalView}
         onSwitchView={(v) => setBudgetModalView(v)}
+        scheduleThemeId={scheduleThemeId}
+        onSelectScheduleTheme={handleSelectScheduleTheme}
         checklist={checklist}
         onToggleCheckItem={handleToggleCheckItem}
         onAddCheckItem={handleAddCheckItem}
@@ -1429,6 +1494,7 @@ export default function App() {
         onClose={() => setIsReceiptOpen(false)}
         budget={budget}
         initialFamily={receiptTargetFamily}
+        scheduleThemeId={scheduleThemeId}
       />
     </div>
   );

@@ -1,30 +1,36 @@
 import React from 'react';
 import { TripDay } from '../types/travel';
-import { Calendar, Layers, MapPin, Home } from 'lucide-react';
+import { Calendar, Layers } from 'lucide-react';
+import { ScheduleThemeId, SCHEDULE_THEMES } from '../data/scheduleThemes';
 
 interface DaySelectorProps {
   days: TripDay[];
   selectedDayNumber: number | null; // null = all days
   onSelectDay: (dayNumber: number | null) => void;
   onGoHome?: () => void;
+  scheduleThemeId?: ScheduleThemeId;
 }
 
 export const DaySelector: React.FC<DaySelectorProps> = ({
   days,
   selectedDayNumber,
   onSelectDay,
-  onGoHome
+  onGoHome,
+  scheduleThemeId = 'classic-light'
 }) => {
+  const theme = SCHEDULE_THEMES[scheduleThemeId] || SCHEDULE_THEMES['classic-light'];
+  const isDark = theme.isDark;
+
   return (
-    <div className="w-full max-w-full bg-white border-b border-slate-200/90 py-2.5 sm:py-3 px-3 sm:px-6 overflow-hidden">
+    <div className={`w-full max-w-full py-2.5 sm:py-3 px-3 sm:px-6 overflow-hidden transition-colors duration-300 relative z-10 ${theme.daySelectorBg}`}>
       <div className="max-w-7xl mx-auto w-full">
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+          <div className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-wider ${theme.daySelectorLabel}`}>
+            <Calendar className={`w-3.5 h-3.5 ${isDark ? theme.accentText : 'text-indigo-600'}`} />
             <span>여행 일자 선택</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="text-xs text-slate-400 hidden sm:inline">
+            <div className={`text-xs hidden sm:inline ${theme.daySelectorSubtext}`}>
               총 6일 여정 · 15개 추천 거점
             </div>
             {onGoHome && (
@@ -82,14 +88,32 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
             onClick={() => onSelectDay(null)}
             className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-left transition-all shrink-0 cursor-pointer min-h-[44px] ${
               selectedDayNumber === null
-                ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
-                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
+                ? theme.allDaysActive
+                : theme.allDaysInactive
             }`}
           >
-            <Layers className={`w-4 h-4 ${selectedDayNumber === null ? 'text-indigo-400' : 'text-slate-400'}`} />
+            <Layers
+              className={`w-4 h-4 ${
+                selectedDayNumber === null
+                  ? isDark
+                    ? 'text-current opacity-90'
+                    : 'text-indigo-400'
+                  : isDark
+                  ? theme.accentText
+                  : 'text-slate-400'
+              }`}
+            />
             <div>
               <div className="text-xs font-bold leading-tight whitespace-nowrap">전체 동선</div>
-              <div className={`text-[10px] whitespace-nowrap ${selectedDayNumber === null ? 'text-slate-300' : 'text-slate-400'}`}>
+              <div
+                className={`text-[10px] whitespace-nowrap ${
+                  selectedDayNumber === null
+                    ? 'opacity-80'
+                    : isDark
+                    ? 'text-slate-400'
+                    : 'text-slate-400'
+                }`}
+              >
                 1.13 - 1.18 총괄
               </div>
             </div>
@@ -103,16 +127,22 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
                 key={day.dayNumber}
                 onClick={() => onSelectDay(day.dayNumber)}
                 className={`flex flex-col justify-center px-4 py-2 rounded-xl border text-left transition-all shrink-0 cursor-pointer min-h-[48px] min-w-[130px] ${
-                  isSelected
-                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-200'
-                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                  isSelected ? theme.dayTabActive : theme.dayTabInactive
                 }`}
               >
                 <div className="flex items-center justify-between gap-1 w-full">
-                  <span className={`text-[11px] font-bold ${isSelected ? 'text-indigo-100' : 'text-indigo-600'}`}>
+                  <span
+                    className={`text-[11px] font-bold ${
+                      isSelected ? theme.dayTabBadgeActive : theme.dayTabBadgeInactive
+                    }`}
+                  >
                     Day {day.dayNumber}
                   </span>
-                  <span className={`text-[10px] ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`}>
+                  <span
+                    className={`text-[10px] font-mono ${
+                      isSelected ? theme.dayTabDateActive : theme.dayTabDateInactive
+                    }`}
+                  >
                     {day.date}
                   </span>
                 </div>

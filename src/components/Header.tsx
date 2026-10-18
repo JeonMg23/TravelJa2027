@@ -5,6 +5,7 @@ import { KakaoAuthUser } from '../types/auth';
 import { getCharacterAvatarById } from '../data/characterAvatars';
 import { getEffectivePresetMembers, subscribeToProfiles } from '../services/kakaoAuth';
 import { ProfileEditModal } from './ProfileEditModal';
+import { ScheduleThemeId, SCHEDULE_THEMES } from '../data/scheduleThemes';
 
 interface HeaderProps {
   activeTab: 'timeline' | 'map' | 'split' | 'budget' | 'checklist';
@@ -20,6 +21,7 @@ interface HeaderProps {
   onUpdateUser?: (user: KakaoAuthUser) => void;
   onLogout?: () => void;
   onReplayIntro?: () => void;
+  scheduleThemeId?: ScheduleThemeId;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,11 +33,14 @@ export const Header: React.FC<HeaderProps> = ({
   onUpdateUser,
   onLogout,
   onOpenMobileInstall,
-  onReplayIntro
+  onReplayIntro,
+  scheduleThemeId = 'classic-light'
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
   const [, setProfileSyncTick] = useState(0);
+  const theme = SCHEDULE_THEMES[scheduleThemeId] || SCHEDULE_THEMES['classic-light'];
+  const isDark = theme.isDark;
 
   useEffect(() => {
     const unsubscribe = subscribeToProfiles(() => {
@@ -62,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 w-full max-w-full overflow-hidden">
+    <header className={`sticky top-0 z-40 w-full max-w-full transition-colors duration-300 ${theme.headerBg}`}>
       <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 h-13 sm:h-16 flex items-center justify-between gap-1.5 sm:gap-4 w-full">
         {/* Zone 1: Brand Wordmark (Clickable to return to Landing Page) */}
         <button
@@ -108,74 +113,64 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
-              <span className="text-xs sm:text-lg font-black tracking-tight text-slate-900 truncate font-sans">
+              <span className={`text-xs sm:text-lg font-black tracking-tight truncate font-sans ${theme.headerTitle}`}>
                 개구쟁이들의 일본여행
               </span>
               <span className="text-[9px] sm:text-[10px] font-black text-amber-900 bg-amber-300 border border-black rounded px-1 sm:px-1.5 py-0.2 sm:py-0.5 shadow-[1px_1px_0px_#000] shrink-0 whitespace-nowrap">
                 첫페이지 🏠
               </span>
             </div>
-            <span className="text-[11px] text-slate-500 font-bold hidden sm:inline truncate">
+            <span className={`text-[11px] font-bold hidden sm:inline truncate ${theme.headerSubtitle}`}>
               🔥 우당탕탕 도쿄 5박 6일 원정대 (1.13 ~ 1.18)
             </span>
           </div>
         </button>
 
-        {/* Zone 2: 4 Clean Single-Line Nav Links (PC/태블릿에서 표시) */}
+        {/* Zone 2: Clean Single-Line Nav Links (PC/태블릿에서 표시) */}
         <nav className="hidden md:flex items-center gap-1 lg:gap-2">
           <button
             onClick={() => onSelectTab('timeline')}
-            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
-              activeTab === 'timeline'
-                ? 'bg-slate-100 text-slate-900 font-semibold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'timeline' ? theme.headerNavActive : theme.headerNavInactive
             }`}
           >
-            <Calendar className="w-4 h-4 text-indigo-600" />
+            <Calendar className={`w-4 h-4 ${isDark ? theme.accentText : 'text-indigo-600'}`} />
             일정 타임라인
           </button>
           <button
             onClick={() => onSelectTab('map')}
-            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
-              activeTab === 'map'
-                ? 'bg-slate-100 text-slate-900 font-semibold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'map' ? theme.headerNavActive : theme.headerNavInactive
             }`}
           >
-            <Compass className="w-4 h-4 text-indigo-600" />
+            <Compass className={`w-4 h-4 ${isDark ? theme.accentText : 'text-indigo-600'}`} />
             동선 지도
           </button>
           <button
             onClick={() => onSelectTab('split')}
-            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
-              activeTab === 'split'
-                ? 'bg-slate-100 text-slate-900 font-semibold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'split' ? theme.headerNavActive : theme.headerNavInactive
             }`}
           >
-            <Columns2 className="w-4 h-4 text-indigo-600" />
+            <Columns2 className={`w-4 h-4 ${isDark ? theme.accentText : 'text-indigo-600'}`} />
             좌우 분할
           </button>
           <button
             onClick={() => onSelectTab('budget')}
-            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
-              activeTab === 'budget'
-                ? 'bg-slate-100 text-slate-900 font-semibold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'budget' ? theme.headerNavActive : theme.headerNavInactive
             }`}
           >
-            <Wallet className="w-4 h-4 text-indigo-600" />
+            <Wallet className={`w-4 h-4 ${isDark ? theme.accentText : 'text-indigo-600'}`} />
             공동 경비 & 가계부
           </button>
           <button
             onClick={() => onSelectTab('checklist')}
-            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
-              activeTab === 'checklist'
-                ? 'bg-slate-100 text-slate-900 font-semibold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'checklist' ? theme.headerNavActive : theme.headerNavInactive
             }`}
           >
-            <CheckSquare className="w-4 h-4 text-indigo-600" />
+            <CheckSquare className={`w-4 h-4 ${isDark ? theme.accentText : 'text-indigo-600'}`} />
             체크리스트
           </button>
         </nav>
@@ -185,10 +180,10 @@ export const Header: React.FC<HeaderProps> = ({
           {onOpenMobileInstall && (
             <button
               onClick={onOpenMobileInstall}
-              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl border border-slate-200 transition-colors cursor-pointer whitespace-nowrap"
+              className={`hidden md:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-xl border transition-colors cursor-pointer whitespace-nowrap ${theme.headerInstallBtn}`}
               title="스마트폰 홈화면 앱 설치"
             >
-              <Smartphone className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+              <Smartphone className="w-3.5 h-3.5 shrink-0" />
               <span>앱 설치</span>
             </button>
           )}
@@ -197,7 +192,11 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="relative">
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-amber-50 hover:bg-amber-100 border border-amber-300 text-slate-900 transition-all cursor-pointer shadow-2xs hover:shadow-sm"
+                className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full border transition-all cursor-pointer shadow-2xs hover:shadow-sm ${
+                  isDark
+                    ? 'bg-white/10 hover:bg-white/15 border-amber-400/50 text-white'
+                    : 'bg-amber-50 hover:bg-amber-100 border-amber-300 text-slate-900'
+                }`}
                 title="내 프로필 및 캐릭터 변경"
               >
                 {/* Character Avatar Thumbnail */}
@@ -217,7 +216,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs sm:text-sm font-bold text-slate-900 truncate max-w-[70px] sm:max-w-[100px]">
+                  <span className={`text-xs sm:text-sm font-bold truncate max-w-[70px] sm:max-w-[100px] ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     {displayNickname}
                   </span>
                   <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600 bg-white px-1.5 py-0.5 rounded-md border border-slate-200">

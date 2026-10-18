@@ -59,6 +59,11 @@ import {
   canManageItem,
   canRegisterScope
 } from '../services/budgetAuth';
+import {
+  ScheduleThemeId,
+  SCHEDULE_THEMES,
+  loadSavedScheduleTheme
+} from '../data/scheduleThemes';
 import { SamsungCardSyncModal } from './SamsungCardSyncModal';
 
 function getCurrentTimeString(): string {
@@ -80,6 +85,8 @@ interface BudgetLedgerViewProps {
   onDeleteBudgetItem: (id: string) => void;
   onResetBudget?: () => void;
   onOpenReceipt?: (targetFamily?: 'ALL' | '현우가족' | '세현가족') => void;
+  scheduleThemeId?: ScheduleThemeId;
+  onSelectScheduleTheme?: (themeId: ScheduleThemeId) => void;
 }
 
 const CATEGORY_ICONS: Record<BudgetCategory, { icon: React.ReactNode; color: string }> = {
@@ -99,8 +106,13 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
   onUpdateBudgetItem,
   onDeleteBudgetItem,
   onResetBudget,
-  onOpenReceipt
+  onOpenReceipt,
+  scheduleThemeId,
+  onSelectScheduleTheme
 }) => {
+  const effectiveThemeId = scheduleThemeId || loadSavedScheduleTheme();
+  const theme = SCHEDULE_THEMES[effectiveThemeId] || SCHEDULE_THEMES['classic-light'];
+  const isDark = theme.isDark;
   // Authentication & Permission state
   const [authPasscode, setAuthPasscode] = useState<string | null>(() => getStoredBudgetPasscode());
   const [pinInput, setPinInput] = useState('');
@@ -715,14 +727,18 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
   if (!authRole) {
     return (
       <div className="py-8 px-4 flex flex-col items-center justify-center max-w-md mx-auto text-center animate-in fade-in duration-200">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-slate-900 text-white flex items-center justify-center shadow-xl shadow-indigo-500/20 mb-4 border border-indigo-400/30">
-          <Lock className="w-8 h-8 text-indigo-200" />
+        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-xl mb-4 border transition-all ${
+          isDark
+            ? `${theme.pinSelected} shadow-[0_0_24px_rgba(250,204,21,0.25)]`
+            : 'bg-gradient-to-br from-indigo-600 via-indigo-700 to-slate-900 text-white shadow-indigo-500/20 border-indigo-400/30'
+        }`}>
+          <Lock className="w-8 h-8" />
         </div>
 
-        <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-1">
+        <h3 className={`text-lg sm:text-xl font-bold mb-1 ${isDark ? theme.textPrimary : 'text-slate-900'}`}>
           가계부 보안 비밀번호 입력
         </h3>
-        <p className="text-xs text-slate-500 mb-5 leading-relaxed">
+        <p className={`text-xs mb-5 leading-relaxed ${isDark ? theme.textMuted : 'text-slate-500'}`}>
           두 가족(현우가족 & 세현가족)의 여행 공동경비 및 가계부 내역은<br />
           비밀번호 인증 후 열람 및 관리가 가능합니다.
         </p>
@@ -752,13 +768,17 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                   handlePinSubmit(val);
                 }
               }}
-              className="w-full text-center tracking-[0.5em] text-3xl font-mono font-bold py-3 px-4 border-2 border-indigo-200 focus:border-indigo-600 rounded-2xl bg-white shadow-xs outline-none transition-all placeholder:tracking-normal placeholder:font-normal placeholder:text-slate-300"
+              className={`w-full text-center tracking-[0.5em] text-3xl font-mono font-bold py-3 px-4 rounded-2xl outline-none transition-all ${
+                isDark
+                  ? `${theme.inputBg} ${theme.inputBorder} ${theme.inputText} border-2`
+                  : 'border-2 border-indigo-200 focus:border-indigo-600 bg-white text-slate-900 shadow-xs'
+              }`}
             />
           </div>
 
           {pinError && (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold flex items-center justify-center gap-1.5 animate-shake">
-              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+            <div className="p-3 bg-rose-500/20 border border-rose-400/50 rounded-xl text-rose-300 text-xs font-semibold flex items-center justify-center gap-1.5 animate-shake">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
               <span>{pinError}</span>
             </div>
           )}
@@ -776,7 +796,11 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                     if (next.length === 4) handlePinSubmit(next);
                   }
                 }}
-                className="py-3 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 text-slate-800 font-mono font-bold text-lg rounded-xl transition-colors cursor-pointer"
+                className={`py-3 font-mono font-bold text-lg rounded-xl transition-colors cursor-pointer ${
+                  isDark
+                    ? 'bg-white/10 hover:bg-white/20 active:bg-white/30 text-white border border-white/10'
+                    : 'bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 text-slate-800'
+                }`}
               >
                 {num}
               </button>
@@ -787,7 +811,11 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                 setPinInput('');
                 setPinError(null);
               }}
-              className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-500 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+              className={`py-3 font-semibold text-xs rounded-xl transition-colors cursor-pointer ${
+                isDark
+                  ? 'bg-white/5 hover:bg-white/10 text-slate-400 border border-white/10'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-500'
+              }`}
             >
               전체삭제
             </button>
@@ -800,14 +828,22 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                   if (next.length === 4) handlePinSubmit(next);
                 }
               }}
-              className="py-3 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 text-slate-800 font-mono font-bold text-lg rounded-xl transition-colors cursor-pointer"
+              className={`py-3 font-mono font-bold text-lg rounded-xl transition-colors cursor-pointer ${
+                isDark
+                  ? 'bg-white/10 hover:bg-white/20 active:bg-white/30 text-white border border-white/10'
+                  : 'bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 text-slate-800'
+              }`}
             >
               0
             </button>
             <button
               type="button"
               onClick={() => setPinInput((prev) => prev.slice(0, -1))}
-              className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-500 font-semibold text-sm rounded-xl transition-colors cursor-pointer"
+              className={`py-3 font-semibold text-sm rounded-xl transition-colors cursor-pointer ${
+                isDark
+                  ? 'bg-white/5 hover:bg-white/10 text-slate-400 border border-white/10'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-500'
+              }`}
             >
               ⌫ 지우기
             </button>
@@ -816,7 +852,9 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
           <button
             type="submit"
             disabled={pinInput.length !== 4}
-            className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold text-sm rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 mt-2"
+            className={`w-full py-3 disabled:opacity-40 font-bold text-sm rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 mt-2 ${
+              isDark ? theme.primaryBtn : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+            }`}
           >
             <ShieldCheck className="w-4 h-4" />
             <span>비밀번호 확인 및 잠금 해제</span>
@@ -824,15 +862,23 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
         </form>
 
         {/* Security explanation card */}
-        <div className="w-full mt-5 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-left text-xs space-y-2">
-          <div className="font-bold text-slate-800 flex items-center gap-1.5 text-xs pb-1.5 border-b border-slate-200">
-            <KeyRound className="w-3.5 h-3.5 text-indigo-600" />
+        <div className={`w-full mt-5 p-3.5 rounded-2xl text-left text-xs space-y-2 border ${
+          isDark
+            ? `${theme.subCardBg} ${theme.subCardBorder} ${theme.textMuted}`
+            : 'bg-slate-50 border-slate-200 text-slate-600'
+        }`}>
+          <div className={`font-bold flex items-center gap-1.5 text-xs pb-1.5 border-b ${
+            isDark ? `${theme.textPrimary} ${theme.dividerBorder}` : 'text-slate-800 border-slate-200'
+          }`}>
+            <KeyRound className="w-3.5 h-3.5 text-amber-400" />
             <span>가계부 보안 권한 안내</span>
           </div>
-          <div className="space-y-1 text-[11px] text-slate-600 leading-relaxed">
+          <div className="space-y-1 text-[11px] leading-relaxed">
             <p>• 공유받은 4자리 비밀번호를 입력해주세요.</p>
             <p>• 비밀번호에 따라 <strong>조회 전용</strong> 또는 <strong>가족별 관리(등록·수정·삭제)</strong> 권한이 자동 적용됩니다.</p>
-            <p className="text-slate-500 pt-0.5">※ 올바른 비밀번호가 아닌 경우 가계부 열람 및 접근이 일체 제한됩니다.</p>
+            <p className={isDark ? 'text-slate-400 pt-0.5' : 'text-slate-500 pt-0.5'}>
+              ※ 올바른 비밀번호가 아닌 경우 가계부 열람 및 접근이 일체 제한됩니다.
+            </p>
           </div>
         </div>
       </div>
@@ -840,9 +886,19 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
   }
 
   return (
-    <div className="space-y-4 pb-2">
+    <div className={`space-y-4 pb-2 transition-colors duration-200 ${isDark ? theme.textPrimary : 'text-slate-900'}`}>
       {/* 1. Header Banner & Key Metrics Card */}
-      <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white rounded-2xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
+      <div className={`rounded-3xl p-4 sm:p-5 shadow-xl relative overflow-hidden transition-all duration-300 ${
+        theme.id === 'intro-thunder'
+          ? 'bg-gradient-to-br from-[#050814] via-[#0A1024] to-[#040711] text-white border border-amber-400/35 shadow-[0_0_35px_rgba(250,204,21,0.18)]'
+          : theme.id === 'tokyo-night-glass'
+          ? 'bg-gradient-to-br from-[#0F0826]/95 via-[#1A0E3D]/95 to-[#0B061A]/95 backdrop-blur-2xl text-white border border-purple-400/30 shadow-[0_8px_32px_rgba(168,85,247,0.25)]'
+          : theme.id === 'cyber-akiba'
+          ? 'bg-gradient-to-br from-[#09051C] via-[#120830] to-[#060312] text-white border border-cyan-500/40 shadow-[0_0_35px_rgba(6,182,212,0.25)]'
+          : theme.id === 'sakura-editorial'
+          ? 'bg-gradient-to-br from-[#150F20] via-[#211633] to-[#0F0B17] text-white border border-pink-300/30 shadow-[0_8px_32px_rgba(244,114,182,0.2)]'
+          : 'bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white'
+      }`}>
         {/* Background decorative glow */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-10 left-10 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -1058,13 +1114,19 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
       </div>
 
       {/* 2. Sub Tabs: [일자별 가계부] | [어디에·언제·얼마나 통계] | [가족별 정산기] */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+      <div className={`flex items-center justify-between border-b pb-2 ${isDark ? theme.dividerBorder : 'border-slate-200'}`}>
+        <div className={`flex items-center gap-1.5 p-1 rounded-2xl ${
+          isDark ? 'bg-black/40 border border-white/10' : 'bg-slate-100'
+        }`}>
           <button
             onClick={() => setSubTab('ledger')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               subTab === 'ledger'
-                ? 'bg-white text-indigo-700 shadow-xs'
+                ? isDark
+                  ? theme.tabActive
+                  : 'bg-white text-indigo-700 shadow-xs'
+                : isDark
+                ? theme.tabInactive
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -1073,9 +1135,13 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
           </button>
           <button
             onClick={() => setSubTab('stats')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               subTab === 'stats'
-                ? 'bg-white text-indigo-700 shadow-xs'
+                ? isDark
+                  ? theme.tabActive
+                  : 'bg-white text-indigo-700 shadow-xs'
+                : isDark
+                ? theme.tabInactive
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -1084,9 +1150,13 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
           </button>
           <button
             onClick={() => setSubTab('settlement')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               subTab === 'settlement'
-                ? 'bg-white text-indigo-700 shadow-xs'
+                ? isDark
+                  ? theme.tabActive
+                  : 'bg-white text-indigo-700 shadow-xs'
+                : isDark
+                ? theme.tabInactive
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -1097,9 +1167,13 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
 
         <button
           onClick={() => handleOpenRegistrationForm('expense')}
-          className={`sm:hidden p-1.5 rounded-lg border text-xs font-bold flex items-center gap-1 cursor-pointer ${
+          className={`sm:hidden p-1.5 rounded-xl border text-xs font-bold flex items-center gap-1 cursor-pointer ${
             isFormOpen
-              ? 'bg-indigo-600 text-white border-indigo-600'
+              ? isDark
+                ? theme.tabActive
+                : 'bg-indigo-600 text-white border-indigo-600'
+              : isDark
+              ? 'bg-white/10 border-white/20 text-white'
               : 'bg-white border-slate-200 text-slate-700'
           }`}
         >
@@ -1112,18 +1186,30 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
       {isFormOpen && (
         <div
           ref={registrationFormRef}
-          className="bg-slate-50 border-2 border-indigo-400 rounded-2xl p-4 shadow-md animate-in fade-in duration-200 ring-2 ring-indigo-200/50"
+          className={`rounded-2xl p-4 shadow-md animate-in fade-in duration-200 transition-colors border-2 ${
+            isDark
+              ? `${theme.subCardBg} ${theme.cardBorder} ring-2 ring-white/10 text-white`
+              : 'bg-slate-50 border-indigo-400 ring-2 ring-indigo-200/50 text-slate-900'
+          }`}
         >
-          <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-3">
+          <div className={`flex items-center justify-between pb-3 border-b mb-3 ${
+            isDark ? theme.dividerBorder : 'border-slate-200'
+          }`}>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-xs text-slate-800">새 내역 등록:</span>
-              <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-slate-200 text-xs">
+              <span className={`font-bold text-xs ${isDark ? theme.textPrimary : 'text-slate-800'}`}>새 내역 등록:</span>
+              <div className={`flex items-center gap-1 p-0.5 rounded-lg border text-xs ${
+                isDark ? 'bg-black/40 border-white/15' : 'bg-white border-slate-200'
+              }`}>
                 <button
                   type="button"
                   onClick={() => setFormMode('expense')}
                   className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
                     formMode === 'expense'
-                      ? 'bg-indigo-600 text-white'
+                      ? isDark
+                        ? theme.tabActive
+                        : 'bg-indigo-600 text-white'
+                      : isDark
+                      ? theme.tabInactive
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -1134,7 +1220,11 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                   onClick={() => setFormMode('deposit')}
                   className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
                     formMode === 'deposit'
-                      ? 'bg-emerald-600 text-white'
+                      ? isDark
+                        ? 'bg-emerald-500 text-slate-950 font-black'
+                        : 'bg-emerald-600 text-white'
+                      : isDark
+                      ? theme.tabInactive
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -1143,17 +1233,21 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsSamsungCardModalOpen(true)}
-                  className="px-2.5 py-1 rounded-md font-bold text-blue-700 hover:bg-blue-50 transition-all cursor-pointer flex items-center gap-1 border border-blue-200"
+                  className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer flex items-center gap-1 border ${
+                    isDark
+                      ? 'bg-blue-500/20 text-blue-300 border-blue-400/40 hover:bg-blue-500/30'
+                      : 'text-blue-700 hover:bg-blue-50 border-blue-200'
+                  }`}
                   title="삼성카드 카카오톡 알림톡 결제내역 자동 추출 및 입력"
                 >
-                  <CreditCard className="w-3.5 h-3.5 text-blue-600" />
+                  <CreditCard className="w-3.5 h-3.5 text-blue-400" />
                   <span>📲 삼성카드 알림톡 자동입력</span>
                 </button>
               </div>
             </div>
             <button
               onClick={() => setIsFormOpen(false)}
-              className="text-slate-400 hover:text-slate-600 text-xs font-semibold cursor-pointer"
+              className={`${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-600'} text-xs font-semibold cursor-pointer`}
             >
               닫기 ✕
             </button>
@@ -1618,15 +1712,21 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
       {subTab === 'ledger' && (
         <div className="space-y-3">
           {/* Filter Bar: Day pills & Payment method pills */}
-          <div className="space-y-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+          <div className={`space-y-2 p-2.5 rounded-2xl border transition-colors ${
+            isDark ? `${theme.subCardBg} ${theme.subCardBorder}` : 'bg-slate-50 border-slate-200'
+          }`}>
             {/* Day Filter Pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 text-xs">
-              <span className="text-[11px] font-bold text-slate-500 shrink-0">일정:</span>
+              <span className={`text-[11px] font-bold shrink-0 ${isDark ? theme.textMuted : 'text-slate-500'}`}>일정:</span>
               <button
                 onClick={() => setSelectedDayFilter('all')}
                 className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer ${
                   selectedDayFilter === 'all'
-                    ? 'bg-slate-900 text-white'
+                    ? isDark
+                      ? theme.tabActive
+                      : 'bg-slate-900 text-white'
+                    : isDark
+                    ? 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10'
                     : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
                 }`}
               >
@@ -1636,7 +1736,11 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                 onClick={() => setSelectedDayFilter(0)}
                 className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer ${
                   selectedDayFilter === 0
-                    ? 'bg-indigo-600 text-white'
+                    ? isDark
+                      ? theme.tabActive
+                      : 'bg-indigo-600 text-white'
+                    : isDark
+                    ? 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10'
                     : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
                 }`}
               >
@@ -1648,7 +1752,11 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                   onClick={() => setSelectedDayFilter(dayNum)}
                   className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer ${
                     selectedDayFilter === dayNum
-                      ? 'bg-indigo-600 text-white'
+                      ? isDark
+                        ? theme.tabActive
+                        : 'bg-indigo-600 text-white'
+                      : isDark
+                      ? 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10'
                       : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
                   }`}
                 >
@@ -1658,13 +1766,19 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
             </div>
 
             {/* Payment Scope Filter Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1 border-t border-slate-200 text-xs">
-              <span className="text-[11px] font-bold text-slate-500 shrink-0">결제분류:</span>
+            <div className={`flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1 border-t text-xs ${
+              isDark ? theme.dividerBorder : 'border-slate-200'
+            }`}>
+              <span className={`text-[11px] font-bold shrink-0 ${isDark ? theme.textMuted : 'text-slate-500'}`}>결제분류:</span>
               <button
                 onClick={() => setSelectedPaymentFilter('all')}
-                className={`px-2 py-0.5 rounded-md font-medium shrink-0 cursor-pointer ${
+                className={`px-2 py-0.5 rounded-lg font-medium shrink-0 cursor-pointer ${
                   selectedPaymentFilter === 'all'
-                    ? 'bg-slate-800 text-white font-bold'
+                    ? isDark
+                      ? theme.tabActive
+                      : 'bg-slate-800 text-white font-bold'
+                    : isDark
+                    ? 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10'
                     : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
                 }`}
               >
@@ -1672,9 +1786,11 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
               </button>
               <button
                 onClick={() => setSelectedPaymentFilter('CASH')}
-                className={`px-2 py-0.5 rounded-md font-medium shrink-0 cursor-pointer ${
+                className={`px-2 py-0.5 rounded-lg font-medium shrink-0 cursor-pointer ${
                   selectedPaymentFilter === 'CASH'
-                    ? 'bg-emerald-600 text-white font-bold'
+                    ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                    : isDark
+                    ? 'bg-white/5 text-emerald-300 border border-emerald-400/30 hover:bg-emerald-400/10'
                     : 'bg-white text-emerald-800 border border-emerald-200 hover:bg-emerald-50'
                 }`}
               >
@@ -1682,9 +1798,13 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
               </button>
               <button
                 onClick={() => setSelectedPaymentFilter('CARD_SHARED')}
-                className={`px-2 py-0.5 rounded-md font-medium shrink-0 cursor-pointer ${
+                className={`px-2 py-0.5 rounded-lg font-medium shrink-0 cursor-pointer ${
                   selectedPaymentFilter === 'CARD_SHARED'
-                    ? 'bg-indigo-600 text-white font-bold'
+                    ? isDark
+                      ? theme.tabActive
+                      : 'bg-indigo-600 text-white font-bold'
+                    : isDark
+                    ? 'bg-white/5 text-indigo-300 border border-indigo-400/30 hover:bg-indigo-400/10'
                     : 'bg-white text-indigo-800 border border-indigo-200 hover:bg-indigo-50'
                 }`}
               >
@@ -1692,9 +1812,11 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
               </button>
               <button
                 onClick={() => setSelectedPaymentFilter('CARD_HYEONWOO')}
-                className={`px-2 py-0.5 rounded-md font-medium shrink-0 cursor-pointer ${
+                className={`px-2 py-0.5 rounded-lg font-medium shrink-0 cursor-pointer ${
                   selectedPaymentFilter === 'CARD_HYEONWOO'
                     ? 'bg-blue-600 text-white font-bold'
+                    : isDark
+                    ? 'bg-white/5 text-blue-300 border border-blue-400/30 hover:bg-blue-400/10'
                     : 'bg-white text-blue-800 border border-blue-200 hover:bg-blue-50'
                 }`}
               >
@@ -1702,9 +1824,11 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
               </button>
               <button
                 onClick={() => setSelectedPaymentFilter('CASH_HYEONWOO')}
-                className={`px-2 py-0.5 rounded-md font-medium shrink-0 cursor-pointer ${
+                className={`px-2 py-0.5 rounded-lg font-medium shrink-0 cursor-pointer ${
                   selectedPaymentFilter === 'CASH_HYEONWOO'
                     ? 'bg-sky-600 text-white font-bold'
+                    : isDark
+                    ? 'bg-white/5 text-sky-300 border border-sky-400/30 hover:bg-sky-400/10'
                     : 'bg-white text-sky-800 border border-sky-200 hover:bg-sky-50'
                 }`}
               >
@@ -1712,9 +1836,11 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
               </button>
               <button
                 onClick={() => setSelectedPaymentFilter('CARD_SEHYEON')}
-                className={`px-2 py-0.5 rounded-md font-medium shrink-0 cursor-pointer ${
+                className={`px-2 py-0.5 rounded-lg font-medium shrink-0 cursor-pointer ${
                   selectedPaymentFilter === 'CARD_SEHYEON'
                     ? 'bg-rose-600 text-white font-bold'
+                    : isDark
+                    ? 'bg-white/5 text-rose-300 border border-rose-400/30 hover:bg-rose-400/10'
                     : 'bg-white text-rose-800 border border-rose-200 hover:bg-rose-50'
                 }`}
               >
@@ -1722,9 +1848,11 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
               </button>
               <button
                 onClick={() => setSelectedPaymentFilter('CASH_SEHYEON')}
-                className={`px-2 py-0.5 rounded-md font-medium shrink-0 cursor-pointer ${
+                className={`px-2 py-0.5 rounded-lg font-medium shrink-0 cursor-pointer ${
                   selectedPaymentFilter === 'CASH_SEHYEON'
                     ? 'bg-amber-600 text-white font-bold'
+                    : isDark
+                    ? 'bg-white/5 text-amber-300 border border-amber-400/30 hover:bg-amber-400/10'
                     : 'bg-white text-amber-800 border border-amber-200 hover:bg-amber-50'
                 }`}
               >
@@ -1760,38 +1888,58 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
               return (
                 <div
                   key={dayNum}
-                  className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden"
+                  className={`rounded-2xl border shadow-2xs overflow-hidden transition-colors ${
+                    isDark ? `${theme.cardBg} ${theme.cardBorder}` : 'bg-white border-slate-200/90'
+                  }`}
                 >
                   {/* Day Header with Subtotals */}
-                  <div className="p-3 bg-slate-50/90 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                  <div className={`p-3 border-b flex flex-wrap items-center justify-between gap-2 ${
+                    isDark ? `${theme.subCardBg} ${theme.dividerBorder}` : 'bg-slate-50/90 border-slate-200'
+                  }`}>
                     <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded-md bg-slate-900 text-white text-[11px] font-black font-mono">
+                      <span className={`px-2 py-0.5 rounded-md text-[11px] font-black font-mono ${
+                        isDark ? theme.pinSelected : 'bg-slate-900 text-white'
+                      }`}>
                         {dayNum === 0 ? 'D-Day 전' : `Day ${dayNum}`}
                       </span>
-                      <span className="font-bold text-xs text-slate-800">{dayTitle}</span>
-                      <span className="text-[11px] text-slate-400">({items.length}건)</span>
+                      <span className={`font-bold text-xs ${isDark ? theme.textPrimary : 'text-slate-800'}`}>
+                        {dayTitle}
+                      </span>
+                      <span className={`text-[11px] ${isDark ? theme.textMuted : 'text-slate-400'}`}>
+                        ({items.length}건)
+                      </span>
                     </div>
 
                     {/* Subtotal metrics */}
                     <div className="flex items-center gap-2 text-xs">
                       {dayExpenseSum > 0 && (
-                        <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
-                          <span className="text-[11px] text-slate-500 font-medium">일별 지출:</span>
-                          <span className="font-mono font-bold text-slate-900">
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${
+                          isDark ? 'bg-white/10 border-white/15' : 'bg-white border-slate-200'
+                        }`}>
+                          <span className={`text-[11px] font-medium ${isDark ? theme.textMuted : 'text-slate-500'}`}>일별 지출:</span>
+                          <span className={`font-mono font-bold ${isDark ? theme.accentText : 'text-slate-900'}`}>
                             ¥{dayExpenseSum.toLocaleString()}
                           </span>
-                          <span className="text-[10px] text-slate-400 font-sans">
+                          <span className={`text-[10px] font-sans ${isDark ? theme.textMuted : 'text-slate-400'}`}>
                             (약 ₩{toKRW(dayExpenseSum).toLocaleString()})
                           </span>
                         </div>
                       )}
                       {dayCashSum > 0 && (
-                        <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded font-medium">
+                        <span className={`text-[10px] px-2 py-0.5 rounded font-medium border ${
+                          isDark
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        }`}>
                           현금차감 ¥{dayCashSum.toLocaleString()}
                         </span>
                       )}
                       {dayCardSharedSum > 0 && (
-                        <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded font-medium">
+                        <span className={`text-[10px] px-2 py-0.5 rounded font-medium border ${
+                          isDark
+                            ? 'bg-indigo-500/20 text-indigo-300 border-indigo-400/30'
+                            : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                        }`}>
                           공동카드 ¥{dayCardSharedSum.toLocaleString()}
                         </span>
                       )}
@@ -1799,7 +1947,7 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                   </div>
 
                   {/* Items List */}
-                  <div className="divide-y divide-slate-100">
+                  <div className={`divide-y ${isDark ? theme.dividerBorder : 'divide-slate-100'}`}>
                     {items.map((item) => {
                       const isDeposit = item.type === 'DEPOSIT';
                       const isSharedCash =
@@ -1823,7 +1971,13 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                         <div
                           key={item.id}
                           className={`p-3 transition-colors flex items-center justify-between text-xs gap-3 ${
-                            isDeposit ? 'bg-emerald-50/40 hover:bg-emerald-50/70' : 'hover:bg-slate-50/70'
+                            isDeposit
+                              ? isDark
+                                ? 'bg-emerald-500/10 hover:bg-emerald-500/15'
+                                : 'bg-emerald-50/40 hover:bg-emerald-50/70'
+                              : isDark
+                              ? 'hover:bg-white/5'
+                              : 'hover:bg-slate-50/70'
                           }`}
                         >
                           {/* Left: Info */}
@@ -1893,19 +2047,25 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                             </div>
 
                             {/* Item title */}
-                            <div className="font-bold text-slate-900 truncate">{item.title}</div>
+                            <div className={`font-bold truncate ${isDark ? theme.textPrimary : 'text-slate-900'}`}>{item.title}</div>
 
                             {/* Date, Time, Note and Payer details */}
-                            <div className="text-[10px] text-slate-500 mt-1 flex flex-wrap items-center gap-1.5">
+                            <div className={`text-[10px] mt-1 flex flex-wrap items-center gap-1.5 ${
+                              isDark ? theme.textMuted : 'text-slate-500'
+                            }`}>
                               {/* Date & Time pill */}
-                              <span className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                                <Calendar className="w-2.5 h-2.5 text-indigo-500" />
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-mono font-medium px-2 py-0.5 rounded-md border ${
+                                isDark
+                                  ? 'text-slate-300 bg-white/5 border-white/10'
+                                  : 'text-slate-600 bg-slate-100 border-slate-200'
+                              }`}>
+                                <Calendar className="w-2.5 h-2.5 text-indigo-400" />
                                 <span>{item.date || (item.day === 0 ? '사전준비' : `1월 ${12 + item.day}일`)}</span>
                                 {item.time && (
                                   <>
-                                    <span className="text-slate-300">·</span>
-                                    <Clock className="w-2.5 h-2.5 text-indigo-500" />
-                                    <span className="font-bold text-indigo-700">{item.time}</span>
+                                    <span className="opacity-40">·</span>
+                                    <Clock className="w-2.5 h-2.5 text-indigo-400" />
+                                    <span className={`font-bold ${isDark ? theme.accentText : 'text-indigo-700'}`}>{item.time}</span>
                                   </>
                                 )}
                               </span>
@@ -1918,9 +2078,9 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
 
                               <span>
                                 {isDeposit ? '납부자' : '결제/부담'}:{' '}
-                                <strong className="text-slate-700">{item.paidBy}</strong>
+                                <strong className={isDark ? theme.textSecondary : 'text-slate-700'}>{item.paidBy}</strong>
                               </span>
-                              {item.note && <span className="text-slate-400">· {item.note}</span>}
+                              {item.note && <span className={isDark ? 'text-slate-400' : 'text-slate-400'}>· {item.note}</span>}
                             </div>
                           </div>
 
@@ -1929,13 +2089,17 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                             <div className="text-right">
                               <div
                                 className={`font-mono font-bold text-sm ${
-                                  isDeposit ? 'text-emerald-700' : 'text-slate-900'
+                                  isDeposit
+                                    ? 'text-emerald-400 font-black'
+                                    : isDark
+                                    ? `${theme.accentText} font-black`
+                                    : 'text-slate-900'
                                 }`}
                               >
                                 {isDeposit ? '+¥' : '¥'}
                                 {item.amountJPY.toLocaleString()}
                               </div>
-                              <div className="text-[10px] text-slate-400 font-sans">
+                              <div className={`text-[10px] font-sans ${isDark ? theme.textMuted : 'text-slate-400'}`}>
                                 약 ₩{toKRW(item.amountJPY).toLocaleString()}
                               </div>
                             </div>
@@ -1995,10 +2159,12 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
             })}
 
             {filteredBudgetItems.length === 0 && (
-              <div className="p-8 text-center text-slate-400 bg-white rounded-2xl border border-dashed border-slate-300">
-                <Receipt className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                <p className="text-xs font-semibold text-slate-600">선택한 조건의 지출 내역이 없습니다.</p>
-                <p className="text-[11px] text-slate-400 mt-1">상단 필터를 조정하거나 새 지출을 등록해보세요.</p>
+              <div className={`p-8 text-center rounded-2xl border border-dashed transition-colors ${
+                isDark ? `${theme.subCardBg} ${theme.subCardBorder} ${theme.textMuted}` : 'text-slate-400 bg-white border-slate-300'
+              }`}>
+                <Receipt className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className={`text-xs font-semibold ${isDark ? theme.textPrimary : 'text-slate-600'}`}>선택한 조건의 지출 내역이 없습니다.</p>
+                <p className={`text-[11px] mt-1 ${isDark ? theme.textMuted : 'text-slate-400'}`}>상단 필터를 조정하거나 새 지출을 등록해보세요.</p>
               </div>
             )}
           </div>
@@ -2009,17 +2175,19 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
       {subTab === 'stats' && (
         <div className="space-y-4 max-h-[520px] overflow-y-auto pr-1">
           {/* Section 1: 언제 (일자별 지출 추이 그래프) */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs space-y-3">
+          <div className={`rounded-2xl p-4 border shadow-2xs space-y-3 transition-colors ${
+            isDark ? `${theme.cardBg} ${theme.cardBorder}` : 'bg-white border-slate-200/90'
+          }`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="p-1 bg-indigo-50 text-indigo-700 rounded-lg">
+                <span className={`p-1 rounded-lg ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-50 text-indigo-700'}`}>
                   <Clock className="w-4 h-4" />
                 </span>
-                <h4 className="font-bold text-xs sm:text-sm text-slate-900">
+                <h4 className={`font-bold text-xs sm:text-sm ${isDark ? theme.textPrimary : 'text-slate-900'}`}>
                   언제 썼을까? (일자별 지출 추이)
                 </h4>
               </div>
-              <span className="text-[11px] text-slate-500">총 7개 일정 구간</span>
+              <span className={`text-[11px] ${isDark ? theme.textMuted : 'text-slate-500'}`}>총 7개 일정 구간</span>
             </div>
 
             {/* Bar chart */}
@@ -2029,23 +2197,23 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                 return (
                   <div key={d.day} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                      <div className={`flex items-center gap-1.5 font-bold ${isDark ? theme.textPrimary : 'text-slate-700'}`}>
                         <span className="w-16">{d.label}</span>
                         {d.total > 0 && (
-                          <span className="text-[10px] font-normal text-slate-400">
+                          <span className={`text-[10px] font-normal ${isDark ? theme.textMuted : 'text-slate-400'}`}>
                             (현금 ¥{d.cash.toLocaleString()} / 카드 ¥{d.card.toLocaleString()})
                           </span>
                         )}
                       </div>
-                      <div className="font-mono font-bold text-slate-900 text-xs">
+                      <div className={`font-mono font-bold text-xs ${isDark ? theme.accentText : 'text-slate-900'}`}>
                         ¥{d.total.toLocaleString()}
-                        <span className="text-[10px] text-slate-400 ml-1 font-sans">
+                        <span className={`text-[10px] ml-1 font-sans ${isDark ? theme.textMuted : 'text-slate-400'}`}>
                           (₩{toKRW(d.total).toLocaleString()})
                         </span>
                       </div>
                     </div>
                     {/* Visual Bar */}
-                    <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden flex">
+                    <div className={`w-full h-2.5 rounded-full overflow-hidden flex ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>
                       {d.total > 0 ? (
                         <>
                           <div
@@ -2064,7 +2232,7 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                           />
                         </>
                       ) : (
-                        <div className="w-full bg-slate-100" />
+                        <div className={`w-full ${isDark ? 'bg-white/5' : 'bg-slate-100'}`} />
                       )}
                     </div>
                   </div>
@@ -2072,7 +2240,9 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
               })}
             </div>
 
-            <div className="flex items-center gap-4 pt-2 border-t border-slate-100 text-[11px] text-slate-500 justify-end">
+            <div className={`flex items-center gap-4 pt-2 border-t text-[11px] justify-end ${
+              isDark ? `${theme.dividerBorder} ${theme.textMuted}` : 'border-slate-100 text-slate-500'
+            }`}>
               <span className="flex items-center gap-1">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
                 현금 공동경비 차감
@@ -2087,12 +2257,14 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
           {/* Section 2: 어디에 (카테고리 & 주요 지출 장소 TOP) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Category distribution */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs space-y-3">
+            <div className={`rounded-2xl p-4 border shadow-2xs space-y-3 transition-colors ${
+              isDark ? `${theme.cardBg} ${theme.cardBorder}` : 'bg-white border-slate-200/90'
+            }`}>
               <div className="flex items-center gap-2">
-                <span className="p-1 bg-amber-50 text-amber-700 rounded-lg">
+                <span className={`p-1 rounded-lg ${isDark ? 'bg-amber-500/20 text-amber-300' : 'bg-amber-50 text-amber-700'}`}>
                   <PieChart className="w-4 h-4" />
                 </span>
-                <h4 className="font-bold text-xs sm:text-sm text-slate-900">
+                <h4 className={`font-bold text-xs sm:text-sm ${isDark ? theme.textPrimary : 'text-slate-900'}`}>
                   어디에 썼을까? (카테고리별 비중)
                 </h4>
               </div>
@@ -2101,7 +2273,7 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                 {categoryStats.map((cat) => (
                   <div key={cat.category} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-slate-700 flex items-center gap-1.5">
+                      <span className={`font-semibold flex items-center gap-1.5 ${isDark ? theme.textPrimary : 'text-slate-700'}`}>
                         <span
                           className={`w-2 h-2 rounded-full ${
                             cat.category === '식비'
@@ -2119,14 +2291,14 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                         />
                         {cat.category}
                       </span>
-                      <div className="font-mono text-xs text-slate-800">
-                        <strong className="text-slate-900">¥{cat.amount.toLocaleString()}</strong>
-                        <span className="text-[10px] text-slate-500 ml-1">({cat.percent}%)</span>
+                      <div className={`font-mono text-xs ${isDark ? theme.textSecondary : 'text-slate-800'}`}>
+                        <strong className={isDark ? theme.accentText : 'text-slate-900'}>¥{cat.amount.toLocaleString()}</strong>
+                        <span className={`text-[10px] ml-1 ${isDark ? theme.textMuted : 'text-slate-500'}`}>({cat.percent}%)</span>
                       </div>
                     </div>
-                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>
                       <div
-                        className="h-full bg-slate-800 transition-all duration-300 rounded-full"
+                        className="h-full bg-indigo-500 transition-all duration-300 rounded-full"
                         style={{ width: `${cat.percent}%` }}
                       />
                     </div>
@@ -2136,12 +2308,14 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
             </div>
 
             {/* Top Locations / Spots */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs space-y-3">
+            <div className={`rounded-2xl p-4 border shadow-2xs space-y-3 transition-colors ${
+              isDark ? `${theme.cardBg} ${theme.cardBorder}` : 'bg-white border-slate-200/90'
+            }`}>
               <div className="flex items-center gap-2">
-                <span className="p-1 bg-rose-50 text-rose-700 rounded-lg">
+                <span className={`p-1 rounded-lg ${isDark ? 'bg-rose-500/20 text-rose-300' : 'bg-rose-50 text-rose-700'}`}>
                   <MapPin className="w-4 h-4" />
                 </span>
-                <h4 className="font-bold text-xs sm:text-sm text-slate-900">
+                <h4 className={`font-bold text-xs sm:text-sm ${isDark ? theme.textPrimary : 'text-slate-900'}`}>
                   어디서 많이 썼을까? (주요 장소 TOP 5)
                 </h4>
               </div>
@@ -2150,7 +2324,9 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                 {locationStats.map((loc, idx) => (
                   <div
                     key={loc.location}
-                    className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between text-xs"
+                    className={`p-2.5 rounded-xl border flex items-center justify-between text-xs transition-colors ${
+                      isDark ? `${theme.subCardBg} ${theme.dividerBorder}` : 'bg-slate-50 border-slate-200/70'
+                    }`}
                   >
                     <div className="flex items-center gap-2">
                       <span
@@ -2158,21 +2334,21 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                           idx === 0
                             ? 'bg-amber-500 text-white shadow-xs'
                             : idx === 1
-                            ? 'bg-slate-300 text-slate-800'
+                            ? isDark ? 'bg-slate-700 text-white' : 'bg-slate-300 text-slate-800'
                             : idx === 2
                             ? 'bg-amber-700 text-white'
-                            : 'bg-slate-200 text-slate-600'
+                            : isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-600'
                         }`}
                       >
                         {idx + 1}
                       </span>
-                      <span className="font-bold text-slate-800">{loc.location}</span>
+                      <span className={`font-bold ${isDark ? theme.textPrimary : 'text-slate-800'}`}>{loc.location}</span>
                     </div>
                     <div className="text-right">
-                      <span className="font-mono font-bold text-slate-900">
+                      <span className={`font-mono font-bold ${isDark ? theme.accentText : 'text-slate-900'}`}>
                         ¥{loc.amount.toLocaleString()}
                       </span>
-                      <span className="text-[10px] text-slate-400 block font-sans">
+                      <span className={`text-[10px] block font-sans ${isDark ? theme.textMuted : 'text-slate-400'}`}>
                         약 ₩{toKRW(loc.amount).toLocaleString()}
                       </span>
                     </div>
@@ -2183,12 +2359,14 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
           </div>
 
           {/* Section 3: 얼마나 (결제 수단 & 가족별 비중) */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs space-y-3">
+          <div className={`rounded-2xl p-4 border shadow-2xs space-y-3 transition-colors ${
+            isDark ? `${theme.cardBg} ${theme.cardBorder}` : 'bg-white border-slate-200/90'
+          }`}>
             <div className="flex items-center gap-2">
-              <span className="p-1 bg-emerald-50 text-emerald-700 rounded-lg">
+              <span className={`p-1 rounded-lg ${isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-50 text-emerald-700'}`}>
                 <DollarSign className="w-4 h-4" />
               </span>
-              <h4 className="font-bold text-xs sm:text-sm text-slate-900">
+              <h4 className={`font-bold text-xs sm:text-sm ${isDark ? theme.textPrimary : 'text-slate-900'}`}>
                 얼마나 사용했을까? (결제 수단 및 가족별 비중)
               </h4>
             </div>
@@ -2223,29 +2401,35 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
       {subTab === 'settlement' && (
         <div className="space-y-4 max-h-[520px] overflow-y-auto pr-1">
           {/* Smart Settlement Resolution Banner */}
-          <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 border-2 border-indigo-200 rounded-2xl p-4 sm:p-5 shadow-sm">
+          <div className={`border-2 rounded-2xl p-4 sm:p-5 shadow-sm transition-colors ${
+            isDark
+              ? 'bg-gradient-to-r from-indigo-950/70 via-purple-950/50 to-indigo-950/70 border-indigo-500/40'
+              : 'bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 border-indigo-200'
+          }`}>
             <div className="flex items-center gap-2 mb-2">
               <span className="p-1.5 bg-indigo-600 text-white rounded-xl shadow-xs">
                 <ArrowRightLeft className="w-4 h-4" />
               </span>
-              <h4 className="font-bold text-sm sm:text-base text-indigo-950">
+              <h4 className={`font-bold text-sm sm:text-base ${isDark ? 'text-white' : 'text-indigo-950'}`}>
                 2가족 최종 깔끔 정산 안내서 (1/2 균등 분담 기준)
               </h4>
             </div>
 
-            <div className="bg-white/90 backdrop-blur-xs p-4 rounded-xl border border-indigo-200/80 my-3">
+            <div className={`p-4 rounded-xl border my-3 transition-colors ${
+              isDark ? `${theme.subCardBg} ${theme.cardBorder}` : 'bg-white/90 backdrop-blur-xs border-indigo-200/80'
+            }`}>
               {netOwedToHyeonwoo > 0 ? (
                 <div className="flex items-start gap-3">
                   <span className="text-2xl mt-0.5">💸</span>
                   <div>
-                    <div className="font-black text-sm sm:text-base text-indigo-950">
+                    <div className={`font-black text-sm sm:text-base ${isDark ? 'text-white' : 'text-indigo-950'}`}>
                       세현가족 ➔ 현우가족에게{' '}
-                      <span className="text-rose-600 underline underline-offset-4 decoration-rose-300">
+                      <span className="text-rose-400 underline underline-offset-4 decoration-rose-300">
                         ¥{Math.abs(netOwedToHyeonwoo).toLocaleString()}엔
                       </span>{' '}
                       (약 ₩{toKRW(Math.abs(netOwedToHyeonwoo)).toLocaleString()}원) 송금 시 정산 완료!
                     </div>
-                    <p className="text-xs text-slate-600 mt-1">
+                    <p className={`text-xs mt-1 ${isDark ? theme.textSecondary : 'text-slate-600'}`}>
                       현우가족이 숙소 및 투어 등의 공동 카드 비용을 더 많이 선결제했기 때문에, 차액을 송금하시면 모든 공동 경비 정산이 끝납니다.
                     </p>
                   </div>
@@ -2254,27 +2438,29 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                 <div className="flex items-start gap-3">
                   <span className="text-2xl mt-0.5">💸</span>
                   <div>
-                    <div className="font-black text-sm sm:text-base text-indigo-950">
+                    <div className={`font-black text-sm sm:text-base ${isDark ? 'text-white' : 'text-indigo-950'}`}>
                       현우가족 ➔ 세현가족에게{' '}
-                      <span className="text-rose-600 underline underline-offset-4 decoration-rose-300">
+                      <span className="text-rose-400 underline underline-offset-4 decoration-rose-300">
                         ¥{Math.abs(netOwedToHyeonwoo).toLocaleString()}엔
                       </span>{' '}
                       (약 ₩{toKRW(Math.abs(netOwedToHyeonwoo)).toLocaleString()}원) 송금 시 정산 완료!
                     </div>
-                    <p className="text-xs text-slate-600 mt-1">
+                    <p className={`text-xs mt-1 ${isDark ? theme.textSecondary : 'text-slate-600'}`}>
                       세현가족이 공동 카드 비용을 더 많이 선결제했기 때문에 차액을 송금하시면 모든 공동 경비 정산이 끝납니다.
                     </p>
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 text-emerald-800 font-bold text-sm">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                   <span>양 가족의 공동 경비 지출 및 분담금이 완벽하게 일치합니다 (정산 완료 상태).</span>
                 </div>
               )}
             </div>
 
-            <div className="text-[11px] text-indigo-800/80 bg-indigo-100/50 p-2.5 rounded-lg flex items-center justify-between flex-wrap gap-2">
+            <div className={`text-[11px] p-2.5 rounded-lg flex items-center justify-between flex-wrap gap-2 ${
+              isDark ? 'text-indigo-300 bg-indigo-950/60 border border-indigo-800/40' : 'text-indigo-800/80 bg-indigo-100/50'
+            }`}>
               <span>
                 💡 정산 원칙: 현금 공동경비는 모아둔 공금 풀에서 차감되었으며, 카드 공동 사용분은 1/2로 계산됩니다.
               </span>
@@ -2307,20 +2493,24 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
           {/* Two Family Comparison Cards (현우가족 vs 세현가족) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Family 1: 현우가족 */}
-            <div className="bg-white rounded-2xl p-4 border border-blue-200/90 shadow-2xs space-y-3">
-              <div className="flex items-center justify-between border-b border-blue-100 pb-2">
+            <div className={`rounded-2xl p-4 border shadow-2xs space-y-3 transition-colors ${
+              isDark ? `${theme.cardBg} ${theme.cardBorder}` : 'bg-white border-blue-200/90'
+            }`}>
+              <div className={`flex items-center justify-between border-b pb-2 ${
+                isDark ? theme.dividerBorder : 'border-blue-100'
+              }`}>
                 <div className="flex items-center gap-2">
                   <span className="w-7 h-7 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-xs">
                     현
                   </span>
                   <div>
-                    <h5 className="font-bold text-sm text-slate-900">현우가족 (2인)</h5>
-                    <span className="text-[10px] text-blue-600 font-semibold">참여자 2인</span>
+                    <h5 className={`font-bold text-sm ${isDark ? theme.textPrimary : 'text-slate-900'}`}>현우가족 (2인)</h5>
+                    <span className="text-[10px] text-blue-400 font-semibold">참여자 2인</span>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] text-slate-400 block">총 결제/납부 합계</span>
-                  <span className="font-mono font-bold text-sm text-blue-950">
+                  <span className={`text-[10px] block ${isDark ? theme.textMuted : 'text-slate-400'}`}>총 결제/납부 합계</span>
+                  <span className={`font-mono font-bold text-sm ${isDark ? theme.accentText : 'text-blue-950'}`}>
                     ¥
                     {(
                       hyeonwooDepositJPY +
@@ -2333,58 +2523,68 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
               </div>
 
               <div className="space-y-2 text-xs">
-                <div className="p-2.5 bg-slate-50 rounded-xl flex items-center justify-between">
-                  <span className="text-slate-600 flex items-center gap-1.5">
-                    <Banknote className="w-3.5 h-3.5 text-emerald-600" />
+                <div className={`p-2.5 rounded-xl flex items-center justify-between transition-colors ${
+                  isDark ? `${theme.subCardBg} ${theme.subCardBorder}` : 'bg-slate-50'
+                }`}>
+                  <span className={`flex items-center gap-1.5 ${isDark ? theme.textSecondary : 'text-slate-600'}`}>
+                    <Banknote className="w-3.5 h-3.5 text-emerald-400" />
                     현금 공동경비 모금 납부액
                   </span>
-                  <span className="font-mono font-bold text-slate-900">
+                  <span className={`font-mono font-bold ${isDark ? theme.textPrimary : 'text-slate-900'}`}>
                     ¥{hyeonwooDepositJPY.toLocaleString()}
                   </span>
                 </div>
 
-                <div className="p-2.5 bg-indigo-50/60 rounded-xl flex items-center justify-between border border-indigo-100">
-                  <span className="text-indigo-900 font-medium flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5 text-indigo-600" />
+                <div className={`p-2.5 rounded-xl flex items-center justify-between border transition-colors ${
+                  isDark ? 'bg-indigo-950/40 border-indigo-800/40' : 'bg-indigo-50/60 border-indigo-100'
+                }`}>
+                  <span className={`font-medium flex items-center gap-1.5 ${isDark ? 'text-indigo-200' : 'text-indigo-900'}`}>
+                    <Users className="w-3.5 h-3.5 text-indigo-400" />
                     공동 카드 선결제 대리부담
                   </span>
                   <div className="text-right">
-                    <span className="font-mono font-bold text-indigo-950">
+                    <span className={`font-mono font-bold ${isDark ? 'text-indigo-200' : 'text-indigo-950'}`}>
                       ¥{hyeonwooCardSharedPaidJPY.toLocaleString()}
                     </span>
-                    <span className="text-[10px] text-indigo-600 block">
+                    <span className={`text-[10px] block ${isDark ? 'text-indigo-300/70' : 'text-indigo-600'}`}>
                       (숙소 5박, 해리포터, 후지산 등)
                     </span>
                   </div>
                 </div>
 
-                <div className="p-2.5 bg-blue-50/60 rounded-xl flex items-center justify-between border border-blue-100">
-                  <span className="text-blue-900 font-medium flex items-center gap-1.5">
-                    <CreditCard className="w-3.5 h-3.5 text-blue-600" />
+                <div className={`p-2.5 rounded-xl flex items-center justify-between border transition-colors ${
+                  isDark ? 'bg-blue-950/40 border-blue-800/40' : 'bg-blue-50/60 border-blue-100'
+                }`}>
+                  <span className={`font-medium flex items-center gap-1.5 ${isDark ? 'text-blue-200' : 'text-blue-900'}`}>
+                    <CreditCard className="w-3.5 h-3.5 text-blue-400" />
                     현우가족 개별 카드 지출
                   </span>
                   <div className="text-right">
-                    <span className="font-mono font-bold text-blue-950">
+                    <span className={`font-mono font-bold ${isDark ? 'text-blue-200' : 'text-blue-950'}`}>
                       ¥{hyeonwooPersonalCardJPY.toLocaleString()}
                     </span>
-                    <span className="text-[10px] text-blue-500 block">(가족 전용 쇼핑)</span>
+                    <span className={`text-[10px] block ${isDark ? 'text-blue-300/70' : 'text-blue-500'}`}>(가족 전용 쇼핑)</span>
                   </div>
                 </div>
 
-                <div className="p-2.5 bg-sky-50/60 rounded-xl flex items-center justify-between border border-sky-100">
-                  <span className="text-sky-900 font-medium flex items-center gap-1.5">
-                    <Banknote className="w-3.5 h-3.5 text-sky-600" />
+                <div className={`p-2.5 rounded-xl flex items-center justify-between border transition-colors ${
+                  isDark ? 'bg-sky-950/40 border-sky-800/40' : 'bg-sky-50/60 border-sky-100'
+                }`}>
+                  <span className={`font-medium flex items-center gap-1.5 ${isDark ? 'text-sky-200' : 'text-sky-900'}`}>
+                    <Banknote className="w-3.5 h-3.5 text-sky-400" />
                     현우가족 개별 현금 지출
                   </span>
                   <div className="text-right">
-                    <span className="font-mono font-bold text-sky-950">
+                    <span className={`font-mono font-bold ${isDark ? 'text-sky-200' : 'text-sky-950'}`}>
                       ¥{hyeonwooPersonalCashJPY.toLocaleString()}
                     </span>
-                    <span className="text-[10px] text-sky-500 block">(개인 현금 지출)</span>
+                    <span className={`text-[10px] block ${isDark ? 'text-sky-300/70' : 'text-sky-500'}`}>(개인 현금 지출)</span>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                <div className={`pt-2 border-t flex items-center justify-between text-[11px] ${
+                  isDark ? `${theme.dividerBorder} ${theme.textMuted}` : 'border-slate-100 text-slate-500'
+                }`}>
                   <span>공동 카드 1/2 법정 분담금</span>
                   <span className="font-mono font-semibold">
                     ¥{Math.round(totalCardSharedJPY / 2).toLocaleString()}
@@ -2394,9 +2594,13 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                 {onOpenReceipt && (
                   <button
                     onClick={() => onOpenReceipt('현우가족')}
-                    className="w-full mt-1 py-1.5 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className={`w-full mt-1 py-1.5 px-3 border rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      isDark
+                        ? 'bg-blue-600/30 hover:bg-blue-600/45 text-blue-200 border-blue-500/40'
+                        : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200'
+                    }`}
                   >
-                    <Receipt className="w-3.5 h-3.5 text-blue-600" />
+                    <Receipt className="w-3.5 h-3.5 text-blue-400" />
                     <span>🧾 현우가족 전용 영수증 확인</span>
                   </button>
                 )}
@@ -2404,20 +2608,24 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
             </div>
 
             {/* Family 2: 세현가족 */}
-            <div className="bg-white rounded-2xl p-4 border border-rose-200/90 shadow-2xs space-y-3">
-              <div className="flex items-center justify-between border-b border-rose-100 pb-2">
+            <div className={`rounded-2xl p-4 border shadow-2xs space-y-3 transition-colors ${
+              isDark ? `${theme.cardBg} ${theme.cardBorder}` : 'bg-white border-rose-200/90'
+            }`}>
+              <div className={`flex items-center justify-between border-b pb-2 ${
+                isDark ? theme.dividerBorder : 'border-rose-100'
+              }`}>
                 <div className="flex items-center gap-2">
                   <span className="w-7 h-7 rounded-full bg-rose-500 text-white font-bold flex items-center justify-center text-xs">
                     세
                   </span>
                   <div>
-                    <h5 className="font-bold text-sm text-slate-900">세현가족 (2인)</h5>
-                    <span className="text-[10px] text-rose-600 font-semibold">참여자 2인</span>
+                    <h5 className={`font-bold text-sm ${isDark ? theme.textPrimary : 'text-slate-900'}`}>세현가족 (2인)</h5>
+                    <span className="text-[10px] text-rose-400 font-semibold">참여자 2인</span>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] text-slate-400 block">총 결제/납부 합계</span>
-                  <span className="font-mono font-bold text-sm text-rose-950">
+                  <span className={`text-[10px] block ${isDark ? theme.textMuted : 'text-slate-400'}`}>총 결제/납부 합계</span>
+                  <span className={`font-mono font-bold text-sm ${isDark ? theme.accentText : 'text-rose-950'}`}>
                     ¥
                     {(
                       sehyeonDepositJPY +
@@ -2430,58 +2638,68 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
               </div>
 
               <div className="space-y-2 text-xs">
-                <div className="p-2.5 bg-slate-50 rounded-xl flex items-center justify-between">
-                  <span className="text-slate-600 flex items-center gap-1.5">
-                    <Banknote className="w-3.5 h-3.5 text-emerald-600" />
+                <div className={`p-2.5 rounded-xl flex items-center justify-between transition-colors ${
+                  isDark ? `${theme.subCardBg} ${theme.subCardBorder}` : 'bg-slate-50'
+                }`}>
+                  <span className={`flex items-center gap-1.5 ${isDark ? theme.textSecondary : 'text-slate-600'}`}>
+                    <Banknote className="w-3.5 h-3.5 text-emerald-400" />
                     현금 공동경비 모금 납부액
                   </span>
-                  <span className="font-mono font-bold text-slate-900">
+                  <span className={`font-mono font-bold ${isDark ? theme.textPrimary : 'text-slate-900'}`}>
                     ¥{sehyeonDepositJPY.toLocaleString()}
                   </span>
                 </div>
 
-                <div className="p-2.5 bg-indigo-50/60 rounded-xl flex items-center justify-between border border-indigo-100">
-                  <span className="text-indigo-900 font-medium flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5 text-indigo-600" />
+                <div className={`p-2.5 rounded-xl flex items-center justify-between border transition-colors ${
+                  isDark ? 'bg-indigo-950/40 border-indigo-800/40' : 'bg-indigo-50/60 border-indigo-100'
+                }`}>
+                  <span className={`font-medium flex items-center gap-1.5 ${isDark ? 'text-indigo-200' : 'text-indigo-900'}`}>
+                    <Users className="w-3.5 h-3.5 text-indigo-400" />
                     공동 카드 선결제 대리부담
                   </span>
                   <div className="text-right">
-                    <span className="font-mono font-bold text-indigo-950">
+                    <span className={`font-mono font-bold ${isDark ? 'text-indigo-200' : 'text-indigo-950'}`}>
                       ¥{sehyeonCardSharedPaidJPY.toLocaleString()}
                     </span>
-                    <span className="text-[10px] text-indigo-600 block">
+                    <span className={`text-[10px] block ${isDark ? 'text-indigo-300/70' : 'text-indigo-600'}`}>
                       (디즈니씨 티켓, 시부야스카이 등)
                     </span>
                   </div>
                 </div>
 
-                <div className="p-2.5 bg-rose-50/60 rounded-xl flex items-center justify-between border border-rose-100">
-                  <span className="text-rose-900 font-medium flex items-center gap-1.5">
-                    <CreditCard className="w-3.5 h-3.5 text-rose-600" />
+                <div className={`p-2.5 rounded-xl flex items-center justify-between border transition-colors ${
+                  isDark ? 'bg-rose-950/40 border-rose-800/40' : 'bg-rose-50/60 border-rose-100'
+                }`}>
+                  <span className={`font-medium flex items-center gap-1.5 ${isDark ? 'text-rose-200' : 'text-rose-900'}`}>
+                    <CreditCard className="w-3.5 h-3.5 text-rose-400" />
                     세현가족 개별 카드 지출
                   </span>
                   <div className="text-right">
-                    <span className="font-mono font-bold text-rose-950">
+                    <span className={`font-mono font-bold ${isDark ? 'text-rose-200' : 'text-rose-950'}`}>
                       ¥{sehyeonPersonalCardJPY.toLocaleString()}
                     </span>
-                    <span className="text-[10px] text-rose-500 block">(가족 전용 쇼핑)</span>
+                    <span className={`text-[10px] block ${isDark ? 'text-rose-300/70' : 'text-rose-500'}`}>(가족 전용 쇼핑)</span>
                   </div>
                 </div>
 
-                <div className="p-2.5 bg-amber-50/60 rounded-xl flex items-center justify-between border border-amber-100">
-                  <span className="text-amber-900 font-medium flex items-center gap-1.5">
-                    <Banknote className="w-3.5 h-3.5 text-amber-600" />
+                <div className={`p-2.5 rounded-xl flex items-center justify-between border transition-colors ${
+                  isDark ? 'bg-amber-950/40 border-amber-800/40' : 'bg-amber-50/60 border-amber-100'
+                }`}>
+                  <span className={`font-medium flex items-center gap-1.5 ${isDark ? 'text-amber-200' : 'text-amber-900'}`}>
+                    <Banknote className="w-3.5 h-3.5 text-amber-400" />
                     세현가족 개별 현금 지출
                   </span>
                   <div className="text-right">
-                    <span className="font-mono font-bold text-amber-950">
+                    <span className={`font-mono font-bold ${isDark ? 'text-amber-200' : 'text-amber-950'}`}>
                       ¥{sehyeonPersonalCashJPY.toLocaleString()}
                     </span>
-                    <span className="text-[10px] text-amber-500 block">(개인 현금 지출)</span>
+                    <span className={`text-[10px] block ${isDark ? 'text-amber-300/70' : 'text-amber-500'}`}>(개인 현금 지출)</span>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                <div className={`pt-2 border-t flex items-center justify-between text-[11px] ${
+                  isDark ? `${theme.dividerBorder} ${theme.textMuted}` : 'border-slate-100 text-slate-500'
+                }`}>
                   <span>공동 카드 1/2 법정 분담금</span>
                   <span className="font-mono font-semibold">
                     ¥{Math.round(totalCardSharedJPY / 2).toLocaleString()}
@@ -2491,9 +2709,13 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                 {onOpenReceipt && (
                   <button
                     onClick={() => onOpenReceipt('세현가족')}
-                    className="w-full mt-1 py-1.5 px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className={`w-full mt-1 py-1.5 px-3 border rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      isDark
+                        ? 'bg-rose-600/30 hover:bg-rose-600/45 text-rose-200 border-rose-500/40'
+                        : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
+                    }`}
                   >
-                    <Receipt className="w-3.5 h-3.5 text-rose-600" />
+                    <Receipt className="w-3.5 h-3.5 text-rose-400" />
                     <span>🧾 세현가족 전용 영수증 확인</span>
                   </button>
                 )}
@@ -2506,24 +2728,30 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
       {/* ===================== EDIT ITEM MODAL ===================== */}
       {editingItem && (
         <div className="fixed inset-0 z-[1400] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-2xs animate-in fade-in duration-150">
-          <div className="bg-white w-full max-w-lg rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+          <div className={`w-full max-w-lg rounded-2xl border shadow-2xl overflow-hidden flex flex-col max-h-[90vh] transition-colors ${
+            isDark ? `${theme.modalBg} ${theme.modalBorder} ${theme.textPrimary}` : 'bg-white border-slate-200'
+          }`}>
+            <div className={`p-4 border-b flex items-center justify-between transition-colors ${
+              isDark ? `${theme.modalHeaderBg} ${theme.dividerBorder}` : 'bg-slate-50 border-slate-200'
+            }`}>
               <div className="flex items-center gap-2">
-                <span className="p-1.5 bg-indigo-100 text-indigo-700 rounded-lg">
+                <span className={`p-1.5 rounded-lg ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-700'}`}>
                   <Pencil className="w-4 h-4" />
                 </span>
                 <div>
-                  <h4 className="font-bold text-sm text-slate-900">
+                  <h4 className={`font-bold text-sm ${isDark ? theme.textPrimary : 'text-slate-900'}`}>
                     {editingItem.type === 'DEPOSIT' ? '공동경비 모금 내역 수정' : '지출 내역 수정'}
                   </h4>
-                  <p className="text-[11px] text-slate-500">
+                  <p className={`text-[11px] ${isDark ? theme.textMuted : 'text-slate-500'}`}>
                     권한: {roleInfo?.label} ({authPasscode})
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setEditingItem(null)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-200 cursor-pointer"
+                className={`p-1 rounded-lg cursor-pointer transition-colors ${
+                  isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200'
+                }`}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2888,17 +3116,23 @@ export const BudgetLedgerView: React.FC<BudgetLedgerViewProps> = ({
                 </>
               )}
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+              <div className={`flex items-center justify-end gap-2 pt-3 border-t transition-colors ${
+                isDark ? theme.dividerBorder : 'border-slate-200'
+              }`}>
                 <button
                   type="button"
                   onClick={() => setEditingItem(null)}
-                  className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                    isDark ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-200'
+                  }`}
                 >
                   취소
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                  className={`px-4 py-2 rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer ${
+                    isDark ? theme.primaryBtn : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                  }`}
                 >
                   수정 저장하기
                 </button>

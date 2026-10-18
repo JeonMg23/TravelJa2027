@@ -19,6 +19,11 @@ import {
 } from 'lucide-react';
 
 import { getStoredBudgetPasscode, setStoredBudgetPasscode } from '../services/budgetAuth';
+import {
+  ScheduleThemeId,
+  SCHEDULE_THEMES,
+  loadSavedScheduleTheme
+} from '../data/scheduleThemes';
 
 export type ReceiptTarget = 'ALL' | '현우가족' | '세현가족';
 
@@ -27,14 +32,20 @@ interface BudgetReceiptModalProps {
   onClose: () => void;
   budget: BudgetItem[];
   initialFamily?: ReceiptTarget;
+  scheduleThemeId?: ScheduleThemeId;
 }
 
 export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
   isOpen,
   onClose,
   budget,
-  initialFamily = 'ALL'
+  initialFamily = 'ALL',
+  scheduleThemeId
 }) => {
+  const effectiveThemeId = scheduleThemeId || loadSavedScheduleTheme();
+  const theme = SCHEDULE_THEMES[effectiveThemeId] || SCHEDULE_THEMES['classic-light'];
+  const isDark = theme.isDark;
+
   const [selectedReceipt, setSelectedReceipt] = useState<ReceiptTarget>(initialFamily);
   const [copySuccess, setCopySuccess] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -69,14 +80,24 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
 
   if (!authPasscode || !['1111', '3539', '0901'].includes(authPasscode)) {
     return (
-      <div className="fixed inset-0 z-[2000] flex items-center justify-center p-3 sm:p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-150">
-        <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-sm w-full text-center shadow-2xl space-y-4 border border-slate-100">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-indigo-500/20">
+      <div className={`fixed inset-0 z-[2000] flex items-center justify-center p-3 sm:p-4 backdrop-blur-sm animate-in fade-in duration-150 ${
+        isDark ? 'bg-black/85' : 'bg-slate-900/80'
+      }`}>
+        <div className={`rounded-3xl p-6 sm:p-7 max-w-sm w-full text-center shadow-2xl space-y-4 border ${
+          isDark
+            ? `${theme.modalBg} ${theme.modalBorder} ${theme.textPrimary}`
+            : 'bg-white border-slate-100 text-slate-900'
+        }`}>
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto shadow-lg ${
+            isDark ? theme.pinSelected : 'bg-indigo-600 text-white shadow-indigo-500/20'
+          }`}>
             <Lock className="w-7 h-7" />
           </div>
           <div>
-            <h4 className="font-bold text-slate-900 text-base sm:text-lg">영수증 보안 비밀번호 입력</h4>
-            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+            <h4 className={`font-bold text-base sm:text-lg ${isDark ? theme.textPrimary : 'text-slate-900'}`}>
+              영수증 보안 비밀번호 입력
+            </h4>
+            <p className={`text-xs mt-1 leading-relaxed ${isDark ? theme.textMuted : 'text-slate-500'}`}>
               도쿄 여행 2가족 정산 영수증은 비밀번호 인증 후 즉시 열람하실 수 있습니다.
             </p>
           </div>
@@ -104,12 +125,16 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
                   handlePinSubmit(val);
                 }
               }}
-              className="w-full text-center tracking-[0.5em] text-2xl font-mono font-bold py-2.5 px-4 border-2 border-indigo-200 focus:border-indigo-600 rounded-2xl bg-white shadow-xs outline-none transition-all placeholder:tracking-normal placeholder:font-normal placeholder:text-slate-300"
+              className={`w-full text-center tracking-[0.5em] text-2xl font-mono font-bold py-2.5 px-4 rounded-2xl outline-none transition-all ${
+                isDark
+                  ? `${theme.inputBg} ${theme.inputBorder} ${theme.inputText} border-2`
+                  : 'border-2 border-indigo-200 focus:border-indigo-600 bg-white shadow-xs placeholder:text-slate-300'
+              }`}
             />
 
             {pinError && (
-              <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold flex items-center justify-center gap-1.5 animate-shake">
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-rose-600" />
+              <div className="p-2.5 bg-rose-500/20 border border-rose-400/50 rounded-xl text-rose-300 text-xs font-semibold flex items-center justify-center gap-1.5 animate-shake">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-rose-400" />
                 <span>{pinError}</span>
               </div>
             )}
@@ -118,14 +143,18 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                className={`flex-1 py-2.5 font-semibold text-xs rounded-xl transition-colors cursor-pointer ${
+                  isDark ? 'bg-white/10 hover:bg-white/20 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                }`}
               >
                 닫기
               </button>
               <button
                 type="submit"
                 disabled={pinInput.length !== 4}
-                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                className={`flex-1 py-2.5 disabled:opacity-40 font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  isDark ? theme.primaryBtn : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                }`}
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>확인</span>
@@ -341,22 +370,28 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[2000] bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh] border border-slate-700/20">
+    <div className={`fixed inset-0 z-[2000] backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto animate-in fade-in duration-200 ${
+      isDark ? 'bg-black/85' : 'bg-slate-900/80'
+    }`}>
+      <div className={`relative w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh] border ${
+        isDark ? `${theme.modalBg} ${theme.modalBorder} ${theme.textPrimary}` : 'bg-white border-slate-700/20 text-slate-900'
+      }`}>
         {/* Header Bar */}
-        <div className="p-3.5 sm:p-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+        <div className={`p-3.5 sm:p-4 flex items-center justify-between shrink-0 ${
+          isDark ? theme.modalHeaderBg : 'bg-slate-900 text-white'
+        }`}>
           <div className="flex items-center gap-2.5">
-            <span className="p-2 bg-amber-500/20 text-amber-300 rounded-xl">
+            <span className={`p-2 rounded-xl ${isDark ? 'bg-amber-400/20 text-amber-300' : 'bg-amber-500/20 text-amber-300'}`}>
               <Receipt className="w-5 h-5" />
             </span>
             <div>
-              <h3 className="font-bold text-sm sm:text-base flex items-center gap-2">
+              <h3 className={`font-bold text-sm sm:text-base flex items-center gap-2 ${isDark ? theme.textPrimary : 'text-white'}`}>
                 <span>공식 여행 경비 영수증</span>
                 <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
                   실시간 DB 반영
                 </span>
               </h3>
-              <p className="text-[11px] text-slate-300">
+              <p className={`text-[11px] ${isDark ? theme.textMuted : 'text-slate-300'}`}>
                 원하는 영수증(전체/현우가족/세현가족)을 탭하여 즉시 확인 및 인쇄·복사할 수 있습니다.
               </p>
             </div>
@@ -364,7 +399,9 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
           <div className="flex items-center gap-1.5">
             <button
               onClick={handleCopySummary}
-              className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-all cursor-pointer relative"
+              className={`p-2 rounded-xl transition-all cursor-pointer relative ${
+                isDark ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              }`}
               title="텍스트 복사"
             >
               {copySuccess ? (
@@ -375,14 +412,18 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
             </button>
             <button
               onClick={handlePrint}
-              className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
+              className={`p-2 rounded-xl transition-all cursor-pointer ${
+                isDark ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              }`}
               title="인쇄하기"
             >
               <Printer className="w-4 h-4" />
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
+              className={`p-2 rounded-xl transition-all cursor-pointer ${
+                isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
               title="닫기"
             >
               <X className="w-4 h-4" />
@@ -406,13 +447,19 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
         )}
 
         {/* 3-Way Receipt Selector Tabs */}
-        <div className="bg-slate-800 p-2 sm:px-4 sm:py-2.5 border-b border-slate-700/50 flex items-center justify-between gap-2 shrink-0 overflow-x-auto">
+        <div className={`p-2 sm:px-4 sm:py-2.5 border-b flex items-center justify-between gap-2 shrink-0 overflow-x-auto ${
+          isDark ? 'bg-black/60 border-white/10' : 'bg-slate-800 border-slate-700/50'
+        }`}>
           <div className="flex items-center gap-1.5 w-full sm:w-auto">
             <button
               onClick={() => setSelectedReceipt('ALL')}
               className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 selectedReceipt === 'ALL'
-                  ? 'bg-amber-400 text-slate-900 shadow-md scale-100'
+                  ? isDark
+                    ? theme.tabActive
+                    : 'bg-amber-400 text-slate-900 shadow-md scale-100'
+                  : isDark
+                  ? theme.tabInactive
                   : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
               }`}
             >
@@ -424,7 +471,9 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
               onClick={() => setSelectedReceipt('현우가족')}
               className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 selectedReceipt === '현우가족'
-                  ? 'bg-blue-500 text-white shadow-md scale-100'
+                  ? 'bg-blue-600 text-white shadow-md scale-100'
+                  : isDark
+                  ? theme.tabInactive
                   : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
               }`}
             >
@@ -436,7 +485,9 @@ export const BudgetReceiptModal: React.FC<BudgetReceiptModalProps> = ({
               onClick={() => setSelectedReceipt('세현가족')}
               className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 selectedReceipt === '세현가족'
-                  ? 'bg-rose-500 text-white shadow-md scale-100'
+                  ? 'bg-rose-600 text-white shadow-md scale-100'
+                  : isDark
+                  ? theme.tabInactive
                   : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
               }`}
             >

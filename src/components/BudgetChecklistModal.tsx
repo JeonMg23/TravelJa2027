@@ -2,6 +2,13 @@ import React, { useState } from 'react';
 import { ChecklistItem, BudgetItem, ChecklistCategory } from '../types/travel';
 import { BudgetLedgerView } from './BudgetLedgerView';
 import {
+  ScheduleThemeId,
+  SCHEDULE_THEMES,
+  SCHEDULE_THEME_LIST,
+  loadSavedScheduleTheme,
+  saveScheduleTheme
+} from '../data/scheduleThemes';
+import {
   X,
   CheckSquare,
   Wallet,
@@ -12,7 +19,8 @@ import {
   RotateCcw,
   CheckCheck,
   Sparkles,
-  Filter
+  Palette,
+  ChevronDown
 } from 'lucide-react';
 
 interface BudgetChecklistModalProps {
@@ -20,6 +28,8 @@ interface BudgetChecklistModalProps {
   onClose: () => void;
   activeView: 'budget' | 'checklist';
   onSwitchView: (view: 'budget' | 'checklist') => void;
+  scheduleThemeId?: ScheduleThemeId;
+  onSelectScheduleTheme?: (themeId: ScheduleThemeId) => void;
   checklist: ChecklistItem[];
   onToggleCheckItem: (id: string) => void;
   onAddCheckItem: (text: string, category: ChecklistItem['category']) => void;
@@ -65,6 +75,8 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
   onClose,
   activeView,
   onSwitchView,
+  scheduleThemeId,
+  onSelectScheduleTheme,
   checklist,
   onToggleCheckItem,
   onAddCheckItem,
@@ -78,6 +90,23 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
   onResetBudget,
   onOpenReceipt
 }) => {
+  // Theme state
+  const [internalThemeId, setInternalThemeId] = useState<ScheduleThemeId>(() => loadSavedScheduleTheme());
+  const effectiveThemeId = scheduleThemeId || internalThemeId;
+  const currentTheme = SCHEDULE_THEMES[effectiveThemeId] || SCHEDULE_THEMES['classic-light'];
+  const isDark = currentTheme.isDark;
+
+  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+
+  const handleThemeChange = (newThemeId: ScheduleThemeId) => {
+    setInternalThemeId(newThemeId);
+    saveScheduleTheme(newThemeId);
+    if (onSelectScheduleTheme) {
+      onSelectScheduleTheme(newThemeId);
+    }
+    setIsThemeMenuOpen(false);
+  };
+
   // Checklist UI filter & search states
   const [selectedCategory, setSelectedCategory] = useState<string>('전체');
   const [searchQuery, setSearchQuery] = useState('');
@@ -129,20 +158,41 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[1200] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-2xs animate-in fade-in duration-150">
+    <div
+      className={`fixed inset-0 z-[1200] flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm animate-in fade-in duration-150 ${
+        isDark ? 'bg-black/80' : 'bg-black/60'
+      }`}
+    >
       <div
-        className={`bg-white w-full ${
+        className={`w-full ${
           activeView === 'budget' ? 'max-w-4xl' : 'max-w-3xl'
-        } rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]`}
+        } rounded-3xl border shadow-2xl overflow-hidden flex flex-col max-h-[92vh] transition-colors duration-200 ${
+          isDark
+            ? `${currentTheme.modalBg} ${currentTheme.modalBorder} ${currentTheme.textPrimary}`
+            : 'bg-white border-slate-200 text-slate-900'
+        }`}
       >
-        {/* Header with Switcher Tabs */}
-        <div className="p-3 sm:p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 shrink-0">
-          <div className="flex items-center gap-1.5 p-1 bg-slate-200/70 rounded-xl">
+        {/* Header with Switcher Tabs and Theme Quick Selector */}
+        <div
+          className={`p-3 sm:p-4 border-b flex items-center justify-between shrink-0 gap-2 flex-wrap ${
+            isDark ? currentTheme.modalHeaderBg : 'bg-slate-50 border-slate-200'
+          }`}
+        >
+          {/* View Tabs */}
+          <div
+            className={`flex items-center gap-1.5 p-1 rounded-2xl ${
+              isDark ? 'bg-black/40 border border-white/10' : 'bg-slate-200/70'
+            }`}
+          >
             <button
               onClick={() => onSwitchView('checklist')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeView === 'checklist'
-                  ? 'bg-white text-indigo-700 shadow-xs'
+                  ? isDark
+                    ? currentTheme.tabActive
+                    : 'bg-white text-indigo-700 shadow-xs'
+                  : isDark
+                  ? currentTheme.tabInactive
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -151,9 +201,13 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
             </button>
             <button
               onClick={() => onSwitchView('budget')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeView === 'budget'
-                  ? 'bg-white text-indigo-700 shadow-xs'
+                  ? isDark
+                    ? currentTheme.tabActive
+                    : 'bg-white text-indigo-700 shadow-xs'
+                  : isDark
+                  ? currentTheme.tabInactive
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -161,30 +215,119 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
               <span>공동 경비 & 가계부</span>
             </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
-            title="닫기"
-          >
-            <X className="w-5 h-5" />
-          </button>
+
+          {/* Right Action: Real-time Theme Switcher & Close button */}
+          <div className="flex items-center gap-2 ml-auto">
+            {/* Theme Switcher Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+                  isDark
+                    ? 'bg-white/10 hover:bg-white/15 text-white border-white/20 shadow-xs'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200 shadow-2xs'
+                }`}
+                title="일정·가계부·체크리스트 디자인 테마 변경"
+              >
+                <Palette className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden sm:inline">{currentTheme.shortName}</span>
+                <span className="sm:hidden">{currentTheme.badgeText}</span>
+                <ChevronDown className="w-3 h-3 opacity-60" />
+              </button>
+
+              {isThemeMenuOpen && (
+                <div
+                  className={`absolute right-0 top-full mt-1.5 w-60 rounded-2xl shadow-2xl border p-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150 ${
+                    isDark
+                      ? 'bg-[#0B1120] border-slate-700 text-white shadow-[0_10px_35px_rgba(0,0,0,0.8)]'
+                      : 'bg-white border-slate-200 text-slate-800 shadow-xl'
+                  }`}
+                >
+                  <div
+                    className={`text-[10px] font-bold px-2.5 py-1 border-b mb-1 ${
+                      isDark ? 'text-slate-400 border-slate-800' : 'text-slate-500 border-slate-100'
+                    }`}
+                  >
+                    🎨 디자인 스타일 실시간 선택 (전체 동기화)
+                  </div>
+                  {SCHEDULE_THEME_LIST.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => handleThemeChange(t.id)}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                        effectiveThemeId === t.id
+                          ? isDark
+                            ? 'bg-amber-400/20 text-amber-300 font-bold'
+                            : 'bg-indigo-50 text-indigo-700 font-bold'
+                          : isDark
+                          ? 'hover:bg-white/5 text-slate-300'
+                          : 'hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            t.isDark ? 'bg-amber-400' : 'bg-indigo-600'
+                          }`}
+                        />
+                        <span>{t.shortName}</span>
+                      </div>
+                      {effectiveThemeId === t.id && <Check className="w-3.5 h-3.5 text-amber-400" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={onClose}
+              className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
+                isDark
+                  ? 'text-slate-400 hover:text-white hover:bg-white/10'
+                  : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200'
+              }`}
+              title="닫기"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* View 1: Checklist */}
         {activeView === 'checklist' && (
           <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
             {/* Progress Bar & Status Banner */}
-            <div className="bg-gradient-to-r from-slate-50 via-indigo-50/40 to-slate-50 p-4 rounded-2xl border border-slate-200 shadow-xs">
-              <div className="flex flex-wrap items-center justify-between text-xs font-bold text-slate-800 mb-2 gap-2">
+            <div
+              className={`p-4 rounded-2xl border shadow-xs transition-colors ${
+                isDark
+                  ? `${currentTheme.subCardBg} ${currentTheme.subCardBorder}`
+                  : 'bg-gradient-to-r from-slate-50 via-indigo-50/40 to-slate-50 border-slate-200'
+              }`}
+            >
+              <div className="flex flex-wrap items-center justify-between text-xs font-bold mb-2 gap-2">
                 <div className="flex items-center gap-2">
                   <span className="text-base">🎒</span>
-                  <span>여행 짐싸기 달성률</span>
-                  <span className="text-[11px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded-full border border-slate-200">
+                  <span className={isDark ? currentTheme.textPrimary : 'text-slate-800'}>
+                    여행 짐싸기 달성률
+                  </span>
+                  <span
+                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+                      isDark
+                        ? 'bg-white/10 text-slate-200 border-white/10'
+                        : 'text-slate-500 bg-white border-slate-200'
+                    }`}
+                  >
                     완료 {completedCount} / 미완료 {uncompletedCount}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-indigo-600 text-sm font-black font-mono">{progressPercent}%</span>
+                  <span
+                    className={`text-sm font-black font-mono ${
+                      isDark ? currentTheme.accentText : 'text-indigo-600'
+                    }`}
+                  >
+                    {progressPercent}%
+                  </span>
                   {progressPercent === 100 && (
                     <span className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
                       <Sparkles className="w-3 h-3" /> 완벽 준비 완료!
@@ -192,22 +335,44 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
                   )}
                 </div>
               </div>
-              <div className="w-full h-3 bg-slate-200/80 rounded-full overflow-hidden p-0.5">
+
+              {/* Progress Bar */}
+              <div
+                className={`w-full h-3 rounded-full overflow-hidden p-0.5 ${
+                  isDark ? currentTheme.progressBarBg : 'bg-slate-200/80'
+                }`}
+              >
                 <div
-                  className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 transition-all duration-300 rounded-full"
+                  className={`h-full transition-all duration-300 rounded-full ${
+                    isDark ? currentTheme.progressFill : 'bg-gradient-to-r from-indigo-500 to-indigo-600'
+                  }`}
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
 
               {/* Quick Actions (All Complete / All Incomplete / Reset Defaults) */}
-              <div className="mt-3 pt-3 border-t border-slate-200/70 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-semibold text-slate-500">필터:</span>
+              <div
+                className={`mt-3 pt-3 border-t flex flex-wrap items-center justify-between gap-2 text-xs ${
+                  isDark ? currentTheme.dividerBorder : 'border-slate-200/70'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span
+                    className={`text-[11px] font-semibold ${
+                      isDark ? currentTheme.textMuted : 'text-slate-500'
+                    }`}
+                  >
+                    필터:
+                  </span>
                   <button
                     onClick={() => setStatusFilter('all')}
-                    className={`px-2 py-0.5 rounded-md text-[11px] font-semibold cursor-pointer transition-colors ${
+                    className={`px-2.5 py-0.5 rounded-lg text-[11px] font-semibold cursor-pointer transition-colors ${
                       statusFilter === 'all'
-                        ? 'bg-slate-900 text-white'
+                        ? isDark
+                          ? currentTheme.tabActive
+                          : 'bg-slate-900 text-white'
+                        : isDark
+                        ? 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10'
                         : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
                     }`}
                   >
@@ -215,9 +380,13 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
                   </button>
                   <button
                     onClick={() => setStatusFilter('pending')}
-                    className={`px-2 py-0.5 rounded-md text-[11px] font-semibold cursor-pointer transition-colors ${
+                    className={`px-2.5 py-0.5 rounded-lg text-[11px] font-semibold cursor-pointer transition-colors ${
                       statusFilter === 'pending'
-                        ? 'bg-amber-600 text-white'
+                        ? isDark
+                          ? 'bg-amber-400 text-slate-950 font-bold shadow-[0_0_10px_rgba(250,204,21,0.4)]'
+                          : 'bg-amber-600 text-white'
+                        : isDark
+                        ? 'bg-white/5 text-amber-300 border border-amber-400/30 hover:bg-amber-400/10'
                         : 'bg-white text-amber-700 border border-amber-200 hover:bg-amber-50'
                     }`}
                   >
@@ -225,9 +394,13 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
                   </button>
                   <button
                     onClick={() => setStatusFilter('completed')}
-                    className={`px-2 py-0.5 rounded-md text-[11px] font-semibold cursor-pointer transition-colors ${
+                    className={`px-2.5 py-0.5 rounded-lg text-[11px] font-semibold cursor-pointer transition-colors ${
                       statusFilter === 'completed'
-                        ? 'bg-emerald-600 text-white'
+                        ? isDark
+                          ? 'bg-emerald-400 text-slate-950 font-bold shadow-[0_0_10px_rgba(52,211,153,0.4)]'
+                          : 'bg-emerald-600 text-white'
+                        : isDark
+                        ? 'bg-white/5 text-emerald-300 border border-emerald-400/30 hover:bg-emerald-400/10'
                         : 'bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50'
                     }`}
                   >
@@ -240,7 +413,11 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
                     <>
                       <button
                         onClick={() => onToggleAllChecklist(true)}
-                        className="px-2 py-1 rounded-lg text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors flex items-center gap-1 cursor-pointer"
+                        className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors flex items-center gap-1 cursor-pointer border ${
+                          isDark
+                            ? 'text-amber-300 bg-amber-400/15 hover:bg-amber-400/25 border-amber-400/30'
+                            : 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border-indigo-200'
+                        }`}
                         title="모든 항목을 완료 상태로 체크합니다"
                       >
                         <CheckCheck className="w-3 h-3" />
@@ -248,7 +425,11 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
                       </button>
                       <button
                         onClick={() => onToggleAllChecklist(false)}
-                        className="px-2 py-1 rounded-lg text-[10px] font-bold text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
+                        className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors cursor-pointer border ${
+                          isDark
+                            ? 'text-slate-300 bg-white/5 hover:bg-white/10 border-white/15'
+                            : 'text-slate-600 bg-white hover:bg-slate-100 border-slate-200'
+                        }`}
                         title="모든 항목 체크를 해제합니다"
                       >
                         <span>전체 해제</span>
@@ -258,7 +439,11 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
                   {onResetChecklist && (
                     <button
                       onClick={onResetChecklist}
-                      className="px-2 py-1 rounded-lg text-[10px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors flex items-center gap-1 cursor-pointer"
+                      className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors flex items-center gap-1 cursor-pointer border ${
+                        isDark
+                          ? 'text-rose-300 bg-rose-500/15 hover:bg-rose-500/25 border-rose-400/30'
+                          : 'text-rose-700 bg-rose-50 hover:bg-rose-100 border-rose-200'
+                      }`}
                       title="추천 필수 항목(목도리·장갑 포함)으로 복원"
                     >
                       <RotateCcw className="w-3 h-3" />
@@ -276,7 +461,11 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
                   onClick={() => setSelectedCategory('전체')}
                   className={`px-2.5 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
                     selectedCategory === '전체'
-                      ? 'bg-slate-900 text-white shadow-xs'
+                      ? isDark
+                        ? currentTheme.tabActive
+                        : 'bg-slate-900 text-white shadow-xs'
+                      : isDark
+                      ? 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
@@ -284,7 +473,11 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
                   <span className="text-[10px] opacity-80">({totalCount})</span>
                 </button>
                 {ALL_CATEGORIES.map((cat) => {
-                  const meta = CATEGORY_STYLES[cat] || { icon: '📌', label: cat, badge: 'bg-slate-100 text-slate-800 border-slate-200' };
+                  const meta = CATEGORY_STYLES[cat] || {
+                    icon: '📌',
+                    label: cat,
+                    badge: 'bg-slate-100 text-slate-800 border-slate-200'
+                  };
                   const count = categoryCountMap[cat] || 0;
                   const isSelected = selectedCategory === cat;
                   return (
@@ -293,7 +486,11 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
                       onClick={() => setSelectedCategory(cat)}
                       className={`px-2.5 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
                         isSelected
-                          ? 'bg-indigo-600 text-white shadow-xs'
+                          ? isDark
+                            ? currentTheme.tabActive
+                            : 'bg-indigo-600 text-white shadow-xs'
+                          : isDark
+                          ? 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                       }`}
                     >
@@ -308,18 +505,26 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
 
             {/* Search Input Bar */}
             <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search
+                className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 ${
+                  isDark ? 'text-slate-400' : 'text-slate-400'
+                }`}
+              />
               <input
                 type="text"
                 placeholder="준비물 검색 (예: 속옷, 양말, 칫솔, 비상약, 모자, 썬글라스, 여권, 돼지코...)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+                className={`w-full pl-9 pr-9 py-2 rounded-xl text-xs transition-all ${
+                  isDark
+                    ? `${currentTheme.inputBg} ${currentTheme.inputBorder} ${currentTheme.inputText}`
+                    : 'bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white'
+                }`}
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -329,10 +534,24 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
             {/* Checklist items list */}
             <div className="space-y-2">
               {filteredChecklist.length === 0 ? (
-                <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-500">
+                <div
+                  className={`text-center py-10 rounded-2xl border border-dashed ${
+                    isDark
+                      ? 'bg-white/[0.02] border-white/15 text-slate-400'
+                      : 'bg-slate-50 border-slate-200 text-slate-500'
+                  }`}
+                >
                   <div className="text-3xl mb-2">🔍</div>
-                  <p className="text-xs font-bold text-slate-700">해당 조건에 맞는 준비물이 없습니다.</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">검색어를 변경하거나 아래에서 직접 추가해 보세요!</p>
+                  <p
+                    className={`text-xs font-bold ${
+                      isDark ? currentTheme.textPrimary : 'text-slate-700'
+                    }`}
+                  >
+                    해당 조건에 맞는 준비물이 없습니다.
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    검색어를 변경하거나 아래에서 직접 추가해 보세요!
+                  </p>
                 </div>
               ) : (
                 filteredChecklist.map((item) => {
@@ -348,7 +567,11 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
                       onClick={() => onToggleCheckItem(item.id)}
                       className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
                         item.completed
-                          ? 'bg-slate-50/80 border-slate-200 text-slate-400 opacity-75'
+                          ? isDark
+                            ? 'bg-white/[0.02] border-white/10 text-slate-500 opacity-60'
+                            : 'bg-slate-50/80 border-slate-200 text-slate-400 opacity-75'
+                          : isDark
+                          ? `${currentTheme.cardBg} ${currentTheme.cardBorder} hover:border-amber-400/40 text-slate-100 shadow-xs`
                           : 'bg-white border-slate-200 hover:border-indigo-300 text-slate-800 shadow-2xs hover:shadow-xs'
                       }`}
                     >
@@ -356,7 +579,11 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
                         <div
                           className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors shrink-0 ${
                             item.completed
-                              ? 'bg-indigo-600 border-indigo-600 text-white'
+                              ? isDark
+                                ? `${currentTheme.tabActive} font-black`
+                                : 'bg-indigo-600 border-indigo-600 text-white'
+                              : isDark
+                              ? 'border-white/30 bg-white/5 hover:border-white/60'
                               : 'border-slate-300 bg-white hover:border-indigo-400'
                           }`}
                         >
@@ -365,7 +592,11 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
                         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                           <span
                             className={`text-xs font-semibold leading-snug break-words ${
-                              item.completed ? 'line-through text-slate-400' : 'text-slate-800'
+                              item.completed
+                                ? 'line-through text-slate-500'
+                                : isDark
+                                ? currentTheme.textPrimary
+                                : 'text-slate-800'
                             }`}
                           >
                             {item.text}
@@ -375,7 +606,11 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
 
                       <div className="flex items-center gap-2 shrink-0">
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border flex items-center gap-1 ${meta.badge}`}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border flex items-center gap-1 ${
+                            isDark
+                              ? 'bg-white/10 border-white/15 text-slate-200'
+                              : meta.badge
+                          }`}
                         >
                           <span>{meta.icon}</span>
                           <span>{item.category}</span>
@@ -385,7 +620,11 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
                             e.stopPropagation();
                             onDeleteCheckItem(item.id);
                           }}
-                          className="text-slate-300 hover:text-rose-500 p-1 rounded-md transition-colors cursor-pointer"
+                          className={`p-1 rounded-md transition-colors cursor-pointer ${
+                            isDark
+                              ? 'text-slate-500 hover:text-rose-400 hover:bg-white/10'
+                              : 'text-slate-300 hover:text-rose-500'
+                          }`}
                           title="삭제"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -398,13 +637,32 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
             </div>
 
             {/* Add Item form */}
-            <form onSubmit={handleAddChecklist} className="pt-2 flex flex-col sm:flex-row gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+            <form
+              onSubmit={handleAddChecklist}
+              className={`pt-2 flex flex-col sm:flex-row gap-2 p-3 rounded-2xl border transition-colors ${
+                isDark
+                  ? `${currentTheme.subCardBg} ${currentTheme.subCardBorder}`
+                  : 'bg-slate-50 border-slate-200'
+              }`}
+            >
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold text-slate-600 shrink-0">분류:</span>
+                <span
+                  className={`text-[11px] font-bold shrink-0 ${
+                    isDark ? currentTheme.textSecondary : 'text-slate-600'
+                  }`}
+                >
+                  분류:
+                </span>
                 <select
                   value={newCheckCategory}
-                  onChange={(e) => setNewCheckCategory(e.target.value as ChecklistItem['category'])}
-                  className="text-xs px-2.5 py-1.5 border border-slate-300 rounded-xl bg-white text-slate-800 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                  onChange={(e) =>
+                    setNewCheckCategory(e.target.value as ChecklistItem['category'])
+                  }
+                  className={`text-xs px-2.5 py-1.5 rounded-xl font-medium focus:outline-hidden ${
+                    isDark
+                      ? `${currentTheme.inputBg} ${currentTheme.inputBorder} ${currentTheme.inputText}`
+                      : 'bg-white border border-slate-300 text-slate-800 focus:ring-2 focus:ring-indigo-500'
+                  }`}
                 >
                   <option value="의류/잡화">👕 의류/잡화 (속옷, 양말, 모자...)</option>
                   <option value="세면/위생">🪥 세면/위생 (칫솔, 치약, 썬크림...)</option>
@@ -423,12 +681,18 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
                   placeholder="추가할 필수 준비물 입력 (예: 휴대용 썬글라스, 비상약 등)"
                   value={newCheckText}
                   onChange={(e) => setNewCheckText(e.target.value)}
-                  className="flex-1 px-3 py-1.5 border border-slate-300 rounded-xl text-xs text-slate-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  className={`flex-1 px-3 py-1.5 rounded-xl text-xs focus:outline-hidden ${
+                    isDark
+                      ? `${currentTheme.inputBg} ${currentTheme.inputBorder} ${currentTheme.inputText}`
+                      : 'border border-slate-300 text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500'
+                  }`}
                 />
                 <button
                   type="submit"
                   disabled={!newCheckText.trim()}
-                  className="px-3.5 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 disabled:opacity-40 transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold disabled:opacity-40 transition-colors shrink-0 flex items-center gap-1 cursor-pointer ${
+                    isDark ? currentTheme.primaryBtn : 'bg-slate-900 text-white hover:bg-slate-800'
+                  }`}
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>추가</span>
@@ -448,22 +712,34 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
               onDeleteBudgetItem={onDeleteBudgetItem}
               onResetBudget={onResetBudget}
               onOpenReceipt={onOpenReceipt}
+              scheduleThemeId={effectiveThemeId}
+              onSelectScheduleTheme={handleThemeChange}
             />
           </div>
         )}
 
         {/* Footer */}
-        <div className="p-3.5 sm:p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
-          <div className="text-[11px] text-slate-500">
+        <div
+          className={`p-3.5 sm:p-4 border-t flex items-center justify-between shrink-0 gap-3 ${
+            isDark ? currentTheme.modalFooterBg : 'bg-slate-50 border-slate-200'
+          }`}
+        >
+          <div
+            className={`text-[11px] ${
+              isDark ? currentTheme.textMuted : 'text-slate-500'
+            }`}
+          >
             {activeView === 'checklist' ? (
-              <span>💡 항목을 탭하여 체크/해제할 수 있으며 브라우저에 자동 저장됩니다.</span>
+              <span>💡 항목을 탭하여 체크/해제할 수 있으며 브라우저 및 DB에 자동 저장됩니다.</span>
             ) : (
               <span>💡 현금 공동경비 자동 차감 및 카드 공동/가족별 분리 정산이 실시간 동기화됩니다.</span>
             )}
           </div>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition-colors cursor-pointer"
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer shrink-0 ${
+              isDark ? currentTheme.primaryBtn : 'bg-slate-900 text-white hover:bg-slate-800'
+            }`}
           >
             닫기
           </button>

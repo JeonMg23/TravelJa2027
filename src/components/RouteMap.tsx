@@ -529,7 +529,8 @@ export const RouteMap: React.FC<RouteMapProps> = ({
 
   return (
     <div
-      className={`relative isolate z-0 w-full h-full min-h-[460px] bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 shadow-sm flex flex-col ${className}`}
+      id="route-map-section"
+      className={`relative isolate z-0 w-full h-full min-h-[300px] bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 shadow-sm flex flex-col ${className}`}
     >
       {/* Top Map Engine & Spot Ribbon Header */}
       <div className="absolute top-2.5 left-2.5 right-2.5 z-20 flex flex-col gap-2 pointer-events-none">
@@ -680,10 +681,10 @@ export const RouteMap: React.FC<RouteMapProps> = ({
 
       {/* Map Content Area */}
       {mapEngine === 'interactive' ? (
-        <div className="relative w-full h-full min-h-[460px] flex-1 z-0">
+        <div className="relative w-full h-full min-h-[300px] flex-1 z-0">
           <div
             ref={mapContainerRef}
-            className="w-full h-full min-h-[460px] flex-1 z-0"
+            className="w-full h-full min-h-[300px] flex-1 z-0"
             style={{ touchAction: 'pan-x pan-y' }}
           />
 
@@ -755,12 +756,12 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         </div>
       ) : (
         /* Google Maps Official Embed View */
-        <div className="relative w-full h-full min-h-[460px] flex-1 pt-12 z-0 bg-slate-100">
+        <div className="relative w-full h-full min-h-[300px] flex-1 pt-12 z-0 bg-slate-100">
           <iframe
             key={`${googleSpotEmbedUrl}-${mapLayerType}`}
             title="Google Maps Official Embed"
             src={googleSpotEmbedUrl}
-            className="w-full h-full min-h-[460px] border-0 rounded-2xl"
+            className="w-full h-full min-h-[300px] border-0 rounded-2xl"
             loading="lazy"
             allowFullScreen
           />
