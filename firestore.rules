@@ -46,6 +46,69 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function isValidStampMission(data) {
+      return data.keys().hasAll([
+          'missionId',
+          'tripId',
+          'dayNumber',
+          'title',
+          'placeTag',
+          'rewardPoint',
+          'hyunwooStamped',
+          'sehyunStamped',
+          'hyunwooRequested',
+          'sehyunRequested',
+          'praiseNote',
+          'updatedBy',
+          'isDeleted',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'missionId',
+          'tripId',
+          'dayNumber',
+          'title',
+          'placeTag',
+          'rewardPoint',
+          'hyunwooStamped',
+          'sehyunStamped',
+          'hyunwooRequested',
+          'sehyunRequested',
+          'praiseNote',
+          'updatedBy',
+          'isDeleted',
+          'updatedAt'
+        ])
+        && isValidId(data.missionId)
+        && data.tripId is string
+        && data.tripId.size() >= 1
+        && data.tripId.size() <= 32
+        && data.tripId == 'tokyo_2027'
+        && data.dayNumber is int
+        && data.dayNumber >= 0
+        && data.dayNumber <= 6
+        && data.title is string
+        && data.title.size() >= 1
+        && data.title.size() <= 80
+        && data.placeTag is string
+        && data.placeTag.size() >= 1
+        && data.placeTag.size() <= 40
+        && data.rewardPoint is int
+        && data.rewardPoint >= 1
+        && data.rewardPoint <= 5
+        && data.hyunwooStamped is bool
+        && data.sehyunStamped is bool
+        && data.hyunwooRequested is bool
+        && data.sehyunRequested is bool
+        && data.praiseNote is string
+        && data.praiseNote.size() <= 120
+        && data.updatedBy is string
+        && data.updatedBy.size() >= 1
+        && data.updatedBy.size() <= 40
+        && data.isDeleted is bool
+        && data.updatedAt is timestamp;
+    }
+
     // 3. Expedition Profiles Collection (/profiles/{memberId})
     match /profiles/{memberId} {
       allow get: if isValidId(memberId) && isAllowedMemberId(memberId);
@@ -68,7 +131,40 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // 4. Connectivity Validation Path (/test/{docId})
+    // 4. Expedition Stamp Missions & Praise Board Collection (/stampMissions/{missionId})
+    match /stampMissions/{missionId} {
+      allow get: if isValidId(missionId);
+      allow list: if existing().tripId == 'tokyo_2027';
+
+      allow create: if isValidId(missionId)
+        && isValidStampMission(incoming())
+        && incoming().missionId == missionId
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(missionId)
+        && isValidStampMission(incoming())
+        && incoming().missionId == existing().missionId
+        && incoming().tripId == existing().tripId
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'dayNumber',
+          'title',
+          'placeTag',
+          'rewardPoint',
+          'hyunwooStamped',
+          'sehyunStamped',
+          'hyunwooRequested',
+          'sehyunRequested',
+          'praiseNote',
+          'updatedBy',
+          'isDeleted',
+          'updatedAt'
+        ]);
+
+      allow delete: if false;
+    }
+
+    // 5. Connectivity Validation Path (/test/{docId})
     match /test/{docId} {
       allow get: if isValidId(docId) && docId == 'connection';
       allow list, create, update, delete: if false;

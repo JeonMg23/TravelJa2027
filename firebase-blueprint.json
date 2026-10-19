@@ -2,58 +2,37 @@
   "entities": {
     "ExpeditionProfile": {
       "title": "ExpeditionProfile",
-      "description": "Shared profile configuration (nickname and character avatar) for each of the 4 Tokyo expedition members.",
+      "description": "Custom profile settings (nickname, character avatar, or custom photo) for one of the 4 expedition members.",
       "type": "object",
       "properties": {
         "memberId": {
           "type": "string",
-          "description": "Unique preset identifier of the expedition member.",
-          "enum": [
-            "kakao_hyunwoo_mom",
-            "kakao_sehyun_mom",
-            "kakao_hyunwoo",
-            "kakao_sehyun"
-          ],
-          "minLength": 1,
-          "maxLength": 64,
-          "pattern": "^[a-zA-Z0-9_\\-]+$"
+          "description": "Unique member identifier (e.g. kakao_hyunwoo_mom, kakao_sehyun_mom, kakao_hyunwoo, kakao_sehyun)"
         },
         "nickname": {
           "type": "string",
-          "description": "Customized display nickname shared across all devices.",
-          "minLength": 1,
-          "maxLength": 40
+          "description": "Custom display nickname chosen by the member (1 to 40 chars)"
         },
         "defaultNickname": {
           "type": "string",
-          "description": "Original default nickname of the member.",
-          "enum": ["현우맘", "세현맘", "현우", "세현"],
-          "minLength": 1,
-          "maxLength": 20
+          "description": "Original default role name (현우맘, 세현맘, 현우, 세현)"
         },
         "avatarId": {
           "type": "string",
-          "description": "Selected character avatar identifier (Disney Princess, Smurf, or Valorant agent).",
-          "minLength": 1,
-          "maxLength": 64,
-          "pattern": "^[a-zA-Z0-9_\\-]+$"
+          "description": "Selected character avatar preset ID"
         },
         "avatarEmoji": {
           "type": "string",
-          "description": "Emoji badge associated with the selected character avatar.",
-          "minLength": 1,
-          "maxLength": 16
+          "description": "Emoji badge associated with the selected avatar"
         },
         "profileImageUrl": {
           "type": "string",
-          "description": "Optional base64 data URL or HTTPS image URL for a custom uploaded profile photo.",
-          "minLength": 1,
-          "maxLength": 500000
+          "description": "Optional custom uploaded photo data URL or image URL"
         },
         "updatedAt": {
           "type": "string",
           "format": "date-time",
-          "description": "Server timestamp of the last profile modification."
+          "description": "Server timestamp of the last profile update"
         }
       },
       "required": [
@@ -65,19 +44,85 @@
         "updatedAt"
       ]
     },
-    "ConnectionTest": {
-      "title": "ConnectionTest",
-      "description": "Read-only document used to verify Firestore connectivity on startup.",
+    "StampMission": {
+      "title": "StampMission",
+      "description": "Daily expedition stamp mission and mom praise badge item shared in real time across both families.",
       "type": "object",
       "properties": {
-        "status": {
+        "missionId": {
           "type": "string",
-          "description": "Connection status indicator.",
-          "minLength": 1,
-          "maxLength": 32
+          "description": "Unique mission ID (1 to 64 alphanumeric, underscore, or hyphen chars)"
+        },
+        "tripId": {
+          "type": "string",
+          "description": "Fixed trip identifier ('tokyo_2027')"
+        },
+        "dayNumber": {
+          "type": "integer",
+          "description": "Day number from 0 to 6 (0 for general mom praise badges, 1-6 for Day 1 to Day 6)"
+        },
+        "title": {
+          "type": "string",
+          "description": "Mission title or praise achievement title (1 to 80 chars)"
+        },
+        "placeTag": {
+          "type": "string",
+          "description": "Location or category label (1 to 40 chars)"
+        },
+        "rewardPoint": {
+          "type": "integer",
+          "description": "Stamp points awarded upon completion (1 to 5)"
+        },
+        "hyunwooStamped": {
+          "type": "boolean",
+          "description": "Whether Hyunwoo has earned this stamp (granted by Hyunwoo Mom)"
+        },
+        "sehyunStamped": {
+          "type": "boolean",
+          "description": "Whether Sehyun has earned this stamp (granted by Sehyun Mom)"
+        },
+        "hyunwooRequested": {
+          "type": "boolean",
+          "description": "Whether Hyunwoo has requested a stamp from Hyunwoo Mom"
+        },
+        "sehyunRequested": {
+          "type": "boolean",
+          "description": "Whether Sehyun has requested a stamp from Sehyun Mom"
+        },
+        "praiseNote": {
+          "type": "string",
+          "description": "Optional short praise comment from moms (0 to 120 chars)"
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "Display nickname of the member who last updated the stamp or mission (1 to 40 chars)"
+        },
+        "isDeleted": {
+          "type": "boolean",
+          "description": "Soft-delete flag for custom missions"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of the last update"
         }
       },
-      "required": ["status"]
+      "required": [
+        "missionId",
+        "tripId",
+        "dayNumber",
+        "title",
+        "placeTag",
+        "rewardPoint",
+        "hyunwooStamped",
+        "sehyunStamped",
+        "hyunwooRequested",
+        "sehyunRequested",
+        "praiseNote",
+        "updatedBy",
+        "isDeleted",
+        "updatedAt"
+      ]
     }
   },
   "firestore": {
@@ -85,13 +130,13 @@
       "schema": {
         "$ref": "#/entities/ExpeditionProfile"
       },
-      "description": "Stores shared character avatars and nicknames for the 4 expedition members."
+      "description": "Stores shared expedition member profiles indexed by memberId"
     },
-    "/test/{docId}": {
+    "/stampMissions/{missionId}": {
       "schema": {
-        "$ref": "#/entities/ConnectionTest"
+        "$ref": "#/entities/StampMission"
       },
-      "description": "Read-only connectivity check path."
+      "description": "Stores daily stamp missions and praise badges for the Tokyo expedition"
     }
   }
 }

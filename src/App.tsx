@@ -77,6 +77,19 @@ import {
   resetBudgetInDB
 } from './services/budgetApi';
 import {
+  StampMissionFloatingButton,
+  StampMissionModal
+} from './components/StampMissionModal';
+import {
+  StampMissionItem,
+  DEFAULT_STAMP_MISSIONS,
+  loadLocalStampMissions,
+  saveLocalStampMissions,
+  saveStampMissionToFirestore,
+  subscribeToStampMissions,
+  TRIP_ID
+} from './services/stampMissionService';
+import {
   Sparkles,
   MapPin,
   Clock,
@@ -105,6 +118,10 @@ export default function App() {
   const [budget, setBudget] = useState<BudgetItem[]>(() =>
     loadSavedBudget(INITIAL_BUDGET)
   );
+  const [stampMissions, setStampMissions] = useState<StampMissionItem[]>(() =>
+    loadLocalStampMissions()
+  );
+  const [isStampMissionOpen, setIsStampMissionOpen] = useState<boolean>(false);
 
   // Selected Day & Spot navigation
   const [selectedDayNumber, setSelectedDayNumber] = useState<number | null>(1);
@@ -846,6 +863,322 @@ export default function App() {
     setToastMessage('💰 2가족(현우가족·세현가족) 추천 공동 경비 및 가계부 내역으로 공유 DB가 초기화 복원되었습니다.');
   };
 
+  // Real-time Cloud Firestore subscription for Stamp Missions & Praise Board
+  useEffect(() => {
+    const unsubscribe = subscribeToStampMissions((updatedMissions) => {
+      setStampMissions(updatedMissions);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  const handleToggleStamp = (missionId: string, boy: 'HYUNWOO' | 'SEHYUN') => {
+    const effective = getEffectivePresetMembers();
+    const hyunwooMomName =
+      effective.find((m) => m.id === 'kakao_hyunwoo_mom')?.nickname || '현우맘';
+    const sehyunMomName =
+      effective.find((m) => m.id === 'kakao_sehyun_mom')?.nickname || '세현맘';
+    const hyunwooName =
+      effective.find((m) => m.id === 'kakao_hyunwoo')?.nickname || '현우';
+    const sehyunName =
+      effective.find((m) => m.id === 'kakao_sehyun')?.nickname || '세현';
+
+    const activeId = currentUser?.id;
+
+    // Strict permission check: Hyunwoo Mom -> Hyunwoo only, Sehyun Mom -> Sehyun only
+    if (boy === 'HYUNWOO' && activeId !== 'kakao_hyunwoo_mom') {
+      setToastMessage(
+        `🔒 ${hyunwooName} 대원의 스탬프 도장은 ${hyunwooMomName}만 찍어줄 수 있습니다.`
+      );
+      return;
+    }
+    if (boy === 'SEHYUN' && activeId !== 'kakao_sehyun_mom') {
+      setToastMessage(
+        `🔒 ${sehyunName} 대원의 스탬프 도장은 ${sehyunMomName}만 찍어줄 수 있습니다.`
+      );
+      return;
+    }
+
+    const actorName = currentUser?.nickname || (boy === 'HYUNWOO' ? hyunwooMomName : sehyunMomName);
+
+    let targetUpdated: StampMissionItem | null = null;
+    const nextMissions = stampMissions.map((m) => {
+      if (m.missionId !== missionId) return m;
+      const nextHyunwooStamped =
+        boy === 'HYUNWOO' ? !m.hyunwooStamped : m.hyunwooStamped;
+      const nextSehyunStamped =
+        boy === 'SEHYUN' ? !m.sehyunStamped : m.sehyunStamped;
+
+      const updated: StampMissionItem = {
+        ...m,
+        hyunwooStamped: nextHyunwooStamped,
+        sehyunStamped: nextSehyunStamped,
+        // Clear pending request when mom grants the stamp
+        hyunwooRequested:
+          boy === 'HYUNWOO' && nextHyunwooStamped ? false : m.hyunwooRequested,
+        sehyunRequested:
+          boy === 'SEHYUN' && nextSehyunStamped ? false : m.sehyunRequested,
+        updatedBy: actorName
+      };
+      targetUpdated = updated;
+      return updated;
+    });
+
+    setStampMissions(nextMissions);
+    saveLocalStampMissions(nextMissions);
+
+    if (targetUpdated) {
+      const stampedItem = targetUpdated as StampMissionItem;
+      const isNowStamped =
+        boy === 'HYUNWOO' ? stampedItem.hyunwooStamped : stampedItem.sehyunStamped;
+      const boyDisplayName = boy === 'HYUNWOO' ? hyunwooName : sehyunName;
+      const momDisplayName = boy === 'HYUNWOO' ? hyunwooMomName : sehyunMomName;
+      if (isNowStamped) {
+        setToastMessage(
+          `🏅 ${momDisplayName}이(가) ${boyDisplayName} 대원 '${stampedItem.title}' 미션 도장을 찍어주었습니다! (+${stampedItem.rewardPoint}점)`
+        );
+      } else {
+        setToastMessage(`↩️ ${boyDisplayName} 대원의 미션 도장이 취소되었습니다.`);
+      }
+      saveStampMissionToFirestore(stampedItem).catch(() => {});
+    }
+  };
+
+  const handleToggleStampRequest = (missionId: string, boy: 'HYUNWOO' | 'SEHYUN') => {
+    const effective = getEffectivePresetMembers();
+    const hyunwooMomName =
+      effective.find((m) => m.id === 'kakao_hyunwoo_mom')?.nickname || '현우맘';
+    const sehyunMomName =
+      effective.find((m) => m.id === 'kakao_sehyun_mom')?.nickname || '세현맘';
+    const hyunwooName =
+      effective.find((m) => m.id === 'kakao_hyunwoo')?.nickname || '현우';
+    const sehyunName =
+      effective.find((m) => m.id === 'kakao_sehyun')?.nickname || '세현';
+
+    const activeId = currentUser?.id;
+
+    if (boy === 'HYUNWOO' && activeId !== 'kakao_hyunwoo') {
+      setToastMessage(
+        `🔒 ${hyunwooName} 대원 본인만 ${hyunwooMomName}에게 스탬프를 요청할 수 있습니다.`
+      );
+      return;
+    }
+    if (boy === 'SEHYUN' && activeId !== 'kakao_sehyun') {
+      setToastMessage(
+        `🔒 ${sehyunName} 대원 본인만 ${sehyunMomName}에게 스탬프를 요청할 수 있습니다.`
+      );
+      return;
+    }
+
+    const actorName = currentUser?.nickname || (boy === 'HYUNWOO' ? hyunwooName : sehyunName);
+
+    let targetUpdated: StampMissionItem | null = null;
+    const nextMissions = stampMissions.map((m) => {
+      if (m.missionId !== missionId) return m;
+      const updated: StampMissionItem = {
+        ...m,
+        hyunwooRequested:
+          boy === 'HYUNWOO' ? !m.hyunwooRequested : m.hyunwooRequested,
+        sehyunRequested:
+          boy === 'SEHYUN' ? !m.sehyunRequested : m.sehyunRequested,
+        updatedBy: actorName
+      };
+      targetUpdated = updated;
+      return updated;
+    });
+
+    setStampMissions(nextMissions);
+    saveLocalStampMissions(nextMissions);
+
+    if (targetUpdated) {
+      const requestedItem = targetUpdated as StampMissionItem;
+      const isNowRequested =
+        boy === 'HYUNWOO'
+          ? requestedItem.hyunwooRequested
+          : requestedItem.sehyunRequested;
+      const boyDisplayName = boy === 'HYUNWOO' ? hyunwooName : sehyunName;
+      const momDisplayName = boy === 'HYUNWOO' ? hyunwooMomName : sehyunMomName;
+
+      if (isNowRequested) {
+        setToastMessage(
+          `🔔 ${boyDisplayName} 대원이 ${momDisplayName}에게 '${requestedItem.title}' 스탬프 도장을 요청했습니다!`
+        );
+      } else {
+        setToastMessage(
+          `↩️ ${momDisplayName}에게 보낸 스탬프 요청이 취소되었습니다.`
+        );
+      }
+      saveStampMissionToFirestore(requestedItem).catch(() => {});
+    }
+  };
+
+  const handleApproveAllRequestsForBoy = (boy: 'HYUNWOO' | 'SEHYUN') => {
+    const effective = getEffectivePresetMembers();
+    const hyunwooMomName =
+      effective.find((m) => m.id === 'kakao_hyunwoo_mom')?.nickname || '현우맘';
+    const sehyunMomName =
+      effective.find((m) => m.id === 'kakao_sehyun_mom')?.nickname || '세현맘';
+    const hyunwooName =
+      effective.find((m) => m.id === 'kakao_hyunwoo')?.nickname || '현우';
+    const sehyunName =
+      effective.find((m) => m.id === 'kakao_sehyun')?.nickname || '세현';
+
+    const activeId = currentUser?.id;
+    if (boy === 'HYUNWOO' && activeId !== 'kakao_hyunwoo_mom') {
+      setToastMessage(`🔒 ${hyunwooName} 대원의 요청은 ${hyunwooMomName}만 승인할 수 있습니다.`);
+      return;
+    }
+    if (boy === 'SEHYUN' && activeId !== 'kakao_sehyun_mom') {
+      setToastMessage(`🔒 ${sehyunName} 대원의 요청은 ${sehyunMomName}만 승인할 수 있습니다.`);
+      return;
+    }
+
+    const actorName = currentUser?.nickname || (boy === 'HYUNWOO' ? hyunwooMomName : sehyunMomName);
+    const updatedList: StampMissionItem[] = [];
+
+    const nextMissions = stampMissions.map((m) => {
+      if (m.isDeleted) return m;
+      if (boy === 'HYUNWOO' && !m.hyunwooStamped && m.hyunwooRequested) {
+        const updated: StampMissionItem = {
+          ...m,
+          hyunwooStamped: true,
+          hyunwooRequested: false,
+          updatedBy: actorName
+        };
+        updatedList.push(updated);
+        return updated;
+      }
+      if (boy === 'SEHYUN' && !m.sehyunStamped && m.sehyunRequested) {
+        const updated: StampMissionItem = {
+          ...m,
+          sehyunStamped: true,
+          sehyunRequested: false,
+          updatedBy: actorName
+        };
+        updatedList.push(updated);
+        return updated;
+      }
+      return m;
+    });
+
+    if (updatedList.length === 0) return;
+
+    setStampMissions(nextMissions);
+    saveLocalStampMissions(nextMissions);
+
+    const boyDisplayName = boy === 'HYUNWOO' ? hyunwooName : sehyunName;
+    const momDisplayName = boy === 'HYUNWOO' ? hyunwooMomName : sehyunMomName;
+    setToastMessage(
+      `🏅 ${momDisplayName}이(가) ${boyDisplayName} 대원이 요청한 미션 ${updatedList.length}건에 모두 도장을 찍어주었습니다!`
+    );
+
+    updatedList.forEach((item) => {
+      saveStampMissionToFirestore(item).catch(() => {});
+    });
+  };
+
+  const handleUpdatePraiseNote = (missionId: string, praiseNote: string) => {
+    const actorName = currentUser?.nickname || '원정대 가족';
+    let targetUpdated: StampMissionItem | null = null;
+
+    const nextMissions = stampMissions.map((m) => {
+      if (m.missionId !== missionId) return m;
+      const updated: StampMissionItem = {
+        ...m,
+        praiseNote,
+        updatedBy: actorName
+      };
+      targetUpdated = updated;
+      return updated;
+    });
+
+    setStampMissions(nextMissions);
+    saveLocalStampMissions(nextMissions);
+
+    if (targetUpdated) {
+      setToastMessage('💌 칭찬 응원 메모가 클라우드에 실시간 저장되었습니다.');
+      saveStampMissionToFirestore(targetUpdated).catch(() => {});
+    }
+  };
+
+  const handleAddStampMission = (newMission: {
+    dayNumber: number;
+    title: string;
+    placeTag: string;
+    rewardPoint: number;
+    praiseNote: string;
+  }) => {
+    const actorName = currentUser?.nickname || '원정대 가족';
+    const created: StampMissionItem = {
+      missionId: `mission_custom_${Date.now()}`,
+      tripId: TRIP_ID,
+      dayNumber: newMission.dayNumber,
+      title: newMission.title,
+      placeTag: newMission.placeTag,
+      rewardPoint: newMission.rewardPoint,
+      hyunwooStamped: false,
+      sehyunStamped: false,
+      hyunwooRequested: false,
+      sehyunRequested: false,
+      praiseNote: newMission.praiseNote,
+      updatedBy: actorName,
+      isDeleted: false,
+      isCustom: true
+    };
+
+    const nextMissions = [...stampMissions, created];
+    setStampMissions(nextMissions);
+    saveLocalStampMissions(nextMissions);
+    setToastMessage(`✨ 새 미션 '${created.title}' 항목이 추가되어 전 가족에게 실시간 공유되었습니다!`);
+    saveStampMissionToFirestore(created).catch(() => {});
+  };
+
+  const handleDeleteStampMission = (missionId: string) => {
+    const actorName = currentUser?.nickname || '원정대 가족';
+    let deletedTarget: StampMissionItem | null = null;
+
+    const nextMissions = stampMissions.map((m) => {
+      if (m.missionId !== missionId) return m;
+      const updated: StampMissionItem = {
+        ...m,
+        isDeleted: true,
+        updatedBy: actorName
+      };
+      deletedTarget = updated;
+      return updated;
+    });
+
+    setStampMissions(nextMissions);
+    saveLocalStampMissions(nextMissions);
+
+    if (deletedTarget) {
+      setToastMessage('🗑️ 커스텀 미션이 보드에서 삭제되었습니다.');
+      saveStampMissionToFirestore(deletedTarget).catch(() => {});
+    }
+  };
+
+  const handleResetStampMissions = () => {
+    const actorName = currentUser?.nickname || '원정대 가족';
+    const resetItems = DEFAULT_STAMP_MISSIONS.map((m) => ({
+      ...m,
+      hyunwooStamped: false,
+      sehyunStamped: false,
+      hyunwooRequested: false,
+      sehyunRequested: false,
+      updatedBy: actorName,
+      isDeleted: false
+    }));
+
+    setStampMissions(resetItems);
+    saveLocalStampMissions(resetItems);
+    setToastMessage('🔄 모든 스탬프 미션 도장 및 요청 상태가 기본 상태로 초기화되었습니다.');
+
+    resetItems.forEach((item) => {
+      saveStampMissionToFirestore(item).catch(() => {});
+    });
+  };
+
   // Header Nav tab handler
   const handleHeaderTab = (tab: 'timeline' | 'map' | 'split' | 'budget' | 'checklist') => {
     setActiveHeaderTab(tab);
@@ -938,25 +1271,65 @@ export default function App() {
 
   if (showLandingPage) {
     return (
-      <LandingHeroPage
-        days={days}
-        onStartTrip={handleTriggerFlightAndStart}
-        onOpenMap={handleTriggerFlightAndOpenMap}
-        currentUser={currentUser}
-        onOpenLogin={() => setIsLoginPageOpen(true)}
-        onSelectUser={handleKakaoLoginSuccess}
-        onReplayIntro={() => setShowIntro(true)}
-        onOpenChecklist={() => {
-          setShowLandingPage(false);
-          try {
-            sessionStorage.setItem('entered_trip_app', 'true');
-          } catch (e) {}
-          setBudgetModalView('checklist');
-          setIsBudgetChecklistOpen(true);
-        }}
-        scheduleThemeId={scheduleThemeId}
-        onSelectScheduleTheme={handleSelectScheduleTheme}
-      />
+      <>
+        <LandingHeroPage
+          days={days}
+          onStartTrip={handleTriggerFlightAndStart}
+          onOpenMap={handleTriggerFlightAndOpenMap}
+          currentUser={currentUser}
+          onOpenLogin={() => setIsLoginPageOpen(true)}
+          onSelectUser={handleKakaoLoginSuccess}
+          onReplayIntro={() => setShowIntro(true)}
+          onOpenChecklist={() => {
+            setShowLandingPage(false);
+            try {
+              sessionStorage.setItem('entered_trip_app', 'true');
+            } catch (e) {}
+            setBudgetModalView('checklist');
+            setIsBudgetChecklistOpen(true);
+          }}
+          scheduleThemeId={scheduleThemeId}
+          onSelectScheduleTheme={handleSelectScheduleTheme}
+        />
+        <StampMissionFloatingButton
+          missions={stampMissions}
+          onClick={() => setIsStampMissionOpen(true)}
+          scheduleThemeId={scheduleThemeId}
+          currentUser={currentUser}
+          isLandingPage
+        />
+        <StampMissionModal
+          isOpen={isStampMissionOpen}
+          onClose={() => setIsStampMissionOpen(false)}
+          missions={stampMissions}
+          onToggleStamp={handleToggleStamp}
+          onToggleStampRequest={handleToggleStampRequest}
+          onApproveAllRequestsForBoy={handleApproveAllRequestsForBoy}
+          onUpdatePraiseNote={handleUpdatePraiseNote}
+          onAddMission={handleAddStampMission}
+          onDeleteMission={handleDeleteStampMission}
+          onResetMissions={handleResetStampMissions}
+          scheduleThemeId={scheduleThemeId}
+          currentUser={currentUser}
+          initialDayFilter="ALL"
+        />
+        {toastMessage && (
+          <div className="fixed bottom-20 sm:bottom-6 left-4 right-4 sm:right-auto sm:max-w-md z-[9999] animate-in fade-in slide-in-from-bottom-4 duration-200">
+            <div className="bg-slate-900/95 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-xl border border-slate-700/80 flex items-center justify-between gap-3 text-xs sm:text-sm">
+              <div className="flex items-center gap-2.5">
+                <span className="font-medium leading-snug">{toastMessage}</span>
+              </div>
+              <button
+                onClick={() => setToastMessage(null)}
+                className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors shrink-0 cursor-pointer"
+                title="닫기"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+      </>
     );
   }
 
@@ -1489,6 +1862,30 @@ export default function App() {
         budget={budget}
         initialFamily={receiptTargetFamily}
         scheduleThemeId={scheduleThemeId}
+      />
+
+      {/* Bottom-Right Floating Quick Button & Modal for Boys Stamp Mission & Praise Board */}
+      <StampMissionFloatingButton
+        missions={stampMissions}
+        onClick={() => setIsStampMissionOpen(true)}
+        scheduleThemeId={scheduleThemeId}
+        currentUser={currentUser}
+      />
+
+      <StampMissionModal
+        isOpen={isStampMissionOpen}
+        onClose={() => setIsStampMissionOpen(false)}
+        missions={stampMissions}
+        onToggleStamp={handleToggleStamp}
+        onToggleStampRequest={handleToggleStampRequest}
+        onApproveAllRequestsForBoy={handleApproveAllRequestsForBoy}
+        onUpdatePraiseNote={handleUpdatePraiseNote}
+        onAddMission={handleAddStampMission}
+        onDeleteMission={handleDeleteStampMission}
+        onResetMissions={handleResetStampMissions}
+        scheduleThemeId={scheduleThemeId}
+        currentUser={currentUser}
+        initialDayFilter={selectedDayNumber || 'ALL'}
       />
     </div>
   );
