@@ -3,10 +3,7 @@ import { ChecklistItem, BudgetItem, ChecklistCategory } from '../types/travel';
 import { BudgetLedgerView } from './BudgetLedgerView';
 import {
   ScheduleThemeId,
-  SCHEDULE_THEMES,
-  SCHEDULE_THEME_LIST,
-  loadSavedScheduleTheme,
-  saveScheduleTheme
+  SCHEDULE_THEMES
 } from '../data/scheduleThemes';
 import {
   X,
@@ -18,9 +15,7 @@ import {
   Search,
   RotateCcw,
   CheckCheck,
-  Sparkles,
-  Palette,
-  ChevronDown
+  Sparkles
 } from 'lucide-react';
 
 interface BudgetChecklistModalProps {
@@ -91,21 +86,9 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
   onOpenReceipt
 }) => {
   // Theme state
-  const [internalThemeId, setInternalThemeId] = useState<ScheduleThemeId>(() => loadSavedScheduleTheme());
-  const effectiveThemeId = scheduleThemeId || internalThemeId;
+  const effectiveThemeId = scheduleThemeId || 'intro-thunder';
   const currentTheme = SCHEDULE_THEMES[effectiveThemeId] || SCHEDULE_THEMES['classic-light'];
   const isDark = currentTheme.isDark;
-
-  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
-
-  const handleThemeChange = (newThemeId: ScheduleThemeId) => {
-    setInternalThemeId(newThemeId);
-    saveScheduleTheme(newThemeId);
-    if (onSelectScheduleTheme) {
-      onSelectScheduleTheme(newThemeId);
-    }
-    setIsThemeMenuOpen(false);
-  };
 
   // Checklist UI filter & search states
   const [selectedCategory, setSelectedCategory] = useState<string>('전체');
@@ -216,69 +199,8 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
             </button>
           </div>
 
-          {/* Right Action: Real-time Theme Switcher & Close button */}
+          {/* Right Action: Close button */}
           <div className="flex items-center gap-2 ml-auto">
-            {/* Theme Switcher Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
-                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
-                  isDark
-                    ? 'bg-white/10 hover:bg-white/15 text-white border-white/20 shadow-xs'
-                    : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200 shadow-2xs'
-                }`}
-                title="일정·가계부·체크리스트 디자인 테마 변경"
-              >
-                <Palette className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden sm:inline">{currentTheme.shortName}</span>
-                <span className="sm:hidden">{currentTheme.badgeText}</span>
-                <ChevronDown className="w-3 h-3 opacity-60" />
-              </button>
-
-              {isThemeMenuOpen && (
-                <div
-                  className={`absolute right-0 top-full mt-1.5 w-60 rounded-2xl shadow-2xl border p-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150 ${
-                    isDark
-                      ? 'bg-[#0B1120] border-slate-700 text-white shadow-[0_10px_35px_rgba(0,0,0,0.8)]'
-                      : 'bg-white border-slate-200 text-slate-800 shadow-xl'
-                  }`}
-                >
-                  <div
-                    className={`text-[10px] font-bold px-2.5 py-1 border-b mb-1 ${
-                      isDark ? 'text-slate-400 border-slate-800' : 'text-slate-500 border-slate-100'
-                    }`}
-                  >
-                    🎨 디자인 스타일 실시간 선택 (전체 동기화)
-                  </div>
-                  {SCHEDULE_THEME_LIST.map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => handleThemeChange(t.id)}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                        effectiveThemeId === t.id
-                          ? isDark
-                            ? 'bg-amber-400/20 text-amber-300 font-bold'
-                            : 'bg-indigo-50 text-indigo-700 font-bold'
-                          : isDark
-                          ? 'hover:bg-white/5 text-slate-300'
-                          : 'hover:bg-slate-50 text-slate-700'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`w-2 h-2 rounded-full ${
-                            t.isDark ? 'bg-amber-400' : 'bg-indigo-600'
-                          }`}
-                        />
-                        <span>{t.shortName}</span>
-                      </div>
-                      {effectiveThemeId === t.id && <Check className="w-3.5 h-3.5 text-amber-400" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
             <button
               onClick={onClose}
               className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
@@ -713,7 +635,7 @@ export const BudgetChecklistModal: React.FC<BudgetChecklistModalProps> = ({
               onResetBudget={onResetBudget}
               onOpenReceipt={onOpenReceipt}
               scheduleThemeId={effectiveThemeId}
-              onSelectScheduleTheme={handleThemeChange}
+              onSelectScheduleTheme={onSelectScheduleTheme}
             />
           </div>
         )}

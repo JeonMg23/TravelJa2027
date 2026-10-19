@@ -59,7 +59,6 @@ import { FlightTransition } from './components/FlightTransition';
 import { LoginPage } from './components/LoginPage';
 import { IntroPage } from './components/IntroPage';
 import {
-  ScheduleThemeSwitcher,
   ScheduleAmbientBackdrop
 } from './components/ScheduleThemeSwitcher';
 import {
@@ -955,6 +954,8 @@ export default function App() {
           setBudgetModalView('checklist');
           setIsBudgetChecklistOpen(true);
         }}
+        scheduleThemeId={scheduleThemeId}
+        onSelectScheduleTheme={handleSelectScheduleTheme}
       />
     );
   }
@@ -1009,13 +1010,6 @@ export default function App() {
             : 'p-2 sm:p-4 md:p-6 lg:p-8'
         }`}
       >
-        {/* Real-Time Schedule Page Design Theme Switcher (4 Intro/First-Page Dark Themes + Original Classic Light) */}
-        <ScheduleThemeSwitcher
-          currentThemeId={scheduleThemeId}
-          onSelectTheme={handleSelectScheduleTheme}
-          viewMode={mobileView}
-        />
-
         {/* Mobile, Foldable & Desktop View Selector Bar */}
         <div
           className={`flex items-center justify-between gap-1.5 sm:gap-2 p-1.5 rounded-2xl mb-3 sm:mb-4 shadow-2xs w-full max-w-full overflow-hidden transition-colors duration-300 ${currentScheduleTheme.viewBarBg}`}

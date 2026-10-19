@@ -174,7 +174,6 @@ export const Header: React.FC<HeaderProps> = ({
             체크리스트
           </button>
         </nav>
-
         {/* Zone 3: App Install & Kakao User Profile / Login Status */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {onOpenMobileInstall && (

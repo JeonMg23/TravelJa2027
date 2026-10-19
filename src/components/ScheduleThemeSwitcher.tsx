@@ -10,15 +10,24 @@ interface ScheduleThemeSwitcherProps {
   currentThemeId: ScheduleThemeId;
   onSelectTheme: (themeId: ScheduleThemeId) => void;
   viewMode?: 'timeline' | 'map' | 'split';
+  title?: string;
+  subtitle?: string;
+  defaultExpanded?: boolean;
 }
 
 export const ScheduleThemeSwitcher: React.FC<ScheduleThemeSwitcherProps> = ({
   currentThemeId,
   onSelectTheme,
-  viewMode = 'timeline'
+  viewMode = 'timeline',
+  title = '도쿄 여행 디자인 테마 선택',
+  subtitle = '첫페이지·일정·가계부·체크리스트 전체에 적용될 5가지 감성 테마를 골라보세요!',
+  defaultExpanded
 }) => {
   // In Map view, default to collapsed so the map stays front-and-center
-  const [isExpanded, setIsExpanded] = useState<boolean>(() => viewMode !== 'map');
+  const [isExpanded, setIsExpanded] = useState<boolean>(() => {
+    if (defaultExpanded !== undefined) return defaultExpanded;
+    return viewMode !== 'map';
+  });
   const currentTheme = SCHEDULE_THEMES[currentThemeId];
   const isDark = currentTheme.isDark;
 
@@ -58,7 +67,7 @@ export const ScheduleThemeSwitcher: React.FC<ScheduleThemeSwitcherProps> = ({
                   isDark ? 'text-white' : 'text-slate-900'
                 }`}
               >
-                일정 페이지 디자인 테마 선택
+                {title}
               </span>
               <span
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
@@ -75,7 +84,7 @@ export const ScheduleThemeSwitcher: React.FC<ScheduleThemeSwitcherProps> = ({
                 isDark ? 'text-slate-300/80' : 'text-slate-500'
               }`}
             >
-              인트로·첫 페이지 감성 다크 테마 4종과 지금 기본 스타일 중 마음에 드는 디자인을 실시간으로 골라보세요!
+              {subtitle}
             </p>
           </div>
         </div>
