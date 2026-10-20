@@ -13,7 +13,10 @@ import {
   Trophy,
   X,
   MessageSquareHeart,
-  Check
+  Check,
+  Gift,
+  Crown,
+  PartyPopper
 } from 'lucide-react';
 import {
   StampMissionItem,
@@ -523,6 +526,7 @@ export const StampMissionModal: React.FC<StampMissionModalProps> = ({
   const [confirmReset, setConfirmReset] = useState(false);
   const [justAnimatedKey, setJustAnimatedKey] = useState<string | null>(null);
   const [profileSyncTick, setProfileSyncTick] = useState(0);
+  const [isGiftBoxModalOpen, setIsGiftBoxModalOpen] = useState(false);
 
   // Sync character avatars in real time if updated in ProfileEditModal / Firestore
   useEffect(() => {
@@ -664,8 +668,37 @@ export const StampMissionModal: React.FC<StampMissionModalProps> = ({
   const totalPendingRequestsCount =
     hyunwooPendingRequests.length + sehyunPendingRequests.length;
 
-  const hyunwooBadge = useMemo(() => getBoyBadgeStatus(hyunwooPoints), [hyunwooPoints]);
-  const sehyunBadge = useMemo(() => getBoyBadgeStatus(sehyunPoints), [sehyunPoints]);
+  const totalMissionCount = activeMissions.length;
+  const hyunwooAllCompleted =
+    totalMissionCount > 0 && hyunwooStampCount === totalMissionCount;
+  const sehyunAllCompleted =
+    totalMissionCount > 0 && sehyunStampCount === totalMissionCount;
+
+  // 4th-stage Gift Box sparkles in full color for each Boy AND his respective Mom when that Boy completes 100% of missions
+  const isBoyUser = isHyunwoo || isSehyun;
+  const isGiftBoxSparkling =
+    ((isHyunwoo || isHyunwooMom) && hyunwooAllCompleted) ||
+    ((isSehyun || isSehyunMom) && sehyunAllCompleted);
+
+  // STRICT RULE: Only Hyunwoo or Sehyun can click and open the sparkling Gift Box (Moms cannot click it)
+  const canOpenGiftBox =
+    (isHyunwoo && hyunwooAllCompleted) || (isSehyun && sehyunAllCompleted);
+
+  // Close gift modal automatically if user is not an eligible boy with all stamps completed
+  useEffect(() => {
+    if (!canOpenGiftBox && isGiftBoxModalOpen) {
+      setIsGiftBoxModalOpen(false);
+    }
+  }, [canOpenGiftBox, isGiftBoxModalOpen]);
+
+  const hyunwooBadge = useMemo(
+    () => getBoyBadgeStatus(hyunwooPoints, hyunwooAllCompleted),
+    [hyunwooPoints, hyunwooAllCompleted]
+  );
+  const sehyunBadge = useMemo(
+    () => getBoyBadgeStatus(sehyunPoints, sehyunAllCompleted),
+    [sehyunPoints, sehyunAllCompleted]
+  );
 
   const filteredMissions = useMemo(() => {
     if (selectedDayFilter === 'ALL') return activeMissions;
@@ -1095,7 +1128,7 @@ export const StampMissionModal: React.FC<StampMissionModalProps> = ({
             </div>
           </div>
 
-          {/* 2. Praise Badge Progression Showcase */}
+          {/* 2. Praise Badge Progression Showcase (Step 4 is the Special Gift Box for Hyunwoo & Sehyun!) */}
           <div
             className={`rounded-2xl border p-4 ${
               theme.isDark
@@ -1103,18 +1136,212 @@ export const StampMissionModal: React.FC<StampMissionModalProps> = ({
                 : 'bg-slate-50 border-slate-200'
             }`}
           >
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <div className="text-xs sm:text-sm font-bold flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>원정대 칭찬 배지 컬렉션 (엄마가 찍어준 컬러 도장 점수로 승급)</span>
+                <span>원정대 칭찬 배지 & 완료 4단계 시크릿 선물상자</span>
               </div>
-              <div className="text-xs font-mono tabular-nums opacity-70">
-                총 {PRAISE_BADGE_TIERS.length}단계
+              <div className="text-[11px] font-semibold text-amber-500 dark:text-amber-300">
+                4단계 선물상자는 현우·세현 대원이 모든 스탬프 완료 시 반짝이며 열립니다!
               </div>
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
               {PRAISE_BADGE_TIERS.map((tier) => {
+                // Special 4th Stage: Treasure Gift Box (Grayscale before completion -> Sparkles for Boy & his Mom on 100% completion, clickable ONLY by Boy!)
+                if (tier.level === 4) {
+                  const activeBoyNickname =
+                    isHyunwoo || isHyunwooMom
+                      ? hyunwooProfile.nickname
+                      : isSehyun || isSehyunMom
+                      ? sehyunProfile.nickname
+                      : `${hyunwooProfile.nickname}·${sehyunProfile.nickname}`;
+                  const activeBoyStamped =
+                    isHyunwoo || isHyunwooMom
+                      ? hyunwooStampCount
+                      : isSehyun || isSehyunMom
+                      ? sehyunStampCount
+                      : 0;
+
+                  return (
+                    <button
+                      key={tier.level}
+                      type="button"
+                      disabled={!canOpenGiftBox}
+                      onClick={() => {
+                        if (!canOpenGiftBox) return;
+                        triggerStampFeedback('GIFT_BOX_OPEN');
+                        setIsGiftBoxModalOpen(true);
+                      }}
+                      className={`relative rounded-xl border p-3 text-left transition-all duration-300 overflow-hidden flex flex-col justify-between select-none ${
+                        isGiftBoxSparkling
+                          ? `${
+                              canOpenGiftBox
+                                ? 'cursor-pointer hover:scale-[1.03] active:scale-95'
+                                : 'cursor-default'
+                            } border-2 border-amber-300 bg-gradient-to-br from-amber-500/25 via-rose-500/20 to-yellow-500/25 shadow-[0_0_28px_rgba(250,204,21,0.55)] ring-2 ring-amber-400/70`
+                          : 'cursor-not-allowed opacity-70 border-dashed border-slate-400/40 bg-slate-500/5 grayscale'
+                      }`}
+                      title={
+                        canOpenGiftBox
+                          ? `${activeBoyNickname} 대원 축하 선물상자 클릭해서 열기!`
+                          : isGiftBoxSparkling && isAnyMom
+                          ? `${activeBoyNickname} 대원이 모든 스탬프를 완료해 선물상자가 반짝입니다! (선물 개봉 클릭은 ${activeBoyNickname} 대원만 가능합니다)`
+                          : `모든 스탬프(${totalMissionCount}개)를 완료하면 ${activeBoyNickname} 대원과 담당 엄마에게 선물상자가 반짝이며 활성화됩니다!`
+                      }
+                    >
+                      {/* Sparkling Star Particles when unlocked for Boy or his Mom */}
+                      {isGiftBoxSparkling && (
+                        <>
+                          <div className="absolute -inset-1 bg-gradient-to-r from-amber-400/20 via-yellow-200/30 to-rose-400/20 animate-pulse pointer-events-none" />
+                          <Sparkles className="w-4 h-4 text-yellow-300 absolute top-2 right-2 animate-bounce pointer-events-none drop-shadow-[0_0_6px_rgba(253,224,71,0.9)]" />
+                          <Sparkles className="w-3.5 h-3.5 text-amber-200 absolute bottom-9 right-3 animate-ping pointer-events-none" />
+                          <Sparkles className="w-3 h-3 text-rose-300 absolute top-9 left-2.5 animate-pulse pointer-events-none" />
+                        </>
+                      )}
+
+                      <div>
+                        <div className="flex items-center justify-between text-xs font-mono tabular-nums mb-1.5 relative z-10">
+                          <span
+                            className={`px-1.5 py-0.5 rounded font-black text-[10px] ${
+                              isGiftBoxSparkling
+                                ? 'bg-amber-400 text-slate-950 shadow-xs'
+                                : 'bg-slate-600/40 text-slate-300'
+                            }`}
+                          >
+                            완료 4단계
+                          </span>
+                          <span
+                            className={`text-[10px] font-bold ${
+                              isGiftBoxSparkling
+                                ? 'text-amber-500 dark:text-amber-300 font-black animate-pulse'
+                                : 'opacity-75'
+                            }`}
+                          >
+                            {isGiftBoxSparkling
+                              ? `✨ ${activeBoyNickname} 올클리어!`
+                              : `${activeBoyNickname} ${activeBoyStamped}/${totalMissionCount}`}
+                          </span>
+                        </div>
+
+                        {/* Center Gift Box Illustration (Grayscale before completion -> Sparkling Full Color when completed for Boy & his Mom) */}
+                        <div className="my-1.5 flex items-center gap-2.5 relative z-10">
+                          <div
+                            className={`relative w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-300 ${
+                              isGiftBoxSparkling
+                                ? 'bg-gradient-to-br from-amber-300 via-yellow-400 to-rose-500 shadow-[0_0_20px_rgba(251,191,36,0.85)] grayscale-0 animate-bounce'
+                                : 'bg-slate-800 border border-slate-600 grayscale contrast-125 brightness-90'
+                            }`}
+                          >
+                            {/* Custom SVG Treasure Gift Box */}
+                            <svg
+                              viewBox="0 0 64 64"
+                              className="w-9 h-9 drop-shadow-xs"
+                            >
+                              {/* Box Lid */}
+                              <rect
+                                x="8"
+                                y="18"
+                                width="48"
+                                height="11"
+                                rx="3"
+                                fill={isGiftBoxSparkling ? '#E11D48' : '#64748B'}
+                                stroke={isGiftBoxSparkling ? '#FEF08A' : '#94A3B8'}
+                                strokeWidth="2"
+                              />
+                              {/* Box Body */}
+                              <rect
+                                x="12"
+                                y="29"
+                                width="40"
+                                height="25"
+                                rx="3"
+                                fill={isGiftBoxSparkling ? '#BE123C' : '#475569'}
+                                stroke={isGiftBoxSparkling ? '#FDE047' : '#94A3B8'}
+                                strokeWidth="2"
+                              />
+                              {/* Vertical Gold Ribbon */}
+                              <rect
+                                x="28"
+                                y="18"
+                                width="8"
+                                height="36"
+                                fill={isGiftBoxSparkling ? '#FACC15' : '#94A3B8'}
+                              />
+                              {/* Horizontal Gold Ribbon */}
+                              <rect
+                                x="12"
+                                y="38"
+                                width="40"
+                                height="6"
+                                fill={isGiftBoxSparkling ? '#FACC15' : '#94A3B8'}
+                              />
+                              {/* Left Ribbon Bow */}
+                              <path
+                                d="M32 18 C22 6, 12 12, 22 18 Z"
+                                fill={isGiftBoxSparkling ? '#FDE047' : '#CBD5E1'}
+                                stroke={isGiftBoxSparkling ? '#CA8A04' : '#64748B'}
+                                strokeWidth="1.5"
+                              />
+                              {/* Right Ribbon Bow */}
+                              <path
+                                d="M32 18 C42 6, 52 12, 42 18 Z"
+                                fill={isGiftBoxSparkling ? '#FDE047' : '#CBD5E1'}
+                                stroke={isGiftBoxSparkling ? '#CA8A04' : '#64748B'}
+                                strokeWidth="1.5"
+                              />
+                            </svg>
+
+                            {!isGiftBoxSparkling && (
+                              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-slate-900 border border-slate-400 text-slate-200 flex items-center justify-center">
+                                <Lock className="w-2.5 h-2.5" />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="text-xs sm:text-sm font-black truncate flex items-center gap-1">
+                              <span>{tier.title}</span>
+                            </div>
+                            <div className="text-[11px] opacity-85 mt-0.5 line-clamp-2 leading-tight">
+                              {canOpenGiftBox
+                                ? '🎁 반짝이는 상자를 클릭해 특급 선물을 확인하세요!'
+                                : isGiftBoxSparkling && isAnyMom
+                                ? `✨ ${activeBoyNickname} 대원 미션 완료! (${activeBoyNickname}만 클릭 가능)`
+                                : isBoyUser
+                                ? '모든 스탬프 완료 시 흑백 상자가 반짝이며 열려요!'
+                                : `${activeBoyNickname} 모든 스탬프 완료 시 함께 반짝여요!`}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 pt-1.5 border-t border-slate-400/20 text-[11px] font-bold flex items-center justify-between relative z-10">
+                        {canOpenGiftBox ? (
+                          <span className="w-full py-1 px-2 rounded-lg bg-amber-400 text-slate-950 font-black text-center flex items-center justify-center gap-1 shadow-xs animate-pulse">
+                            <Gift className="w-3.5 h-3.5 shrink-0" />
+                            <span>선물상자 클릭해서 열기!</span>
+                          </span>
+                        ) : isGiftBoxSparkling && isAnyMom ? (
+                          <span className="w-full py-1 px-2 rounded-lg bg-amber-400/20 border border-amber-400/50 text-amber-600 dark:text-amber-300 font-extrabold text-center flex items-center justify-center gap-1">
+                            <Sparkles className="w-3 h-3 shrink-0" />
+                            <span>반짝임 활성화 ({activeBoyNickname}만 클릭 가능)</span>
+                          </span>
+                        ) : (
+                          <div className="flex items-center gap-1.5 opacity-75">
+                            <Lock className="w-3 h-3 shrink-0" />
+                            <span>
+                              {isBoyUser
+                                ? '흑백 잠금 (올클리어 시 반짝임)'
+                                : `${activeBoyNickname} 올클리어 시 반짝임`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                }
+
                 const hyunwooUnlocked = hyunwooPoints >= tier.minPoints;
                 const sehyunUnlocked = sehyunPoints >= tier.minPoints;
                 const anyUnlocked = hyunwooUnlocked || sehyunUnlocked;
@@ -1626,6 +1853,175 @@ export const StampMissionModal: React.FC<StampMissionModalProps> = ({
             확인 및 닫기
           </button>
         </div>
+
+        {/* =====================================================================
+            4단계 시크릿 선물상자 개봉 모달 (현우·세현 대원 전용 축하 메시지 & 용돈 30% 인상!)
+           ===================================================================== */}
+        {canOpenGiftBox && isGiftBoxModalOpen && (
+          <div
+            className="fixed inset-0 z-60 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200"
+            onClick={() => setIsGiftBoxModalOpen(false)}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-lg rounded-3xl border-2 border-amber-300 bg-gradient-to-b from-slate-950 via-rose-950/90 to-slate-950 text-white p-6 sm:p-7 shadow-[0_0_60px_rgba(250,204,21,0.55)] overflow-hidden animate-in zoom-in-95 duration-200"
+            >
+              {/* Sparkling Decorative Background Rays & Stars */}
+              <div className="
+                absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full
+                bg-gradient-to-r from-amber-400/30 via-yellow-300/25 to-rose-500/30 blur-2xl pointer-events-none animate-pulse
+              " />
+              <Sparkles className="w-6 h-6 text-yellow-300 absolute top-5 left-6 animate-bounce pointer-events-none" />
+              <Sparkles className="w-5 h-5 text-amber-300 absolute top-12 right-12 animate-ping pointer-events-none" />
+              <Sparkles className="w-6 h-6 text-rose-300 absolute bottom-20 left-5 animate-pulse pointer-events-none" />
+              <Sparkles className="w-5 h-5 text-yellow-200 absolute bottom-24 right-6 animate-bounce pointer-events-none" />
+
+              {/* Top Close Button */}
+              <button
+                type="button"
+                onClick={() => setIsGiftBoxModalOpen(false)}
+                className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-200 cursor-pointer z-20"
+                title="닫기"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Header Celebration Badge */}
+              <div className="relative z-10 flex flex-col items-center text-center">
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black tracking-wide shadow-md mb-3">
+                  <PartyPopper className="w-4 h-4 stroke-[2.5]" />
+                  <span>4단계 시크릿 선물상자 개봉 성공!</span>
+                </div>
+
+                {/* Opened Sparkling Gift Box + Boy Character Avatar */}
+                <div className="relative my-2 flex items-center justify-center">
+                  {/* Glowing Halo */}
+                  <div className="absolute -inset-4 rounded-full bg-amber-400/30 blur-xl animate-pulse" />
+
+                  {/* Boy Character Portrait in Golden Crest */}
+                  <div
+                    className={`relative w-24 h-24 rounded-full border-4 border-amber-300 overflow-hidden shadow-[0_0_30px_rgba(250,204,21,0.7)] bg-gradient-to-br ${
+                      isHyunwoo ? hyunwooCharacter.bgGradient : sehyunCharacter.bgGradient
+                    }`}
+                  >
+                    <img
+                      src={
+                        isHyunwoo
+                          ? hyunwooProfile.profileImageUrl || hyunwooCharacter.imageUrl
+                          : sehyunProfile.profileImageUrl || sehyunCharacter.imageUrl
+                      }
+                      alt={isHyunwoo ? hyunwooProfile.nickname : sehyunProfile.nickname}
+                      referrerPolicy="no-referrer"
+                      className={`w-full h-full object-cover ${
+                        (isHyunwoo ? hyunwooProfile.profileImageUrl : sehyunProfile.profileImageUrl)
+                          ? ''
+                          : isHyunwoo
+                          ? hyunwooCharacter.imagePositionClass
+                          : sehyunCharacter.imagePositionClass
+                      }`}
+                    />
+                  </div>
+
+                  {/* Crown on top */}
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 border-2 border-white shadow-md flex items-center gap-0.5 text-[11px] font-black">
+                    <Crown className="w-3.5 h-3.5 fill-current" />
+                    <span>LEGEND</span>
+                  </div>
+
+                  {/* Gift Box Badge Bottom-Right */}
+                  <div className="absolute -bottom-1 -right-2 w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500 to-amber-500 border-2 border-yellow-200 shadow-lg flex items-center justify-center animate-bounce">
+                    <Gift className="w-5 h-5 text-white" />
+                  </div>
+                </div>
+
+                {/* Congratulations Headline */}
+                <h3 className="mt-3 text-xl sm:text-2xl font-black tracking-tight text-amber-200 drop-shadow-xs">
+                  축하합니다!{' '}
+                  <span className="text-white underline decoration-amber-400 decoration-2 underline-offset-4">
+                    {isHyunwoo ? hyunwooProfile.nickname : sehyunProfile.nickname} 대원
+                  </span>{' '}
+                  올클리어 달성!
+                </h3>
+                <p className="mt-1.5 text-xs sm:text-sm text-slate-200 leading-relaxed">
+                  도쿄 5박 6일 원정대의 모든 스탬프 미션(
+                  <strong className="text-amber-300 font-mono tabular-nums">
+                    {totalMissionCount}/{totalMissionCount}개
+                  </strong>
+                  )을 끝까지 완수한 최고의 소년 영웅에게 특급 선물을 수여합니다!
+                </p>
+
+                {/* Centerpiece Golden Allowance +30% Raise Certificate Card */}
+                <div className="mt-5 w-full rounded-2xl border-2 border-amber-300 bg-gradient-to-br from-amber-400/20 via-yellow-500/15 to-rose-500/25 p-5 shadow-inner relative overflow-hidden">
+                  <div className="text-[11px] font-black tracking-widest uppercase text-amber-300">
+                    ★ TOKYO EXPEDITION SPECIAL REWARD ★
+                  </div>
+
+                  <div className="my-3 py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 text-slate-950 shadow-[0_8px_25px_rgba(250,204,21,0.45)] transform -rotate-1">
+                    <div className="text-xs font-black opacity-80">
+                      {isHyunwoo ? hyunwooMomProfile.nickname : sehyunMomProfile.nickname} 공식 인증 특급 선물
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-black tracking-tight mt-0.5 text-rose-700">
+                      💰 용돈 30% 전격 인상!! 💰
+                    </div>
+                  </div>
+
+                  <p className="text-xs sm:text-sm font-bold text-amber-100 leading-relaxed">
+                    “약속대로 모든 미션 도장을 완성한{' '}
+                    <span className="text-yellow-300 font-black">
+                      {isHyunwoo ? hyunwooProfile.nickname : sehyunProfile.nickname}
+                    </span>{' '}
+                    대원의 용돈을 <span className="text-yellow-300 font-black underline">30% 인상</span>
+                    합니다! 정말 참 잘했어요!”
+                  </p>
+
+                  {/* Mom's Official Rubber Stamp Seal */}
+                  <div className="mt-3.5 pt-3 border-t border-amber-300/30 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`w-7 h-7 rounded-full overflow-hidden border border-amber-300 bg-gradient-to-br ${
+                          isHyunwoo
+                            ? hyunwooMomCharacter.bgGradient
+                            : sehyunMomCharacter.bgGradient
+                        }`}
+                      >
+                        <img
+                          src={
+                            isHyunwoo
+                              ? hyunwooMomProfile.profileImageUrl ||
+                                hyunwooMomCharacter.imageUrl
+                              : sehyunMomProfile.profileImageUrl ||
+                                sehyunMomCharacter.imageUrl
+                          }
+                          alt="엄마 인장"
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <span className="font-bold text-amber-200">
+                        승인자:{' '}
+                        {isHyunwoo
+                          ? hyunwooMomProfile.nickname
+                          : sehyunMomProfile.nickname}
+                      </span>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full bg-rose-600 border border-amber-300 text-amber-200 text-[11px] font-black -rotate-3 shadow-xs">
+                      ★ 참잘했어요 승인 도장 쾅! ★
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsGiftBoxModalOpen(false)}
+                  className="mt-5 w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:from-amber-300 hover:to-yellow-200 text-slate-950 font-black text-sm sm:text-base shadow-[0_8px_24px_rgba(250,204,21,0.4)] cursor-pointer transition-transform active:scale-95"
+                >
+                  🙌 야호! 용돈 30% 인상 선물 받기 완료!
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

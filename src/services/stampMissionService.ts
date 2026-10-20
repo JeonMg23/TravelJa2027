@@ -73,10 +73,10 @@ export const PRAISE_BADGE_TIERS: PraiseBadgeTier[] = [
   },
   {
     level: 4,
-    title: '도쿄 레전드 원정대원',
-    subtitle: '5박 6일 모든 미션을 완수한 최고의 소년 영웅',
-    minPoints: 30,
-    iconLabel: 'MAX',
+    title: '시크릿 황금 선물상자',
+    subtitle: '모든 스탬프 완료 시 오픈! (현우·세현 전용 특급 보상)',
+    minPoints: 36,
+    iconLabel: '4단계 GIFT',
     accentClass: 'text-amber-400 border-amber-400/50 bg-amber-500/15'
   }
 ];
@@ -577,32 +577,36 @@ export function subscribeToStampMissions(
   };
 }
 
-export function getBoyBadgeStatus(points: number): {
+export function getBoyBadgeStatus(
+  points: number,
+  isAllStamped = false
+): {
   currentTier: PraiseBadgeTier;
   nextTier: PraiseBadgeTier | null;
   progressPercent: number;
 } {
-  let currentTier = PRAISE_BADGE_TIERS[0];
-  let nextTier: PraiseBadgeTier | null = null;
-
-  for (let i = 0; i < PRAISE_BADGE_TIERS.length; i++) {
-    if (points >= PRAISE_BADGE_TIERS[i].minPoints) {
-      currentTier = PRAISE_BADGE_TIERS[i];
-      nextTier = PRAISE_BADGE_TIERS[i + 1] || null;
-    }
-  }
-
-  if (!nextTier) {
+  if (isAllStamped) {
     return {
-      currentTier,
+      currentTier: PRAISE_BADGE_TIERS[3],
       nextTier: null,
       progressPercent: 100
     };
   }
 
-  const span = Math.max(1, nextTier.minPoints - currentTier.minPoints);
+  let currentTier = PRAISE_BADGE_TIERS[0];
+  let nextTier: PraiseBadgeTier | null = PRAISE_BADGE_TIERS[1];
+
+  // Tiers 1..3 unlock by points; Tier 4 (Gift Box) unlocks only when all stamps are completed
+  for (let i = 0; i < 3; i++) {
+    if (points >= PRAISE_BADGE_TIERS[i].minPoints) {
+      currentTier = PRAISE_BADGE_TIERS[i];
+      nextTier = PRAISE_BADGE_TIERS[i + 1] || PRAISE_BADGE_TIERS[3];
+    }
+  }
+
+  const span = Math.max(1, (nextTier?.minPoints || 36) - currentTier.minPoints);
   const gained = Math.max(0, points - currentTier.minPoints);
-  const progressPercent = Math.min(100, Math.round((gained / span) * 100));
+  const progressPercent = Math.min(95, Math.round((gained / span) * 100));
 
   return {
     currentTier,

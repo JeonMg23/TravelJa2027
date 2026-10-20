@@ -11,7 +11,9 @@ import {
   Users,
   Palette,
   UtensilsCrossed,
-  Store
+  Store,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { TripDay } from '../types/travel';
 import { MobileInstallModal } from './MobileInstallModal';
@@ -77,6 +79,8 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [previewFoodCategory, setPreviewFoodCategory] = useState<TokyoFoodCategoryId>('ALL');
+  const [isDailyCourseExpanded, setIsDailyCourseExpanded] = useState<boolean>(false);
+  const [isFoodShowcaseExpanded, setIsFoodShowcaseExpanded] = useState<boolean>(false);
   const [, setProfileSyncTick] = useState(0);
 
   // Active theme configurations
@@ -512,9 +516,9 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
       </section>
 
       {/* 5. 5박 6일 일자별 공략 코스 (에피소드 스타일 카드) */}
-      <section className={`py-16 px-4 sm:px-6 ${landingTheme.sectionDailyBg} transition-colors duration-300`}>
+      <section className={`py-14 px-4 sm:px-6 ${landingTheme.sectionDailyBg} transition-colors duration-300`}>
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-5 gap-4">
             <div>
               <div className={`inline-block font-bold text-xs px-3.5 py-1 rounded-full mb-2.5 border ${landingTheme.dailySectionBadge}`}>
                 DAILY MISSION · EPISODES
@@ -528,83 +532,155 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
             </div>
             <button
               onClick={() => onStartTrip(1)}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 font-bold text-xs sm:text-sm rounded-xl border transition-all self-start sm:self-auto cursor-pointer ${landingTheme.dailyAllBtn}`}
+              className={`inline-flex items-center gap-2 px-4 py-2.5 font-bold text-xs sm:text-sm rounded-xl border transition-all self-start sm:self-auto cursor-pointer shrink-0 ${landingTheme.dailyAllBtn}`}
             >
               <span>전체 일정 타임라인으로 바로가기</span>
               <ChevronRight className="w-4 h-4 stroke-[3]" />
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-            {days.map((day) => {
-              const spotNames = day.spots.map((s) => s.name).join(' → ');
-
-              const dayBadge =
-                day.dayNumber === 1 ? '🛬 도쿄 상륙 작전' :
-                day.dayNumber === 2 ? '🛍️ 쇼핑 & 인파 생존' :
-                day.dayNumber === 3 ? '🗻 후지산 절경 & 도쿄역' :
-                day.dayNumber === 4 ? '🧙 마법 스튜디오 & 시부야' :
-                day.dayNumber === 5 ? '🍜 먹방 & 롯폰기 힐스' : '🛫 최후의 쇼핑 후 복귀';
-
-              return (
-                <div
-                  key={day.dayNumber}
-                  onClick={() => onStartTrip(day.dayNumber)}
-                  className={`${landingTheme.episodeCardBg} ${landingTheme.episodeCardHover} rounded-3xl p-5 sm:p-6 transition-all duration-200 flex flex-col justify-between cursor-pointer group backdrop-blur-md`}
-                >
-                  <div>
-                    {/* Header */}
-                    <div className="flex items-center justify-between mb-3">
-                      <span className={`px-3 py-1 rounded-lg text-xs font-black ${landingTheme.episodeDayBadge}`}>
-                        DAY {day.dayNumber}
-                      </span>
-                      <span className="text-xs font-mono font-medium opacity-70">
-                        {day.fullDate.split(' ')[0]}
-                      </span>
-                    </div>
-
-                    <div className={`inline-block text-[11px] font-bold rounded-md px-2 py-0.5 mb-2.5 border ${landingTheme.episodeSubBadge}`}>
-                      {dayBadge}
-                    </div>
-
-                    {/* Theme */}
-                    <h3 className={`text-base sm:text-lg font-bold mb-2 transition-colors ${landingTheme.episodeTitle} ${landingTheme.episodeTitleHover}`}>
-                      {day.theme}
-                    </h3>
-
-                    {/* Description */}
-                    <p className={`text-xs font-medium mb-4 line-clamp-2 leading-relaxed ${landingTheme.episodeDesc}`}>
-                      {day.description}
-                    </p>
-
-                    {/* Spots list */}
-                    <div className={`p-3 rounded-2xl border mb-4 ${landingTheme.episodeSpotsBox}`}>
-                      <div className={`text-[11px] font-bold flex items-center gap-1.5 mb-1.5 ${landingTheme.episodeSpotsTitle}`}>
-                        <MapPin className="w-3.5 h-3.5" />
-                        <span>타격 목표 ({day.spots.length}곳)</span>
-                      </div>
-                      <p className={`text-xs font-medium line-clamp-2 leading-relaxed ${landingTheme.episodeSpotsText}`}>
-                        {spotNames}
-                      </p>
-                    </div>
+          {/* Collapsible Toggle Bar right below the Daily Mission header */}
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => setIsDailyCourseExpanded((prev) => !prev)}
+              aria-expanded={isDailyCourseExpanded}
+              className={`w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-3.5 rounded-2xl border transition-all cursor-pointer ${
+                landingTheme.isDark
+                  ? 'bg-white/5 hover:bg-white/10 border-white/15 text-white'
+                  : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-900 shadow-xs'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 text-left">
+                <span className="w-8 h-8 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-base shrink-0">
+                  🗓️
+                </span>
+                <div>
+                  <div className="text-xs sm:text-sm font-black flex items-center gap-2 flex-wrap">
+                    <span>
+                      5박 6일 일자별 공략 코스 카드 {isDailyCourseExpanded ? '접기 (닫기)' : '펼쳐보기'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-400 text-slate-950">
+                      DAY 1 ~ DAY {days.length}
+                    </span>
                   </div>
-
-                  {/* Card Bottom CTA */}
-                  <div className={`pt-3 border-t border-white/10 flex items-center justify-between text-xs font-bold ${landingTheme.episodeCtaText}`}>
-                    <span>Day {day.dayNumber} 코스 파헤치기 ⚡</span>
-                    <ArrowRight className="w-4 h-4 stroke-[3] group-hover:translate-x-1 transition-transform" />
-                  </div>
+                  <p className={`text-[11px] sm:text-xs font-medium mt-0.5 ${landingTheme.dailySectionSubtitle}`}>
+                    {isDailyCourseExpanded
+                      ? '화면을 간결하게 보려면 버튼을 눌러 일자별 공략 코스 카드를 닫을 수 있습니다.'
+                      : '클릭하면 DAY 1부터 DAY 6까지 일자별 핵심 테마와 타격 목표 코스 카드가 펼쳐집니다.'}
+                  </p>
                 </div>
-              );
-            })}
+              </div>
+
+              <div
+                className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black shrink-0 self-end sm:self-center transition-colors ${
+                  isDailyCourseExpanded
+                    ? landingTheme.isDark
+                      ? 'bg-white/15 text-amber-300 border border-amber-400/40'
+                      : 'bg-slate-200 text-slate-800'
+                    : 'bg-amber-400 text-slate-950 shadow-sm'
+                }`}
+              >
+                <span>{isDailyCourseExpanded ? '코스 목록 닫기' : '코스 목록 펼치기'}</span>
+                {isDailyCourseExpanded ? (
+                  <ChevronUp className="w-4 h-4 stroke-[3]" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 stroke-[3]" />
+                )}
+              </div>
+            </button>
           </div>
+
+          {isDailyCourseExpanded && (
+            <div className="mt-6 pt-6 border-t border-white/10 animate-in fade-in duration-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+                {days.map((day) => {
+                  const spotNames = day.spots.map((s) => s.name).join(' → ');
+
+                  const dayBadge =
+                    day.dayNumber === 1 ? '🛬 도쿄 상륙 작전' :
+                    day.dayNumber === 2 ? '🛍️ 쇼핑 & 인파 생존' :
+                    day.dayNumber === 3 ? '🗻 후지산 절경 & 도쿄역' :
+                    day.dayNumber === 4 ? '🧙 마법 스튜디오 & 시부야' :
+                    day.dayNumber === 5 ? '🍜 먹방 & 롯폰기 힐스' : '🛫 최후의 쇼핑 후 복귀';
+
+                  return (
+                    <div
+                      key={day.dayNumber}
+                      onClick={() => onStartTrip(day.dayNumber)}
+                      className={`${landingTheme.episodeCardBg} ${landingTheme.episodeCardHover} rounded-3xl p-5 sm:p-6 transition-all duration-200 flex flex-col justify-between cursor-pointer group backdrop-blur-md`}
+                    >
+                      <div>
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-3">
+                          <span className={`px-3 py-1 rounded-lg text-xs font-black ${landingTheme.episodeDayBadge}`}>
+                            DAY {day.dayNumber}
+                          </span>
+                          <span className="text-xs font-mono font-medium opacity-70">
+                            {day.fullDate.split(' ')[0]}
+                          </span>
+                        </div>
+
+                        <div className={`inline-block text-[11px] font-bold rounded-md px-2 py-0.5 mb-2.5 border ${landingTheme.episodeSubBadge}`}>
+                          {dayBadge}
+                        </div>
+
+                        {/* Theme */}
+                        <h3 className={`text-base sm:text-lg font-bold mb-2 transition-colors ${landingTheme.episodeTitle} ${landingTheme.episodeTitleHover}`}>
+                          {day.theme}
+                        </h3>
+
+                        {/* Description */}
+                        <p className={`text-xs font-medium mb-4 line-clamp-2 leading-relaxed ${landingTheme.episodeDesc}`}>
+                          {day.description}
+                        </p>
+
+                        {/* Spots list */}
+                        <div className={`p-3 rounded-2xl border mb-4 ${landingTheme.episodeSpotsBox}`}>
+                          <div className={`text-[11px] font-bold flex items-center gap-1.5 mb-1.5 ${landingTheme.episodeSpotsTitle}`}>
+                            <MapPin className="w-3.5 h-3.5" />
+                            <span>타격 목표 ({day.spots.length}곳)</span>
+                          </div>
+                          <p className={`text-xs font-medium line-clamp-2 leading-relaxed ${landingTheme.episodeSpotsText}`}>
+                            {spotNames}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Card Bottom CTA */}
+                      <div className={`pt-3 border-t border-white/10 flex items-center justify-between text-xs font-bold ${landingTheme.episodeCtaText}`}>
+                        <span>Day {day.dayNumber} 코스 파헤치기 ⚡</span>
+                        <ArrowRight className="w-4 h-4 stroke-[3] group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Bottom Collapse Button for convenience after scrolling through course cards */}
+              <div className="mt-6 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setIsDailyCourseExpanded(false)}
+                  className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs sm:text-sm font-black border transition-all cursor-pointer ${
+                    landingTheme.isDark
+                      ? 'bg-white/10 hover:bg-white/15 text-amber-300 border-amber-400/40'
+                      : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300 shadow-xs'
+                  }`}
+                >
+                  <span>5박 6일 일자별 공략 코스 접기 (닫기)</span>
+                  <ChevronUp className="w-4 h-4 stroke-[3]" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
       {/* 5-B. Tokyo Famous Food, Street Snacks & Desserts Categorized Photo Showcase */}
-      <section className={`py-16 px-4 sm:px-6 border-t border-white/10 ${landingTheme.sectionWeaponsBg} transition-colors duration-300`}>
+      <section className={`py-14 px-4 sm:px-6 border-t border-white/10 ${landingTheme.sectionWeaponsBg} transition-colors duration-300`}>
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-5">
             <div>
               <div className={`inline-block font-bold text-xs px-3.5 py-1 rounded-full mb-2.5 border ${landingTheme.dailySectionBadge}`}>
                 TOKYO GOURMET & DESSERT GUIDE
@@ -630,99 +706,172 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
             )}
           </div>
 
-          {/* Interactive Category Filter Buttons */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 no-scrollbar">
-            {TOKYO_FOOD_CATEGORIES.map((cat) => {
-              const isSelected = previewFoodCategory === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setPreviewFoodCategory(cat.id)}
-                  className={`px-4 py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer border ${
-                    isSelected
-                      ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-md scale-[1.02]'
-                      : landingTheme.isDark
-                      ? 'bg-white/5 text-slate-200 border-white/15 hover:bg-white/10'
-                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Categorized Photo Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-            {(previewFoodCategory === 'ALL'
-              ? TOKYO_FOOD_ITEMS
-              : TOKYO_FOOD_ITEMS.filter((item) => item.category === previewFoodCategory)
-            ).map((food) => (
-              <div
-                key={food.id}
-                onClick={() => onOpenFoodGuide && onOpenFoodGuide(food.category)}
-                className={`${landingTheme.episodeCardBg} ${landingTheme.episodeCardHover} rounded-2xl overflow-hidden flex flex-col justify-between cursor-pointer group transition-all duration-200`}
-              >
+          {/* Collapsible Toggle Bar right below the Order Card header */}
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => setIsFoodShowcaseExpanded((prev) => !prev)}
+              aria-expanded={isFoodShowcaseExpanded}
+              className={`w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-3.5 rounded-2xl border transition-all cursor-pointer ${
+                landingTheme.isDark
+                  ? 'bg-white/5 hover:bg-white/10 border-white/15 text-white'
+                  : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-900 shadow-xs'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 text-left">
+                <span className="w-8 h-8 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-base shrink-0">
+                  🍜
+                </span>
                 <div>
-                  {/* Real Food Photo */}
-                  <div className={`relative h-44 w-full overflow-hidden bg-gradient-to-br ${food.fallbackGradient}`}>
-                    <img
-                      src={food.imageUrl}
-                      alt={food.name}
-                      referrerPolicy="no-referrer"
-                      loading="lazy"
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-black/30 pointer-events-none" />
-                    <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-1.5">
-                      <div className="flex items-center gap-1">
-                        <span className="px-2 py-0.5 rounded-md bg-black/75 text-amber-300 border border-amber-400/40 text-[11px] font-black">
-                          Day {food.dayNumber}
-                        </span>
-                        <span className="px-2 py-0.5 rounded-md bg-black/75 text-white text-[11px] font-bold">
-                          {food.categoryLabel.split('·')[1]?.trim() || food.categoryLabel}
-                        </span>
-                      </div>
-                      <span className="px-2 py-0.5 rounded-md bg-amber-400/95 text-slate-950 text-[11px] font-black truncate max-w-[55%]">
-                        {food.ratingScore} {food.recommendBadge}
-                      </span>
-                    </div>
-                    <div className="absolute bottom-2.5 left-3 right-3 text-white">
-                      <div className="text-[11px] font-semibold text-amber-300 truncate">
-                        {food.japaneseName}
-                      </div>
-                      <h3 className="text-sm font-black leading-snug line-clamp-1">
-                        {food.name}
-                      </h3>
-                    </div>
+                  <div className="text-xs sm:text-sm font-black flex items-center gap-2 flex-wrap">
+                    <span>
+                      도쿄 대표 음식 · 디저트 사진 및 정보 {isFoodShowcaseExpanded ? '접기 (닫기)' : '펼쳐보기'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-400 text-slate-950">
+                      총 {TOKYO_FOOD_ITEMS.length}선
+                    </span>
                   </div>
-
-                  {/* Description & Shop Info */}
-                  <div className="p-3.5 space-y-2">
-                    <div className="flex items-center justify-between text-xs font-mono tabular-nums">
-                      <span className="font-bold text-amber-500 dark:text-amber-300">
-                        {food.priceJpy}
-                      </span>
-                      <span className="opacity-75 text-[11px]">{food.priceKrwApprox}</span>
-                    </div>
-                    <div className={`text-[11px] font-semibold flex items-center gap-1 truncate ${landingTheme.episodeDesc}`}>
-                      <Store className="w-3 h-3 text-amber-400 shrink-0" />
-                      <span className="truncate">{food.famousShop}</span>
-                    </div>
-                    <p className={`text-xs line-clamp-2 leading-relaxed ${landingTheme.episodeDesc}`}>
-                      {food.summary}
-                    </p>
-                  </div>
-                </div>
-
-                <div className={`px-3.5 py-2.5 border-t border-white/10 flex items-center justify-between text-[11px] font-bold ${landingTheme.episodeCtaText}`}>
-                  <span>상세 맛 포인트 & 일본어 주문카드</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  <p className={`text-[11px] sm:text-xs font-medium mt-0.5 ${landingTheme.dailySectionSubtitle}`}>
+                    {isFoodShowcaseExpanded
+                      ? '화면을 간결하게 보려면 버튼을 눌러 대표 음식 카드 목록을 닫을 수 있습니다.'
+                      : '클릭하면 카테고리별(식사·길거리간식·디저트·테마파크·편의점) 대표 음식 사진과 맛집 정보가 펼쳐집니다.'}
+                  </p>
                 </div>
               </div>
-            ))}
+
+              <div
+                className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black shrink-0 self-end sm:self-center transition-colors ${
+                  isFoodShowcaseExpanded
+                    ? landingTheme.isDark
+                      ? 'bg-white/15 text-amber-300 border border-amber-400/40'
+                      : 'bg-slate-200 text-slate-800'
+                    : 'bg-amber-400 text-slate-950 shadow-sm'
+                }`}
+              >
+                <span>{isFoodShowcaseExpanded ? '음식 목록 닫기' : '음식 목록 펼치기'}</span>
+                {isFoodShowcaseExpanded ? (
+                  <ChevronUp className="w-4 h-4 stroke-[3]" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 stroke-[3]" />
+                )}
+              </div>
+            </button>
           </div>
+
+          {/* Collapsible Content: Category Filter Buttons + Categorized Photo Cards Grid */}
+          {isFoodShowcaseExpanded && (
+            <div className="mt-6 pt-6 border-t border-white/10 animate-in fade-in duration-200">
+              {/* Interactive Category Filter Buttons */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 no-scrollbar">
+                {TOKYO_FOOD_CATEGORIES.map((cat) => {
+                  const isSelected = previewFoodCategory === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setPreviewFoodCategory(cat.id)}
+                      className={`px-4 py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer border ${
+                        isSelected
+                          ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-md scale-[1.02]'
+                          : landingTheme.isDark
+                          ? 'bg-white/5 text-slate-200 border-white/15 hover:bg-white/10'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Categorized Photo Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+                {(previewFoodCategory === 'ALL'
+                  ? TOKYO_FOOD_ITEMS
+                  : TOKYO_FOOD_ITEMS.filter((item) => item.category === previewFoodCategory)
+                ).map((food) => (
+                  <div
+                    key={food.id}
+                    onClick={() => onOpenFoodGuide && onOpenFoodGuide(food.category)}
+                    className={`${landingTheme.episodeCardBg} ${landingTheme.episodeCardHover} rounded-2xl overflow-hidden flex flex-col justify-between cursor-pointer group transition-all duration-200`}
+                  >
+                    <div>
+                      {/* Real Food Photo */}
+                      <div className={`relative h-44 w-full overflow-hidden bg-gradient-to-br ${food.fallbackGradient}`}>
+                        <img
+                          src={food.imageUrl}
+                          alt={food.name}
+                          referrerPolicy="no-referrer"
+                          loading="lazy"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-black/30 pointer-events-none" />
+                        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1">
+                            <span className="px-2 py-0.5 rounded-md bg-black/75 text-amber-300 border border-amber-400/40 text-[11px] font-black">
+                              Day {food.dayNumber}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-md bg-black/75 text-white text-[11px] font-bold">
+                              {food.categoryLabel.split('·')[1]?.trim() || food.categoryLabel}
+                            </span>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-md bg-amber-400/95 text-slate-950 text-[11px] font-black truncate max-w-[55%]">
+                            {food.ratingScore} {food.recommendBadge}
+                          </span>
+                        </div>
+                        <div className="absolute bottom-2.5 left-3 right-3 text-white">
+                          <div className="text-[11px] font-semibold text-amber-300 truncate">
+                            {food.japaneseName}
+                          </div>
+                          <h3 className="text-sm font-black leading-snug line-clamp-1">
+                            {food.name}
+                          </h3>
+                        </div>
+                      </div>
+
+                      {/* Description & Shop Info */}
+                      <div className="p-3.5 space-y-2">
+                        <div className="flex items-center justify-between text-xs font-mono tabular-nums">
+                          <span className="font-bold text-amber-500 dark:text-amber-300">
+                            {food.priceJpy}
+                          </span>
+                          <span className="opacity-75 text-[11px]">{food.priceKrwApprox}</span>
+                        </div>
+                        <div className={`text-[11px] font-semibold flex items-center gap-1 truncate ${landingTheme.episodeDesc}`}>
+                          <Store className="w-3 h-3 text-amber-400 shrink-0" />
+                          <span className="truncate">{food.famousShop}</span>
+                        </div>
+                        <p className={`text-xs line-clamp-2 leading-relaxed ${landingTheme.episodeDesc}`}>
+                          {food.summary}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className={`px-3.5 py-2.5 border-t border-white/10 flex items-center justify-between text-[11px] font-bold ${landingTheme.episodeCtaText}`}>
+                      <span>상세 맛 포인트 & 일본어 주문카드</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Bottom Collapse Button for convenience after scrolling through cards */}
+              <div className="mt-6 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setIsFoodShowcaseExpanded(false)}
+                  className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs sm:text-sm font-black border transition-all cursor-pointer ${
+                    landingTheme.isDark
+                      ? 'bg-white/10 hover:bg-white/15 text-amber-300 border-amber-400/40'
+                      : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300 shadow-xs'
+                  }`}
+                >
+                  <span>도쿄 대표 음식 · 디저트 목록 접기 (닫기)</span>
+                  <ChevronUp className="w-4 h-4 stroke-[3]" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
