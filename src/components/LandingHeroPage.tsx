@@ -9,7 +9,9 @@ import {
   CheckSquare,
   Smartphone,
   Users,
-  Palette
+  Palette,
+  UtensilsCrossed,
+  Store
 } from 'lucide-react';
 import { TripDay } from '../types/travel';
 import { MobileInstallModal } from './MobileInstallModal';
@@ -20,6 +22,11 @@ import { KakaoAuthUser } from '../types/auth';
 import { ScheduleThemeId, SCHEDULE_THEMES } from '../data/scheduleThemes';
 import { getLandingTheme } from '../data/landingThemes';
 import { ScheduleThemeSwitcher } from './ScheduleThemeSwitcher';
+import {
+  TOKYO_FOOD_CATEGORIES,
+  TOKYO_FOOD_ITEMS,
+  TokyoFoodCategoryId
+} from '../data/tokyoFoodGuideData';
 import tokyoTowerDesktopImg from '../assets/images/tokyo_tower_night_1792063728180.jpg';
 import tokyoTowerMobileImg from '../assets/images/tokyo_tower_mobile_1792145945594.jpg';
 
@@ -28,6 +35,7 @@ interface LandingHeroPageProps {
   onStartTrip: (dayNumber?: number) => void;
   onOpenMap: () => void;
   onOpenChecklist?: () => void;
+  onOpenFoodGuide?: (category?: TokyoFoodCategoryId) => void;
   currentUser?: KakaoAuthUser | null;
   onOpenLogin?: () => void;
   onSelectUser?: (user: KakaoAuthUser) => void;
@@ -57,6 +65,7 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
   onStartTrip,
   onOpenMap,
   onOpenChecklist,
+  onOpenFoodGuide,
   currentUser,
   onOpenLogin,
   onSelectUser,
@@ -67,6 +76,7 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
   const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [previewFoodCategory, setPreviewFoodCategory] = useState<TokyoFoodCategoryId>('ALL');
   const [, setProfileSyncTick] = useState(0);
 
   // Active theme configurations
@@ -437,10 +447,10 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
           </div>
 
           {/* 3. Main Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-lg mx-auto mb-8 sm:mb-10">
+          <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3.5 max-w-3xl mx-auto mb-8 sm:mb-10">
             <button
               onClick={() => onStartTrip(1)}
-              className={`w-full sm:w-auto px-9 py-4.5 ${landingTheme.primaryBtn} font-black text-lg rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-3 cursor-pointer group`}
+              className={`w-full sm:w-auto px-8 py-4.5 ${landingTheme.primaryBtn} font-black text-lg rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-3 cursor-pointer group`}
             >
               <Zap className="w-5 h-5 fill-current group-hover:rotate-12 transition-transform" />
               <span>원정 시작하기 (Day 1)</span>
@@ -449,11 +459,21 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
 
             <button
               onClick={() => onOpenMap()}
-              className={`w-full sm:w-auto px-7 py-4.5 ${landingTheme.secondaryBtn} font-bold text-base rounded-2xl backdrop-blur-md active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg`}
+              className={`w-full sm:w-auto px-6 py-4.5 ${landingTheme.secondaryBtn} font-bold text-base rounded-2xl backdrop-blur-md active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg`}
             >
               <Navigation className="w-5 h-5 text-sky-400" />
               <span>구글 동선 지도 열기</span>
             </button>
+
+            {onOpenFoodGuide && (
+              <button
+                onClick={() => onOpenFoodGuide('ALL')}
+                className={`w-full sm:w-auto px-6 py-4.5 ${landingTheme.secondaryBtn} font-bold text-base rounded-2xl backdrop-blur-md active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg`}
+              >
+                <UtensilsCrossed className="w-5 h-5 text-amber-400" />
+                <span>도쿄 음식 · 디저트 도감</span>
+              </button>
+            )}
           </div>
 
           {/* 4. Moved from Schedule Page: Interactive 5-Theme Switcher on First Page */}
@@ -577,6 +597,131 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
                 </div>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* 5-B. Tokyo Famous Food, Street Snacks & Desserts Categorized Photo Showcase */}
+      <section className={`py-16 px-4 sm:px-6 border-t border-white/10 ${landingTheme.sectionWeaponsBg} transition-colors duration-300`}>
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+            <div>
+              <div className={`inline-block font-bold text-xs px-3.5 py-1 rounded-full mb-2.5 border ${landingTheme.dailySectionBadge}`}>
+                TOKYO GOURMET & DESSERT GUIDE
+              </div>
+              <h2 className={`text-2xl sm:text-3xl font-black ${landingTheme.dailySectionTitle}`}>
+                도쿄 대표 음식 · 길거리 간식 · 디저트 도감
+              </h2>
+              <p className={`text-xs sm:text-sm font-medium ${landingTheme.dailySectionSubtitle} mt-1`}>
+                실제 사진을 바탕으로 라멘·규카츠부터 아사쿠사 메론빵, 생딸기 모찌, 버터맥주, 편의점 야식까지 카테고리별로 한눈에 확인하세요!
+              </p>
+            </div>
+
+            {onOpenFoodGuide && (
+              <button
+                type="button"
+                onClick={() => onOpenFoodGuide(previewFoodCategory)}
+                className={`inline-flex items-center gap-2 px-5 py-3 font-black text-xs sm:text-sm rounded-xl transition-all self-start md:self-auto cursor-pointer shrink-0 ${landingTheme.primaryBtn}`}
+              >
+                <UtensilsCrossed className="w-4 h-4" />
+                <span>먹거리 · 디저트 전체 상세 & 일본어 주문카드 열기</span>
+                <ChevronRight className="w-4 h-4 stroke-[3]" />
+              </button>
+            )}
+          </div>
+
+          {/* Interactive Category Filter Buttons */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 no-scrollbar">
+            {TOKYO_FOOD_CATEGORIES.map((cat) => {
+              const isSelected = previewFoodCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setPreviewFoodCategory(cat.id)}
+                  className={`px-4 py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer border ${
+                    isSelected
+                      ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-md scale-[1.02]'
+                      : landingTheme.isDark
+                      ? 'bg-white/5 text-slate-200 border-white/15 hover:bg-white/10'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Categorized Photo Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            {(previewFoodCategory === 'ALL'
+              ? TOKYO_FOOD_ITEMS
+              : TOKYO_FOOD_ITEMS.filter((item) => item.category === previewFoodCategory)
+            ).map((food) => (
+              <div
+                key={food.id}
+                onClick={() => onOpenFoodGuide && onOpenFoodGuide(food.category)}
+                className={`${landingTheme.episodeCardBg} ${landingTheme.episodeCardHover} rounded-2xl overflow-hidden flex flex-col justify-between cursor-pointer group transition-all duration-200`}
+              >
+                <div>
+                  {/* Real Food Photo */}
+                  <div className={`relative h-44 w-full overflow-hidden bg-gradient-to-br ${food.fallbackGradient}`}>
+                    <img
+                      src={food.imageUrl}
+                      alt={food.name}
+                      referrerPolicy="no-referrer"
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-black/30 pointer-events-none" />
+                    <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-1.5">
+                      <div className="flex items-center gap-1">
+                        <span className="px-2 py-0.5 rounded-md bg-black/75 text-amber-300 border border-amber-400/40 text-[11px] font-black">
+                          Day {food.dayNumber}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md bg-black/75 text-white text-[11px] font-bold">
+                          {food.categoryLabel.split('·')[1]?.trim() || food.categoryLabel}
+                        </span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-md bg-amber-400/95 text-slate-950 text-[11px] font-black truncate max-w-[55%]">
+                        {food.ratingScore} {food.recommendBadge}
+                      </span>
+                    </div>
+                    <div className="absolute bottom-2.5 left-3 right-3 text-white">
+                      <div className="text-[11px] font-semibold text-amber-300 truncate">
+                        {food.japaneseName}
+                      </div>
+                      <h3 className="text-sm font-black leading-snug line-clamp-1">
+                        {food.name}
+                      </h3>
+                    </div>
+                  </div>
+
+                  {/* Description & Shop Info */}
+                  <div className="p-3.5 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-mono tabular-nums">
+                      <span className="font-bold text-amber-500 dark:text-amber-300">
+                        {food.priceJpy}
+                      </span>
+                      <span className="opacity-75 text-[11px]">{food.priceKrwApprox}</span>
+                    </div>
+                    <div className={`text-[11px] font-semibold flex items-center gap-1 truncate ${landingTheme.episodeDesc}`}>
+                      <Store className="w-3 h-3 text-amber-400 shrink-0" />
+                      <span className="truncate">{food.famousShop}</span>
+                    </div>
+                    <p className={`text-xs line-clamp-2 leading-relaxed ${landingTheme.episodeDesc}`}>
+                      {food.summary}
+                    </p>
+                  </div>
+                </div>
+
+                <div className={`px-3.5 py-2.5 border-t border-white/10 flex items-center justify-between text-[11px] font-bold ${landingTheme.episodeCtaText}`}>
+                  <span>상세 맛 포인트 & 일본어 주문카드</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>

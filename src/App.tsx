@@ -80,6 +80,8 @@ import {
   StampMissionFloatingButton,
   StampMissionModal
 } from './components/StampMissionModal';
+import { TokyoFoodGuideModal } from './components/TokyoFoodGuideModal';
+import { TokyoFoodCategoryId } from './data/tokyoFoodGuideData';
 import {
   StampMissionItem,
   DEFAULT_STAMP_MISSIONS,
@@ -200,6 +202,13 @@ export default function App() {
 
   // Kakao Talk Login & User session state (식별된 스마트폰/태블릿 접속자)
   const [currentUser, setCurrentUser] = useState<KakaoAuthUser | null>(() => getStoredKakaoUser());
+  const [isFoodGuideOpen, setIsFoodGuideOpen] = useState(false);
+  const [foodGuideCategory, setFoodGuideCategory] = useState<TokyoFoodCategoryId>('ALL');
+
+  const handleOpenFoodGuide = (category: TokyoFoodCategoryId = 'ALL') => {
+    setFoodGuideCategory(category);
+    setIsFoodGuideOpen(true);
+  };
 
   // Synchronize companion names with effective member profiles
   const syncCompanionsWithProfiles = useCallback(() => {
@@ -1288,6 +1297,7 @@ export default function App() {
             setBudgetModalView('checklist');
             setIsBudgetChecklistOpen(true);
           }}
+          onOpenFoodGuide={handleOpenFoodGuide}
           scheduleThemeId={scheduleThemeId}
           onSelectScheduleTheme={handleSelectScheduleTheme}
         />
@@ -1311,6 +1321,13 @@ export default function App() {
           onResetMissions={handleResetStampMissions}
           scheduleThemeId={scheduleThemeId}
           currentUser={currentUser}
+          initialDayFilter="ALL"
+        />
+        <TokyoFoodGuideModal
+          isOpen={isFoodGuideOpen}
+          onClose={() => setIsFoodGuideOpen(false)}
+          scheduleThemeId={scheduleThemeId}
+          initialCategory={foodGuideCategory}
           initialDayFilter="ALL"
         />
         {toastMessage && (
@@ -1356,6 +1373,7 @@ export default function App() {
         onLogout={handleKakaoLogout}
         onOpenMobileInstall={() => setIsMobileInstallOpen(true)}
         onReplayIntro={() => setShowIntro(true)}
+        onOpenFoodGuide={() => handleOpenFoodGuide('ALL')}
         scheduleThemeId={scheduleThemeId}
       />
 
@@ -1886,6 +1904,14 @@ export default function App() {
         scheduleThemeId={scheduleThemeId}
         currentUser={currentUser}
         initialDayFilter={selectedDayNumber || 'ALL'}
+      />
+
+      <TokyoFoodGuideModal
+        isOpen={isFoodGuideOpen}
+        onClose={() => setIsFoodGuideOpen(false)}
+        scheduleThemeId={scheduleThemeId}
+        initialCategory={foodGuideCategory}
+        initialDayFilter="ALL"
       />
     </div>
   );

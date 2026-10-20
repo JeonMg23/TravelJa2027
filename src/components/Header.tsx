@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Compass, Wallet, CheckSquare, Smartphone, Tablet, Laptop, LogOut, RefreshCw, UserCheck, Sparkles, Columns2 } from 'lucide-react';
+import { Calendar, Compass, Wallet, CheckSquare, Smartphone, Tablet, Laptop, LogOut, RefreshCw, UserCheck, Sparkles, Columns2, UtensilsCrossed } from 'lucide-react';
 import { FriendCompanion } from '../types/travel';
 import { KakaoAuthUser } from '../types/auth';
 import { getCharacterAvatarById } from '../data/characterAvatars';
@@ -21,6 +21,7 @@ interface HeaderProps {
   onUpdateUser?: (user: KakaoAuthUser) => void;
   onLogout?: () => void;
   onReplayIntro?: () => void;
+  onOpenFoodGuide?: () => void;
   scheduleThemeId?: ScheduleThemeId;
 }
 
@@ -34,6 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   onOpenMobileInstall,
   onReplayIntro,
+  onOpenFoodGuide,
   scheduleThemeId = 'classic-light'
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -173,9 +175,36 @@ export const Header: React.FC<HeaderProps> = ({
             <CheckSquare className={`w-4 h-4 ${isDark ? theme.accentText : 'text-indigo-600'}`} />
             체크리스트
           </button>
+          {onOpenFoodGuide && (
+            <button
+              onClick={onOpenFoodGuide}
+              className={`px-3 py-2 text-sm font-bold rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                isDark
+                  ? 'bg-amber-400/15 text-amber-300 hover:bg-amber-400/25 border border-amber-400/40'
+                  : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-300'
+              }`}
+            >
+              <UtensilsCrossed className="w-4 h-4 text-amber-500" />
+              먹거리 · 디저트
+            </button>
+          )}
         </nav>
         {/* Zone 3: App Install & Kakao User Profile / Login Status */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {onOpenFoodGuide && (
+            <button
+              onClick={onOpenFoodGuide}
+              className={`md:hidden flex items-center gap-1 px-2.5 py-1.5 min-h-[36px] text-xs font-bold rounded-xl border transition-colors cursor-pointer whitespace-nowrap ${
+                isDark
+                  ? 'bg-amber-400/15 border-amber-400/50 text-amber-300'
+                  : 'bg-amber-50 border-amber-300 text-amber-900'
+              }`}
+              title="도쿄 유명 음식 & 디저트 먹거리 도감 열기"
+            >
+              <UtensilsCrossed className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <span>먹거리</span>
+            </button>
+          )}
           {onOpenMobileInstall && (
             <button
               onClick={onOpenMobileInstall}
