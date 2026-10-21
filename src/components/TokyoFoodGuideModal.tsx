@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   UtensilsCrossed,
   Search,
@@ -11,7 +11,8 @@ import {
   Volume2,
   MessageSquareQuote,
   Store,
-  Calendar
+  Calendar,
+  AlertTriangle
 } from 'lucide-react';
 import {
   TOKYO_FOOD_CATEGORIES,
@@ -29,6 +30,7 @@ interface TokyoFoodGuideModalProps {
   onClose: () => void;
   scheduleThemeId: ScheduleThemeId;
   initialCategory?: TokyoFoodCategoryId;
+  initialFoodId?: string | null;
   initialDayFilter?: number | 'ALL';
 }
 
@@ -37,6 +39,7 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
   onClose,
   scheduleThemeId,
   initialCategory = 'ALL',
+  initialFoodId = null,
   initialDayFilter = 'ALL'
 }) => {
   const theme = SCHEDULE_THEMES[scheduleThemeId] || SCHEDULE_THEMES['classic-light'];
@@ -46,9 +49,13 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
     initialDayFilter
   );
   const [searchQuery, setSearchQuery] = useState('');
+  const [focusedFoodId, setFocusedFoodId] = useState<string | null>(initialFoodId);
   const [selectedOrderCardItem, setSelectedOrderCardItem] =
     useState<TokyoFoodItem | null>(null);
+  const [eggRequestMode, setEggRequestMode] = useState<'SEPARATE' | 'REMOVE'>('SEPARATE');
+  const [showEggAllergyOnOrderCard, setShowEggAllergyOnOrderCard] = useState<boolean>(false);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+  const scrollBodyRef = useRef<HTMLDivElement | null>(null);
 
   const [wishlistIds, setWishlistIds] = useState<string[]>(() => {
     try {
@@ -70,9 +77,38 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setSelectedCategory(initialCategory);
+      if (initialFoodId) {
+        const targetFood = TOKYO_FOOD_ITEMS.find((item) => item.id === initialFoodId);
+        setSelectedCategory(targetFood?.category || initialCategory);
+        setSelectedDay('ALL');
+        setSearchQuery('');
+        setFocusedFoodId(initialFoodId);
+      } else {
+        setSelectedCategory(initialCategory);
+        setFocusedFoodId(null);
+      }
+
+      // Scroll modal body to top so the selected food (placed at top & highlighted) is immediately visible
+      setTimeout(() => {
+        if (scrollBodyRef.current) {
+          scrollBodyRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        if (initialFoodId) {
+          const el = document.getElementById(`tokyo-food-card-${initialFoodId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }
+      }, 60);
     }
-  }, [isOpen, initialCategory]);
+  }, [isOpen, initialCategory, initialFoodId]);
+
+  const handleOpenOrderCard = (item: TokyoFoodItem) => {
+    setSelectedOrderCardItem(item);
+    const hasEgg = Boolean(item.eggAllergyInfo?.hasDirectEgg);
+    setShowEggAllergyOnOrderCard(hasEgg);
+    setEggRequestMode(item.eggAllergyInfo?.defaultMode || 'SEPARATE');
+  };
 
   const toggleWishlist = (id: string) => {
     setWishlistIds((prev) => {
@@ -114,7 +150,7 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
   }, []);
 
   const filteredItems = useMemo(() => {
-    return TOKYO_FOOD_ITEMS.filter((item) => {
+    const baseList = TOKYO_FOOD_ITEMS.filter((item) => {
       if (selectedCategory !== 'ALL' && item.category !== selectedCategory) {
         return false;
       }
@@ -131,7 +167,19 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
       }
       return true;
     });
-  }, [selectedCategory, selectedDay, searchQuery, wishlistIds]);
+
+    // If a specific food was clicked on the first page, place that clicked food right at the top so it's immediately visible!
+    if (focusedFoodId) {
+      const targetIdx = baseList.findIndex((item) => item.id === focusedFoodId);
+      if (targetIdx > 0) {
+        const targetItem = baseList[targetIdx];
+        const rest = baseList.filter((_, idx) => idx !== targetIdx);
+        return [targetItem, ...rest];
+      }
+    }
+
+    return baseList;
+  }, [selectedCategory, selectedDay, searchQuery, wishlistIds, focusedFoodId]);
 
   const activeCategoryMeta = useMemo(
     () =>
@@ -198,7 +246,10 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
                 <button
                   key={cat.id}
                   type="button"
-                  onClick={() => setSelectedCategory(cat.id)}
+                  onClick={() => {
+                    setSelectedCategory(cat.id);
+                    setFocusedFoodId(null);
+                  }}
                   className={`px-3.5 py-2 min-h-[42px] rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer flex items-center gap-2 border ${
                     isSelected
                       ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-xs scale-[1.01]'
@@ -287,7 +338,10 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
         </div>
 
         {/* Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 overscroll-contain">
+        <div
+          ref={scrollBodyRef}
+          className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 overscroll-contain"
+        >
           {/* Category Banner Info */}
           <div
             className={`rounded-2xl border px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
@@ -330,12 +384,18 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
                 const isWishlisted = wishlistIds.includes(item.id);
                 const isEaten = eatenIds.includes(item.id);
                 const imageFailed = Boolean(failedImages[item.id]);
+                const isFocusedFromLanding = focusedFoodId === item.id;
 
                 return (
                   <article
                     key={item.id}
+                    id={`tokyo-food-card-${item.id}`}
                     className={`rounded-2xl border overflow-hidden flex flex-col justify-between transition-all ${
-                      isEaten
+                      isFocusedFromLanding
+                        ? theme.isDark
+                          ? 'ring-3 ring-amber-400 border-amber-400 bg-amber-950/25 shadow-[0_0_28px_rgba(250,204,21,0.35)]'
+                          : 'ring-3 ring-amber-400 border-amber-400 bg-amber-50/40 shadow-[0_0_24px_rgba(250,204,21,0.35)]'
+                        : isEaten
                         ? theme.isDark
                           ? 'bg-emerald-950/20 border-emerald-400/50'
                           : 'bg-emerald-50/40 border-emerald-300'
@@ -345,6 +405,21 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
                     }`}
                   >
                     <div>
+                      {isFocusedFromLanding && (
+                        <div className="px-3.5 py-2 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-slate-950 text-xs font-black flex items-center justify-between gap-2">
+                          <span className="flex items-center gap-1.5">
+                            <Sparkles className="w-4 h-4 shrink-0" />
+                            <span>첫 페이지에서 선택한 대표 음식</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenOrderCard(item)}
+                            className="px-2.5 py-0.5 rounded-lg bg-slate-950 text-amber-300 text-[11px] font-black cursor-pointer hover:bg-slate-800"
+                          >
+                            일본어 주문 화면 바로 열기
+                          </button>
+                        </div>
+                      )}
                       {/* Top Real Photo Frame (4:3 / 16:10 aspect) */}
                       <div
                         className={`relative h-52 sm:h-58 w-full overflow-hidden bg-gradient-to-br ${item.fallbackGradient}`}
@@ -485,6 +560,26 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
                               {item.orderTip}
                             </span>
                           </div>
+
+                          {/* Hyunwoo Egg Allergy Caution Banner on Food Card */}
+                          {item.eggAllergyInfo?.hasDirectEgg && (
+                            <div
+                              className={`mt-2 rounded-xl p-2.5 border text-xs space-y-1 ${
+                                theme.isDark
+                                  ? 'bg-rose-950/40 border-rose-400/50 text-rose-100'
+                                  : 'bg-rose-50 border-rose-200 text-rose-900'
+                              }`}
+                            >
+                              <div className="font-black flex items-center gap-1.5 text-rose-500 dark:text-rose-300">
+                                <span>🥚 현우 계란 알레르기 체크:</span>
+                                <span>{item.eggAllergyInfo.eggTypeLabel}</span>
+                              </div>
+                              <p className="text-[11px] leading-relaxed opacity-90">
+                                {item.eggAllergyInfo.hyunwooTip}
+                              </p>
+                            </div>
+                          )}
+
                           <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] font-semibold opacity-80">
                             <span className="text-blue-500 dark:text-blue-300">
                               {item.kidFavoriteScore}
@@ -508,11 +603,15 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
                     >
                       <button
                         type="button"
-                        onClick={() => setSelectedOrderCardItem(item)}
+                        onClick={() => handleOpenOrderCard(item)}
                         className="flex-1 min-h-[40px] px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
                       >
                         <Volume2 className="w-4 h-4 shrink-0" />
-                        <span>일본어 주문 화면 크게 보기</span>
+                        <span>
+                          {item.eggAllergyInfo?.hasDirectEgg
+                            ? '일본어 주문 화면 크게 보기 (🥚계란문구 포함)'
+                            : '일본어 주문 화면 크게 보기'}
+                        </span>
                       </button>
 
                       <a
@@ -566,17 +665,17 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
         </div>
       </div>
 
-      {/* Staff Show-to-Order Popup Card (점원에게 바로 보여주는 일본어 주문 카드) */}
+      {/* Staff Show-to-Order Popup Card (점원에게 바로 보여주는 일본어 주문 카드 + 현우 계란 알레르기 일본어 문구) */}
       {selectedOrderCardItem && (
         <div
-          className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+          className="fixed inset-0 z-60 flex items-center justify-center bg-black/85 backdrop-blur-sm p-3 sm:p-4 animate-in fade-in duration-150"
           onClick={() => setSelectedOrderCardItem(null)}
         >
           <div
-            className="w-full max-w-md rounded-3xl bg-white text-slate-900 border-4 border-amber-400 shadow-2xl overflow-hidden"
+            className="w-full max-w-lg max-h-[92dvh] rounded-3xl bg-white text-slate-900 border-4 border-amber-400 shadow-2xl overflow-y-auto overscroll-contain"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="relative h-56 w-full bg-slate-900">
+            <div className="relative h-48 sm:h-54 w-full bg-slate-900 shrink-0">
               <img
                 src={selectedOrderCardItem.imageUrl}
                 alt={selectedOrderCardItem.name}
@@ -590,25 +689,142 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
               >
                 <X className="w-5 h-5" />
               </button>
-              <div className="absolute bottom-3 left-3 px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black">
+              <div className="absolute bottom-3 left-3 px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black shadow-md">
                 식당·매장 직원에게 이 화면을 보여주세요!
               </div>
             </div>
 
-            <div className="p-5 text-center space-y-3">
+            <div className="p-4 sm:p-5 text-center space-y-3.5">
               <div className="text-xs font-bold text-rose-600">
                 すみません、これをお願いします！ (스미마셍, 코레오 오네가이시마스!)
               </div>
-              <div className="text-2xl font-black text-slate-950 leading-snug">
+              <div className="text-xl sm:text-2xl font-black text-slate-950 leading-snug">
                 {selectedOrderCardItem.japaneseName}
               </div>
-              <div className="text-sm font-bold text-slate-600">
+              <div className="text-xs sm:text-sm font-bold text-slate-600">
                 한국어 발음: [{selectedOrderCardItem.pronunciation}]
               </div>
               <div className="pt-2 border-t border-slate-200 text-xs text-slate-600">
                 <strong>{selectedOrderCardItem.name}</strong> · 예상 가격{' '}
                 {selectedOrderCardItem.priceJpy}
               </div>
+
+              {/* =========================================================================
+                  🥚 현우 대원 계란 알레르기 일본어 요청 카드 (계란 포함 음식은 자동 표시, 일반 음식도 1탭 토글)
+                 ========================================================================= */}
+              {showEggAllergyOnOrderCard ? (
+                <div className="rounded-2xl border-2 border-rose-500 bg-rose-50/90 p-3.5 sm:p-4 text-left space-y-3 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 text-xs sm:text-sm font-black text-rose-700">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>🥚 현우 계란 알레르기 일본어 주문 문구</span>
+                    </div>
+                    {selectedOrderCardItem.eggAllergyInfo?.eggTypeLabel && (
+                      <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[11px] font-black">
+                        {selectedOrderCardItem.eggAllergyInfo.eggTypeLabel}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Mode Selector Tabs: 따로 담아달라 vs 아예 빼달라 */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEggRequestMode('SEPARATE')}
+                      className={`py-2 px-2.5 rounded-xl text-xs font-black border transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                        eggRequestMode === 'SEPARATE'
+                          ? 'bg-rose-600 text-white border-rose-700 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span>🍽️ 계란 따로 담아달라 (別皿)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEggRequestMode('REMOVE')}
+                      className={`py-2 px-2.5 rounded-xl text-xs font-black border transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                        eggRequestMode === 'REMOVE'
+                          ? 'bg-rose-600 text-white border-rose-700 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span>🚫 계란 빼달라 (卵抜き)</span>
+                    </button>
+                  </div>
+
+                  {/* Staff-Facing Large Japanese Allergy Instruction Box */}
+                  <div className="rounded-xl bg-white border-2 border-rose-300 p-3.5 space-y-2 text-center">
+                    <div className="inline-block px-2.5 py-0.5 rounded-md bg-rose-100 text-rose-800 text-[11px] font-black">
+                      店員さんへ（卵アレルギーのお願い）
+                    </div>
+
+                    {eggRequestMode === 'SEPARATE' ? (
+                      <>
+                        <div className="text-base sm:text-lg font-black text-rose-700 leading-snug">
+                          ⚠️ 卵（たまご）は別皿（べつざら）でお願いします！
+                        </div>
+                        <div className="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">
+                          {selectedOrderCardItem.eggAllergyInfo?.customSeparateJp ||
+                            '卵は料理の中に入れず、別の皿に分けて出してください。'}
+                        </div>
+                        <div className="text-xs font-semibold text-slate-700 bg-slate-100 rounded-lg p-2 leading-relaxed text-left">
+                          子どもは<strong>卵アレルギー</strong>があります（パンや衣のつなぎは大丈夫ですが、
+                          <strong>半熟卵・ゆで卵・目玉焼き・卵焼き・生卵</strong>
+                          などは食べられません）。卵は別の皿に分けてください。
+                        </div>
+                        <div className="text-xs font-bold text-rose-700 pt-1">
+                          발음: [
+                          {selectedOrderCardItem.eggAllergyInfo?.customSeparatePronunciation ||
+                            '타마고와 베츠자라데 오네가이시마스 (따로 다른 접시에 담아주세요)'}
+                          ]
+                        </div>
+                        <div className="text-[11px] text-slate-600">
+                          뜻: “아이가 계란 알레르기가 있습니다(빵·튀김옷은 괜찮지만 반숙·완숙·계란프라이·계란말이·날계란은 못 먹습니다). 계란은 음식에 넣지 말고 다른 접시에 따로 담아주세요.”
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-base sm:text-lg font-black text-rose-700 leading-snug">
+                          ⚠️ 卵（たまご）を抜いてください！（卵抜き）
+                        </div>
+                        <div className="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">
+                          {selectedOrderCardItem.eggAllergyInfo?.customRemoveJp ||
+                            'この料理から卵（半熟卵・ゆで卵・目玉焼き・卵焼き等）を抜いてください。'}
+                        </div>
+                        <div className="text-xs font-semibold text-slate-700 bg-slate-100 rounded-lg p-2 leading-relaxed text-left">
+                          子どもは<strong>卵アレルギー</strong>があります（パンや衣のつなぎは大丈夫ですが、
+                          <strong>半熟卵・ゆで卵・目玉焼き・卵焼き・生卵</strong>
+                          などは食べられません）。卵を入れないでください。
+                        </div>
+                        <div className="text-xs font-bold text-rose-700 pt-1">
+                          발음: [
+                          {selectedOrderCardItem.eggAllergyInfo?.customRemovePronunciation ||
+                            '타마고오 누이테 구다사이 / 타마고 누키데 오네가이시마스 (계란을 빼주세요)'}
+                          ]
+                        </div>
+                        <div className="text-[11px] text-slate-600">
+                          뜻: “아이가 계란 알레르기가 있습니다(빵·튀김옷은 괜찮지만 반숙·완숙·계란프라이·계란말이·날계란은 못 먹습니다). 이 음식에서 계란을 빼주세요.”
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {selectedOrderCardItem.eggAllergyInfo?.hyunwooTip && (
+                    <div className="text-[11px] font-bold text-rose-800 bg-rose-100/80 rounded-lg px-2.5 py-1.5">
+                      💡 현우 엄마 팁: {selectedOrderCardItem.eggAllergyInfo.hyunwooTip}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowEggAllergyOnOrderCard(true)}
+                  className="w-full py-2.5 px-3 rounded-xl border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  <span>🥚 혹시 이 메뉴에 계란이 나온다면? 현우 계란 알레르기(빼기/따로담기) 일본어 문구 열기</span>
+                </button>
+              )}
+
               <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-slate-800 text-left">
                 <strong>주문 꿀팁:</strong> {selectedOrderCardItem.orderTip}
               </div>

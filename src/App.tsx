@@ -204,9 +204,11 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<KakaoAuthUser | null>(() => getStoredKakaoUser());
   const [isFoodGuideOpen, setIsFoodGuideOpen] = useState(false);
   const [foodGuideCategory, setFoodGuideCategory] = useState<TokyoFoodCategoryId>('ALL');
+  const [foodGuideTargetFoodId, setFoodGuideTargetFoodId] = useState<string | null>(null);
 
-  const handleOpenFoodGuide = (category: TokyoFoodCategoryId = 'ALL') => {
+  const handleOpenFoodGuide = (category: TokyoFoodCategoryId = 'ALL', foodId?: string) => {
     setFoodGuideCategory(category);
+    setFoodGuideTargetFoodId(foodId || null);
     setIsFoodGuideOpen(true);
   };
 
@@ -1325,9 +1327,13 @@ export default function App() {
         />
         <TokyoFoodGuideModal
           isOpen={isFoodGuideOpen}
-          onClose={() => setIsFoodGuideOpen(false)}
+          onClose={() => {
+            setIsFoodGuideOpen(false);
+            setFoodGuideTargetFoodId(null);
+          }}
           scheduleThemeId={scheduleThemeId}
           initialCategory={foodGuideCategory}
+          initialFoodId={foodGuideTargetFoodId}
           initialDayFilter="ALL"
         />
         {toastMessage && (
@@ -1908,9 +1914,13 @@ export default function App() {
 
       <TokyoFoodGuideModal
         isOpen={isFoodGuideOpen}
-        onClose={() => setIsFoodGuideOpen(false)}
+        onClose={() => {
+          setIsFoodGuideOpen(false);
+          setFoodGuideTargetFoodId(null);
+        }}
         scheduleThemeId={scheduleThemeId}
         initialCategory={foodGuideCategory}
+        initialFoodId={foodGuideTargetFoodId}
         initialDayFilter="ALL"
       />
     </div>

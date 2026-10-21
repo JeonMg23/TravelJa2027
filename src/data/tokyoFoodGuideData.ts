@@ -14,6 +14,17 @@ export interface TokyoFoodCategoryMeta {
   countBadgeColor: string;
 }
 
+export interface FoodEggAllergyInfo {
+  hasDirectEgg: boolean;
+  eggTypeLabel: string; // 예: '반숙 계란 (아지타마고)', '반숙 계란 튀김', '계란말이 토핑', '날계란 소스'
+  defaultMode: 'SEPARATE' | 'REMOVE';
+  hyunwooTip: string;
+  customRemoveJp?: string;
+  customRemovePronunciation?: string;
+  customSeparateJp?: string;
+  customSeparatePronunciation?: string;
+}
+
 export interface TokyoFoodItem {
   id: string;
   name: string;
@@ -36,6 +47,7 @@ export interface TokyoFoodItem {
   kidFavoriteScore: string;
   momFavoriteScore: string;
   googleMapsQuery: string;
+  eggAllergyInfo?: FoodEggAllergyInfo;
 }
 
 export const TOKYO_FOOD_CATEGORIES: TokyoFoodCategoryMeta[] = [
@@ -113,7 +125,18 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
     orderTip: '주문서에서 국물 농도 "기본", 마늘 "1쪽", 비법소스 "기본(아이들은 1/2)" 추천!',
     kidFavoriteScore: '현우·세현 선호도 ★★★★★ (1순위)',
     momFavoriteScore: '엄마들 선호도 ★★★★☆',
-    googleMapsQuery: '이치란 아사쿠사점'
+    googleMapsQuery: '이치란 아사쿠사점',
+    eggAllergyInfo: {
+      hasDirectEgg: true,
+      eggTypeLabel: '반숙 계란 (아지타마고 · 味玉)',
+      defaultMode: 'SEPARATE',
+      hyunwooTip:
+        '현우 라멘에는 반숙 계란(아지타마고)을 넣지 말고 별도 접시에 따로 받거나 빼달라고 요청하세요! (면·국물은 섭취 가능)',
+      customRemoveJp: 'ラーメンに卵（半熟卵・味玉）を入れないでください（卵抜きでお願いします）。',
+      customRemovePronunciation: '라멘니 타마고(한쥬쿠타마고·아지타마)오 이레나이데 구다사이 (타마고 누키데 오네가이시마스)',
+      customSeparateJp: '卵（半熟卵・味玉）はラーメンに入れず、別の皿（別皿）でお願いします。',
+      customSeparatePronunciation: '타마고(한쥬쿠타마고·아지타마)와 라멘니 이레즈, 베츠자라데 오네가이시마스'
+    }
   },
   {
     id: 'food_gyukatsu',
@@ -169,7 +192,18 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
     orderTip: '연어 + 참치 + 연어알 조합인 "산쇼쿠동(3색 덮밥)"이 호불호 없이 가장 인기!',
     kidFavoriteScore: '현우·세현 선호도 ★★★★☆',
     momFavoriteScore: '엄마들 선호도 ★★★★★ (엄마들 원픽!)',
-    googleMapsQuery: 'Tsukiji Outer Market Kaisendon'
+    googleMapsQuery: 'Tsukiji Outer Market Kaisendon',
+    eggAllergyInfo: {
+      hasDirectEgg: true,
+      eggTypeLabel: '계란말이 토핑 (타마고야키 · 玉子焼き)',
+      defaultMode: 'REMOVE',
+      hyunwooTip:
+        '카이센동(해산물 덮밥)이나 스시 세트에 기본으로 올라가는 일본식 계란말이(타마고) 조각을 빼달라거나 다른 접시에 따로 담아달라고 요청하세요!',
+      customRemoveJp: '海鮮丼（お寿司）の上の玉子焼き（卵）を抜いてください。',
+      customRemovePronunciation: '카이센동(오스시)노 우에노 타마고야키(타마고)오 누이테 구다사이',
+      customSeparateJp: '海鮮丼（お寿司）の玉子焼き（卵）は別の皿（別皿）に分けてください。',
+      customSeparatePronunciation: '카이센동(오스시)노 타마고야키(타마고)와 베츠자라니 와케테 구다사이'
+    }
   },
   {
     id: 'food_monjayaki',
@@ -197,7 +231,18 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
     orderTip: '"멘타이 모찌 치즈 몬자(명란+떡+치즈)" + "야키소바" 조합으로 주문하면 완벽해요!',
     kidFavoriteScore: '현우·세현 선호도 ★★★★☆',
     momFavoriteScore: '엄마들 선호도 ★★★★★',
-    googleMapsQuery: 'Monja Moheji Asakusa'
+    googleMapsQuery: 'Monja Moheji Asakusa',
+    eggAllergyInfo: {
+      hasDirectEgg: true,
+      eggTypeLabel: '철판 야키소바 계란프라이 (目玉焼き) 토핑 확인',
+      defaultMode: 'SEPARATE',
+      hyunwooTip:
+        '몬자야키 기본 반죽에는 계란이 없지만, 함께 시키는 야키소바나 오코노미야키에 계란프라이(메다마야키)·날계란이 올라갈 수 있으니 계란을 빼거나 따로 담아달라고 요청하세요!',
+      customRemoveJp: 'もんじゃ焼き・焼きそばに卵（生卵・目玉焼き）を入れないでください。',
+      customRemovePronunciation: '몬자야키·야키소바니 타마고(나마타마고·메다마야키)오 이레나이데 구다사이',
+      customSeparateJp: '卵（生卵・目玉焼き）は鉄板に乗せず、別の皿（別皿）でお願いします。',
+      customSeparatePronunciation: '타마고(메다마야키)와 텟판니 노세즈, 베츠자라데 오네가이시마스'
+    }
   },
   {
     id: 'food_yakiniku_wagyu',
@@ -281,7 +326,18 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
     orderTip: '장어가 부담스러운 아이들은 새우와 오징어 위주인 "에비 텐동(새우 텐동)"을 선택하세요!',
     kidFavoriteScore: '현우·세현 선호도 ★★★★★ (새우튀김 홀릭)',
     momFavoriteScore: '엄마들 선호도 ★★★★★',
-    googleMapsQuery: 'Kaneko Hannosuke Nihonbashi'
+    googleMapsQuery: 'Kaneko Hannosuke Nihonbashi',
+    eggAllergyInfo: {
+      hasDirectEgg: true,
+      eggTypeLabel: '반숙 계란 튀김 (반숙 타마고텐 · 半熟玉子天)',
+      defaultMode: 'SEPARATE',
+      hyunwooTip:
+        '텐동 위에 기본으로 올라가는 "반숙 계란 튀김(半熟玉子天)"을 현우 그릇에는 올리지 말고 따로 접시에 담아달라고 하거나 빼달라고 요청하세요! (일반 튀김옷은 섭취 가능)',
+      customRemoveJp: '天丼の「半熟玉子天（卵の天ぷら）」を抜いてください（衣は大丈夫です）。',
+      customRemovePronunciation: '텐동노 한쥬쿠 타마고텐(타마고노 템푸라)오 누이테 구다사이 (코로모와 다이죠부데스)',
+      customSeparateJp: '天丼の「半熟玉子天（卵の天ぷら）」は丼に乗せず、別皿に分けてください。',
+      customSeparatePronunciation: '텐동노 한쥬쿠 타마고텐(타마고노 템푸라)와 돈부리니 노세즈, 베츠자라니 와케테 구다사이'
+    }
   },
   {
     id: 'food_tonkatsu_rosu',
@@ -337,7 +393,18 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
     orderTip: '테이블의 산초 가루(산쇼)를 살짝 뿌리면 향긋함이 배가 됩니다 (아이들은 산초 없이 그대로!).',
     kidFavoriteScore: '현우·세현 선호도 ★★★★☆ (달콤한 간장양념!)',
     momFavoriteScore: '엄마들 선호도 ★★★★★ (보양 특식 1위)',
-    googleMapsQuery: 'Asakusa Unatetsu Eel'
+    googleMapsQuery: 'Asakusa Unatetsu Eel',
+    eggAllergyInfo: {
+      hasDirectEgg: true,
+      eggTypeLabel: '계란지단(錦糸卵) 및 계란말이(う巻き) 고명 확인',
+      defaultMode: 'REMOVE',
+      hyunwooTip:
+        '일부 장어덮밥(히츠마부시) 위에 계란지단(긴시타마고)이 올라가는 경우가 있으니, 현우 덮밥에는 계란 고명을 빼달라거나 따로 담아달라고 요청하세요!',
+      customRemoveJp: 'うな重（ひつまぶし）の上に卵（錦糸卵・玉子）を乗せないでください。',
+      customRemovePronunciation: '우나쥬(히츠마부시)노 우에니 타마고(킨시타마고)오 노세나이데 구다사이',
+      customSeparateJp: '卵（錦糸卵・玉子）はご飯に乗せず、別皿に分けてください。',
+      customSeparatePronunciation: '타마고(킨시타마고)와 고항니 노세즈, 베츠자라니 와케테 구다사이'
+    }
   },
   {
     id: 'food_sukiyaki_wagyu',
@@ -365,7 +432,18 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
     orderTip: '저녁은 고가이지만 낮 11:30~15:00 런치 스키야키 정식/덮밥을 노리면 합리적인 가격에 즐길 수 있어요!',
     kidFavoriteScore: '현우·세현 선호도 ★★★★★ (불고기 전골 상위호환!)',
     momFavoriteScore: '엄마들 선호도 ★★★★★ (최고의 대접 느낌)',
-    googleMapsQuery: 'Asakusa Imahan Sukiyaki'
+    googleMapsQuery: 'Asakusa Imahan Sukiyaki',
+    eggAllergyInfo: {
+      hasDirectEgg: true,
+      eggTypeLabel: '찍어 먹는 날계란 (生卵) & 마무리 계란덮밥',
+      defaultMode: 'REMOVE',
+      hyunwooTip:
+        '스키야키는 고기를 찍어 먹는 날계란(生卵)이 나오고 마지막에 계란덮밥을 만듭니다. 현우 몫은 날계란을 빼고, 마무리 밥도 계란 넣기 전에 따로 덜어달라고 요청하세요!',
+      customRemoveJp: '子どもは卵アレルギーがあるため、すき焼きの生卵は不要です。締めの食事も卵を入れる前に取り分けてください。',
+      customRemovePronunciation: '코도모와 타마고 아레루기가 아루타메, 스키야키노 나마타마고와 후요데스. 시메노 쇼쿠지모 타마고오 이레루 마에니 토리와케테 구다사이',
+      customSeparateJp: '生卵は子どもの前には置かず、大人用に別でお願いします。お肉も卵をつけずにそのまま食べます。',
+      customSeparatePronunciation: '나마타마고와 코도모노 마에니와 오카즈, 오토나요니 베츠데 오네가이시마스'
+    }
   },
 
   // ==========================================
@@ -425,7 +503,16 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
     orderTip: '주문 시 "아마메(달콤한 맛)"를 선택하면 아이들이 카스테라처럼 정말 잘 먹습니다.',
     kidFavoriteScore: '현우·세현 선호도 ★★★★★',
     momFavoriteScore: '엄마들 선호도 ★★★★★',
-    googleMapsQuery: 'Tsukiji Yamacho Tamagoyaki'
+    googleMapsQuery: 'Tsukiji Yamacho Tamagoyaki',
+    eggAllergyInfo: {
+      hasDirectEgg: true,
+      eggTypeLabel: '100% 계란말이 (타마고야키 · 玉子焼き)',
+      defaultMode: 'REMOVE',
+      hyunwooTip:
+        '이 메뉴는 100% 계란말이 꼬치이므로 계란 알레르기가 있는 현우는 먹지 않도록 주의하세요! (세현이와 엄마들만 시식하고 현우는 옆 가게 멘치카츠·딸기모찌 추천)',
+      customRemoveJp: '※この商品は100%玉子焼きのため、卵アレルギーのお子様（현우）は召し上がれません。',
+      customRemovePronunciation: '코노 쇼힌와 햐쿠파센토 타마고야키노 타메, 타마고 아레루기노 오코사마와 메시아가레마셍'
+    }
   },
   {
     id: 'food_asakusa_menchikatsu',
@@ -481,7 +568,18 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
     orderTip: '기본 오리지널 8알 + 데리타마(계란샐러드) 8알 반반 주문 추천!',
     kidFavoriteScore: '현우·세현 선호도 ★★★★★',
     momFavoriteScore: '엄마들 선호도 ★★★★☆',
-    googleMapsQuery: 'Gindaco Tokyo Skytree Solamachi'
+    googleMapsQuery: 'Gindaco Tokyo Skytree Solamachi',
+    eggAllergyInfo: {
+      hasDirectEgg: true,
+      eggTypeLabel: '계란 샐러드 토핑 (데리타마 · てりたま)',
+      defaultMode: 'REMOVE',
+      hyunwooTip:
+        '반죽은 괜찮지만 위에 삶은 계란 샐러드가 올라가는 "데리타마" 메뉴는 피하고, 현우 것은 계란 토핑이 없는 기본 오리지널 타코야키로 주문하거나 계란 토핑을 따로 담아달라고 요청하세요!',
+      customRemoveJp: '卵トッピング（てりたま・ゆで卵サラダ）は乗せないでください。普通のたこ焼きでお願いします。',
+      customRemovePronunciation: '타마고 톳핑구(테리타마·유데타마고 사라다)와 노세나이데 구다사이. 후츠노 타코야키데 오네가이시마스',
+      customSeparateJp: '上の卵サラダ（たまごトッピング）はたこ焼きに乗せず、別皿に分けてください。',
+      customSeparatePronunciation: '우에노 타마고 사라다와 타코야키니 노세즈, 베츠자라니 와케테 구다사이'
+    }
   },
   {
     id: 'food_mitarashi_dango',
@@ -565,7 +663,18 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
     orderTip: '아이들용은 소금구이(시오)보다 달콤한 간장양념인 "타레(タレ)"로 주문하세요!',
     kidFavoriteScore: '현우·세현 선호도 ★★★★★ (치킨·꼬치 러버)',
     momFavoriteScore: '엄마들 선호도 ★★★★★',
-    googleMapsQuery: 'Torikizoku Shibuya'
+    googleMapsQuery: 'Torikizoku Shibuya',
+    eggAllergyInfo: {
+      hasDirectEgg: true,
+      eggTypeLabel: '츠쿠네 날계란 노른자 토핑 (츠키미 · 月見卵黄)',
+      defaultMode: 'SEPARATE',
+      hyunwooTip:
+        '닭완자 꼬치(츠쿠네) 주문 시 날계란 노른자(츠키미)가 올라가는 메뉴가 있습니다. 현우가 먹을 꼬치에는 계란 노른자를 빼거나 별도 종지에 따로 담아달라고 요청하세요!',
+      customRemoveJp: 'つくね（焼鳥）に卵（生卵・卵黄）をつけないでください（卵抜きでお願いします）。',
+      customRemovePronunciation: '츠쿠네(야키토리)니 타마고(나마타마고·란오)오 츠케나이데 구다사이',
+      customSeparateJp: 'つくねの卵（生卵・卵黄）は串に乗せず、別の小皿（別皿）でお願いします。',
+      customSeparatePronunciation: '츠쿠네노 타마고(란오)와 쿠시니 노세즈, 베츠노 코자라(베츠자라)데 오네가이시마스'
+    }
   },
 
   // ==========================================
@@ -625,7 +734,18 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
     orderTip: '주문 후 굽는 데 20분 정도 걸리니 카페 입장 후 바로 주문부터 하세요!',
     kidFavoriteScore: '현우·세현 선호도 ★★★★☆',
     momFavoriteScore: '엄마들 선호도 ★★★★★ (엄마들 힐링 타임!)',
-    googleMapsQuery: 'FLIPPERS Shibuya Souffle Pancake'
+    googleMapsQuery: 'FLIPPERS Shibuya Souffle Pancake',
+    eggAllergyInfo: {
+      hasDirectEgg: true,
+      eggTypeLabel: '계란 흰자 머랭 반숙 식감 (メレンゲ・卵)',
+      defaultMode: 'REMOVE',
+      hyunwooTip:
+        '일반 빵은 괜찮지만 수플레 팬케이크는 계란 머랭 비중이 매우 높은 반숙 식감이므로, 현우는 생과일·생크림 위주로 맛보거나 브런치 메뉴의 계란프라이/스크램블을 빼달라고 요청하세요!',
+      customRemoveJp: '付け合わせの卵料理（目玉焼き・スクランブルエッグ等）は抜いてください。',
+      customRemovePronunciation: '츠케아와세노 타마고 료리(메다마야키·스쿠란부루 엣구 토)와 누이테 구다사이',
+      customSeparateJp: '卵（目玉焼き・スクランブルエッグ等）は別皿に分けて出してください。',
+      customSeparatePronunciation: '타마고와 베츠자라니 와케테 다시테 구다사이'
+    }
   },
   {
     id: 'dessert_harajuku_crepe',
@@ -941,7 +1061,16 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
     orderTip: '돈카츠가 들어간 "카츠산도(돈카츠 샌드위치)"와 하나씩 사서 나눠 먹으면 더욱 든든해요!',
     kidFavoriteScore: '현우·세현 선호도 ★★★★★ (매일 아침·야식!)',
     momFavoriteScore: '엄마들 선호도 ★★★★★',
-    googleMapsQuery: 'Seven Eleven Tokyo'
+    googleMapsQuery: 'Seven Eleven Tokyo',
+    eggAllergyInfo: {
+      hasDirectEgg: true,
+      eggTypeLabel: '삶은 계란 샐러드 속재료 (たまごサラダ)',
+      defaultMode: 'REMOVE',
+      hyunwooTip:
+        '식빵은 괜찮지만 속재료가 100% 삶은 계란 샐러드입니다! 현우는 타마고산도 대신 바로 옆에 진열된 "돈카츠 샌드위치(카츠산도)"나 "햄·치즈 샌드위치"로 골라주세요!',
+      customRemoveJp: '卵サラダが入っていないサンドイッチ（カツサンドやハムサンドなど）はどれですか？',
+      customRemovePronunciation: '타마고 사라다가 하잇테 이나이 산도잇치(카츠산도야 하무산도 나도)와 도레데스카?'
+    }
   },
   {
     id: 'konbini_purin_pudding',
@@ -969,7 +1098,16 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
     orderTip: '계산할 때 직원이 일회용 스푼을 무료로 챙겨줍니다 ("스푼 오네가이시마스").',
     kidFavoriteScore: '현우·세현 선호도 ★★★★★ (1일 1푸딩)',
     momFavoriteScore: '엄마들 선호도 ★★★★★',
-    googleMapsQuery: 'Lawson Tokyo'
+    googleMapsQuery: 'Lawson Tokyo',
+    eggAllergyInfo: {
+      hasDirectEgg: true,
+      eggTypeLabel: '노란 계란 커스터드 푸딩 (カスタードプリン) 주의',
+      defaultMode: 'REMOVE',
+      hyunwooTip:
+        '노란색 구운 커스터드 푸딩에는 계란이 많이 들어가므로, 현우는 계란 없이 우유로 만든 하얀색 "오하요 저지 밀크 푸딩(ジャージー牛乳プリン)"으로 골라주세요!',
+      customRemoveJp: '卵が入っていない「牛乳プリン（ミルクプリン）」はどれですか？',
+      customRemovePronunciation: '타마고가 하잇테 이나이 규뉴 푸린(미루쿠 푸린)와 도레데스카?'
+    }
   },
   {
     id: 'konbini_lawson_mochi_roll',

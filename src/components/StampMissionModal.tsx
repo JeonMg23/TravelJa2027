@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import Confetti from 'react-confetti';
 import {
   Award,
   BellRing,
@@ -528,6 +529,67 @@ export const StampMissionModal: React.FC<StampMissionModalProps> = ({
   const [profileSyncTick, setProfileSyncTick] = useState(0);
   const [isGiftBoxModalOpen, setIsGiftBoxModalOpen] = useState(false);
 
+  // Full-screen Confetti state & viewport dimensions
+  const [viewportSize, setViewportSize] = useState<{ width: number; height: number }>(() => ({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1280,
+    height: typeof window !== 'undefined' ? window.innerHeight : 800
+  }));
+  const [isConfettiActive, setIsConfettiActive] = useState(false);
+  const [confettiRecycle, setConfettiRecycle] = useState(false);
+  const [confettiPieces, setConfettiPieces] = useState<number>(280);
+  const [confettiBannerText, setConfettiBannerText] = useState<string | null>(null);
+  const confettiStopTimerRef = useRef<number | null>(null);
+  const confettiClearTimerRef = useRef<number | null>(null);
+
+  const triggerConfettiBurst = useCallback(
+    (options?: { bannerText?: string; durationMs?: number; pieces?: number }) => {
+      const durationMs = options?.durationMs ?? 4500;
+      const pieces = options?.pieces ?? 300;
+      if (typeof window !== 'undefined') {
+        setViewportSize({ width: window.innerWidth, height: window.innerHeight });
+      }
+      if (confettiStopTimerRef.current) {
+        window.clearTimeout(confettiStopTimerRef.current);
+      }
+      if (confettiClearTimerRef.current) {
+        window.clearTimeout(confettiClearTimerRef.current);
+      }
+      setConfettiPieces(pieces);
+      setConfettiRecycle(true);
+      setIsConfettiActive(true);
+      if (options?.bannerText) {
+        setConfettiBannerText(options.bannerText);
+      }
+
+      confettiStopTimerRef.current = window.setTimeout(() => {
+        setConfettiRecycle(false);
+      }, Math.max(1200, durationMs - 1600));
+
+      confettiClearTimerRef.current = window.setTimeout(() => {
+        setIsConfettiActive(false);
+        setConfettiBannerText(null);
+      }, durationMs + 1500);
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!isOpen || typeof window === 'undefined') return;
+    const handleResize = () => {
+      setViewportSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (confettiStopTimerRef.current) window.clearTimeout(confettiStopTimerRef.current);
+      if (confettiClearTimerRef.current) window.clearTimeout(confettiClearTimerRef.current);
+    };
+  }, []);
+
   // Sync character avatars in real time if updated in ProfileEditModal / Firestore
   useEffect(() => {
     if (!isOpen) return;
@@ -700,6 +762,135 @@ export const StampMissionModal: React.FC<StampMissionModalProps> = ({
     [sehyunPoints, sehyunAllCompleted]
   );
 
+  // Track previous stamp counts & badge tiers to detect newly achieved milestones while modal is open
+  const prevProgressRef = useRef<{
+    initialized: boolean;
+    wasOpen: boolean;
+    hyunwooStampCount: number;
+    sehyunStampCount: number;
+    hyunwooTierLevel: number;
+    sehyunTierLevel: number;
+    hyunwooAllCompleted: boolean;
+    sehyunAllCompleted: boolean;
+  }>({
+    initialized: false,
+    wasOpen: false,
+    hyunwooStampCount: 0,
+    sehyunStampCount: 0,
+    hyunwooTierLevel: 0,
+    sehyunTierLevel: 0,
+    hyunwooAllCompleted: false,
+    sehyunAllCompleted: false
+  });
+
+  useEffect(() => {
+    const prev = prevProgressRef.current;
+
+    if (!isOpen) {
+      prevProgressRef.current = {
+        initialized: true,
+        wasOpen: false,
+        hyunwooStampCount,
+        sehyunStampCount,
+        hyunwooTierLevel: hyunwooBadge.currentTier.level,
+        sehyunTierLevel: sehyunBadge.currentTier.level,
+        hyunwooAllCompleted,
+        sehyunAllCompleted
+      };
+      return;
+    }
+
+    // When modal first opens, if all missions are completed for the current user's boy (or any boy), fire celebratory confetti!
+    if (!prev.wasOpen) {
+      if (hyunwooAllCompleted && sehyunAllCompleted) {
+        triggerConfettiBurst({
+          bannerText: `🎉 축하합니다! ${hyunwooProfile.nickname}·${sehyunProfile.nickname} 형제 모두 전체 미션 올클리어 달성!`,
+          durationMs: 5200,
+          pieces: 360
+        });
+      } else if (hyunwooAllCompleted && (isHyunwoo || isHyunwooMom || !currentUser)) {
+        triggerConfettiBurst({
+          bannerText: `🎉 축하합니다! ${hyunwooProfile.nickname} 대원 모든 스탬프 미션 올클리어! 4단계 선물상자가 반짝입니다!`,
+          durationMs: 4800,
+          pieces: 320
+        });
+      } else if (sehyunAllCompleted && (isSehyun || isSehyunMom || !currentUser)) {
+        triggerConfettiBurst({
+          bannerText: `🎉 축하합니다! ${sehyunProfile.nickname} 대원 모든 스탬프 미션 올클리어! 4단계 선물상자가 반짝입니다!`,
+          durationMs: 4800,
+          pieces: 320
+        });
+      }
+    } else if (prev.initialized) {
+      // Detect newly achieved milestones while modal is open
+      const hyunwooJustAllCleared = !prev.hyunwooAllCompleted && hyunwooAllCompleted;
+      const sehyunJustAllCleared = !prev.sehyunAllCompleted && sehyunAllCompleted;
+      const hyunwooLeveledUp = hyunwooBadge.currentTier.level > prev.hyunwooTierLevel;
+      const sehyunLeveledUp = sehyunBadge.currentTier.level > prev.sehyunTierLevel;
+
+      if (hyunwooJustAllCleared && sehyunJustAllCleared) {
+        triggerConfettiBurst({
+          bannerText: `🎊 형제 동시 올클리어! ${hyunwooProfile.nickname}·${sehyunProfile.nickname} 대원 4단계 선물상자 활성화!`,
+          durationMs: 6000,
+          pieces: 420
+        });
+      } else if (hyunwooJustAllCleared) {
+        triggerConfettiBurst({
+          bannerText: `🎊 ${hyunwooProfile.nickname} 대원 모든 스탬프 미션 100% 올클리어! 4단계 선물상자가 반짝입니다!`,
+          durationMs: 5500,
+          pieces: 360
+        });
+      } else if (sehyunJustAllCleared) {
+        triggerConfettiBurst({
+          bannerText: `🎊 ${sehyunProfile.nickname} 대원 모든 스탬프 미션 100% 올클리어! 4단계 선물상자가 반짝입니다!`,
+          durationMs: 5500,
+          pieces: 360
+        });
+      } else if (hyunwooLeveledUp) {
+        triggerConfettiBurst({
+          bannerText: `🏅 ${hyunwooProfile.nickname} 대원 '${hyunwooBadge.currentTier.title}' 칭찬 배지 승급 달성!`,
+          durationMs: 4000,
+          pieces: 260
+        });
+      } else if (sehyunLeveledUp) {
+        triggerConfettiBurst({
+          bannerText: `🏅 ${sehyunProfile.nickname} 대원 '${sehyunBadge.currentTier.title}' 칭찬 배지 승급 달성!`,
+          durationMs: 4000,
+          pieces: 260
+        });
+      }
+    }
+
+    prevProgressRef.current = {
+      initialized: true,
+      wasOpen: true,
+      hyunwooStampCount,
+      sehyunStampCount,
+      hyunwooTierLevel: hyunwooBadge.currentTier.level,
+      sehyunTierLevel: sehyunBadge.currentTier.level,
+      hyunwooAllCompleted,
+      sehyunAllCompleted
+    };
+  }, [
+    isOpen,
+    hyunwooStampCount,
+    sehyunStampCount,
+    hyunwooBadge.currentTier.level,
+    hyunwooBadge.currentTier.title,
+    sehyunBadge.currentTier.level,
+    sehyunBadge.currentTier.title,
+    hyunwooAllCompleted,
+    sehyunAllCompleted,
+    hyunwooProfile.nickname,
+    sehyunProfile.nickname,
+    isHyunwoo,
+    isHyunwooMom,
+    isSehyun,
+    isSehyunMom,
+    currentUser,
+    triggerConfettiBurst
+  ]);
+
   const filteredMissions = useMemo(() => {
     if (selectedDayFilter === 'ALL') return activeMissions;
     if (selectedDayFilter === 'REQUESTED') {
@@ -790,8 +981,34 @@ export const StampMissionModal: React.FC<StampMissionModalProps> = ({
     'mission_praise_3'
   ]);
 
+  const shouldRenderConfetti = isConfettiActive || (canOpenGiftBox && isGiftBoxModalOpen);
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-150">
+      {/* Full-Screen Celebratory Confetti Overlay (react-confetti) */}
+      {shouldRenderConfetti && (
+        <div className="fixed inset-0 z-80 pointer-events-none overflow-hidden">
+          <Confetti
+            width={viewportSize.width}
+            height={viewportSize.height}
+            numberOfPieces={canOpenGiftBox && isGiftBoxModalOpen ? 360 : confettiPieces}
+            recycle={canOpenGiftBox && isGiftBoxModalOpen ? true : confettiRecycle}
+            gravity={0.22}
+            initialVelocityY={14}
+            colors={[
+              '#FACC15',
+              '#F43F5E',
+              '#38BDF8',
+              '#34D399',
+              '#A855F7',
+              '#FB923C',
+              '#FEF08A',
+              '#EC4899'
+            ]}
+          />
+        </div>
+      )}
+
       <div
         className={`w-full max-w-4xl max-h-[92dvh] sm:max-h-[88dvh] rounded-t-3xl sm:rounded-3xl border flex flex-col overflow-hidden shadow-2xl transition-colors ${
           theme.isDark
@@ -906,7 +1123,14 @@ export const StampMissionModal: React.FC<StampMissionModalProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => onApproveAllRequestsForBoy('HYUNWOO')}
+                  onClick={() => {
+                    onApproveAllRequestsForBoy('HYUNWOO');
+                    triggerConfettiBurst({
+                      bannerText: `🎉 ${hyunwooMomProfile.nickname}이 ${hyunwooProfile.nickname} 대원의 요청 미션을 모두 승인했습니다!`,
+                      durationMs: 4200,
+                      pieces: 260
+                    });
+                  }}
                   className="px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-black bg-rose-600 hover:bg-rose-500 text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
                   <Stamp className="w-4 h-4" />
@@ -951,13 +1175,54 @@ export const StampMissionModal: React.FC<StampMissionModalProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => onApproveAllRequestsForBoy('SEHYUN')}
+                  onClick={() => {
+                    onApproveAllRequestsForBoy('SEHYUN');
+                    triggerConfettiBurst({
+                      bannerText: `🎉 ${sehyunMomProfile.nickname}이 ${sehyunProfile.nickname} 대원의 요청 미션을 모두 승인했습니다!`,
+                      durationMs: 4200,
+                      pieces: 260
+                    });
+                  }}
                   className="px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-black bg-rose-600 hover:bg-rose-500 text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
                   <Stamp className="w-4 h-4" />
                   <span>{sehyunPendingRequests.length}건 모두 컬러 도장 찍기</span>
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Celebratory Milestone / All-Clear Confetti Banner */}
+          {(confettiBannerText || hyunwooAllCompleted || sehyunAllCompleted) && (
+            <div className="rounded-2xl border-2 border-amber-400/80 bg-gradient-to-r from-amber-500/20 via-rose-500/15 to-yellow-500/20 px-4 py-3 flex flex-wrap items-center justify-between gap-2.5 shadow-sm animate-in fade-in duration-200">
+              <div className="flex items-center gap-2 text-xs sm:text-sm font-black text-amber-600 dark:text-amber-200">
+                <PartyPopper className="w-4 h-4 text-rose-500 dark:text-amber-300 shrink-0 animate-bounce" />
+                <span>
+                  {confettiBannerText ||
+                    (hyunwooAllCompleted && sehyunAllCompleted
+                      ? `🎉 ${hyunwooProfile.nickname}·${sehyunProfile.nickname} 형제 모두 스탬프 미션 100% 올클리어 달성!`
+                      : hyunwooAllCompleted
+                      ? `🎉 ${hyunwooProfile.nickname} 대원 스탬프 미션 100% 올클리어 달성!`
+                      : `🎉 ${sehyunProfile.nickname} 대원 스탬프 미션 100% 올클리어 달성!`)}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  triggerConfettiBurst({
+                    bannerText:
+                      hyunwooAllCompleted || sehyunAllCompleted
+                        ? '🎊 도쿄 소년 원정대 미션 올클리어 축하 폭죽 발사!!'
+                        : '🎊 도쿄 소년 원정대 응원 축하 폭죽 발사!!',
+                    durationMs: 4800,
+                    pieces: 340
+                  })
+                }
+                className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black flex items-center gap-1.5 shadow-xs cursor-pointer transition-transform active:scale-95 shrink-0"
+              >
+                <PartyPopper className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>축하 폭죽 터뜨리기</span>
+              </button>
             </div>
           )}
 
@@ -1171,6 +1436,11 @@ export const StampMissionModal: React.FC<StampMissionModalProps> = ({
                       onClick={() => {
                         if (!canOpenGiftBox) return;
                         triggerStampFeedback('GIFT_BOX_OPEN');
+                        triggerConfettiBurst({
+                          bannerText: `🎁 축하합니다! ${activeBoyNickname} 대원 4단계 시크릿 선물상자 개봉 & 용돈 30% 인상 달성!`,
+                          durationMs: 6500,
+                          pieces: 400
+                        });
                         setIsGiftBoxModalOpen(true);
                       }}
                       className={`relative rounded-xl border p-3 text-left transition-all duration-300 overflow-hidden flex flex-col justify-between select-none ${
@@ -1751,6 +2021,14 @@ export const StampMissionModal: React.FC<StampMissionModalProps> = ({
                                 onToggleStamp(mission.missionId, 'HYUNWOO');
                               }
                             } else {
+                              // Check if stamping this mission completes both brothers on this card
+                              if (isHyunwooMom && !mission.hyunwooStamped && mission.sehyunStamped) {
+                                triggerConfettiBurst({
+                                  bannerText: `🎉 '${mission.title}' 형제 동시 컬러 도장 완성!`,
+                                  durationMs: 3200,
+                                  pieces: 200
+                                });
+                              }
                               onToggleStamp(mission.missionId, 'HYUNWOO');
                             }
                           }}
@@ -1782,6 +2060,13 @@ export const StampMissionModal: React.FC<StampMissionModalProps> = ({
                                 onToggleStamp(mission.missionId, 'SEHYUN');
                               }
                             } else {
+                              if (isSehyunMom && !mission.sehyunStamped && mission.hyunwooStamped) {
+                                triggerConfettiBurst({
+                                  bannerText: `🎉 '${mission.title}' 형제 동시 컬러 도장 완성!`,
+                                  durationMs: 3200,
+                                  pieces: 200
+                                });
+                              }
                               onToggleStamp(mission.missionId, 'SEHYUN');
                             }
                           }}
