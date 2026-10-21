@@ -1,13 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { KakaoAuthUser } from '../types/auth';
+import { KakaoAuthUser, DeviceInfo, RecognizedDeviceModelId } from '../types/auth';
 import {
   createKakaoUserFromPreset,
   getEffectivePresetMembers,
   fetchServerProfiles,
-  subscribeToProfiles
+  subscribeToProfiles,
+  detectDeviceInfo,
+  checkProfileDeviceAccess,
+  requestHighEntropyDeviceModel,
+  getStoredDeviceModelOverride,
+  setStoredDeviceModelOverride
 } from '../services/kakaoAuth';
 import { getCharacterAvatarById } from '../data/characterAvatars';
-import { X, MapPin, ChevronRight, Database } from 'lucide-react';
+import {
+  X,
+  MapPin,
+  ChevronRight,
+  Smartphone,
+  Monitor,
+  Lock,
+  ShieldCheck,
+  AlertTriangle,
+  KeyRound
+} from 'lucide-react';
 
 interface LoginPageProps {
   onLoginSuccess: (user: KakaoAuthUser) => void;
@@ -187,8 +202,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   });
 
   const [effectiveMembers, setEffectiveMembers] = useState(() => getEffectivePresetMembers());
+  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>(() => detectDeviceInfo());
+  const [accessDeniedAlert, setAccessDeniedAlert] = useState<{
+    profileName: string;
+    reason: string;
+  } | null>(null);
+
+  // Device detail & registration modal state
+  const [isDeviceModalOpen, setIsDeviceModalOpen] = useState<boolean>(false);
+  const [adminPinInput, setAdminPinInput] = useState<string>('');
+  const [isAdminPinVerified, setIsAdminPinVerified] = useState<boolean>(false);
+  const [pinError, setPinError] = useState<string>('');
+  const [overrideModel, setOverrideModel] = useState<RecognizedDeviceModelId | null>(() =>
+    getStoredDeviceModelOverride()
+  );
 
   useEffect(() => {
+    // 0. Request High-Entropy Client Hints for exact Android Galaxy Fold8 model code
+    requestHighEntropyDeviceModel(() => {
+      setDeviceInfo(detectDeviceInfo());
+    });
+
     // 1. Fetch latest shared profiles from Express server DB (profiles_db.json)
     fetchServerProfiles()
       .then(() => {
@@ -196,9 +230,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       })
       .catch(() => {});
 
-    // 2. Subscribe to profile updates across components
+    // 2. Subscribe to profile & device updates across components
     const unsubscribe = subscribeToProfiles(() => {
       setEffectiveMembers(getEffectivePresetMembers());
+      setDeviceInfo(detectDeviceInfo());
+      setOverrideModel(getStoredDeviceModelOverride());
     });
     return unsubscribe;
   }, []);
@@ -206,6 +242,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 640);
+      setDeviceInfo(detectDeviceInfo());
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -227,8 +264,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  // One-click instant login as selected profile
-  const handleSelectProfile = (presetId: string) => {
+  // Auto-hide access denied alert after 4.5 seconds
+  useEffect(() => {
+    if (!accessDeniedAlert) return;
+    const timer = setTimeout(() => {
+      setAccessDeniedAlert(null);
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [accessDeniedAlert]);
+
+  // One-click instant login as selected profile (with device model access restriction check)
+  const handleSelectProfile = (presetId: string, nickname: string) => {
+    const accessCheck = checkProfileDeviceAccess(presetId, deviceInfo);
+    if (!accessCheck.allowed) {
+      setAccessDeniedAlert({
+        profileName: nickname,
+        reason: accessCheck.reason
+      });
+      return;
+    }
+
+    setAccessDeniedAlert(null);
     setSelectedId(presetId);
     const user = createKakaoUserFromPreset(presetId);
     setTimeout(() => {
@@ -236,7 +292,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     }, 120);
   };
 
+  const handleVerifyAdminPin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (adminPinInput.trim() === '3539' || adminPinInput.trim() === '0901') {
+      setIsAdminPinVerified(true);
+      setPinError('');
+    } else {
+      setPinError('관리자 비밀번호가 일치하지 않습니다.');
+    }
+  };
+
+  const handleApplyDeviceOverride = (modelId: RecognizedDeviceModelId | null) => {
+    setStoredDeviceModelOverride(modelId);
+    setOverrideModel(modelId);
+    setDeviceInfo(detectDeviceInfo());
+    setAccessDeniedAlert(null);
+  };
+
   const activeBg = TOKYO_BACKGROUNDS[currentBgIndex] || TOKYO_BACKGROUNDS[0];
+  const isFullAccessDevice =
+    deviceInfo.modelId === 'pc_desktop' || deviceInfo.modelId === 'iphone_12_pro_max';
+  const isFold8Device = deviceInfo.modelId === 'galaxy_fold_8';
 
   return (
     <div
@@ -362,20 +438,45 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
       {/* 3. Netflix Mobile Profile Selector (Positioned cleanly at bottom above safe area) */}
       <div
-        className="relative z-20 w-full max-w-xl mx-auto px-4 pb-8 sm:pb-12 flex flex-col items-center"
-        style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 2rem))' }}
+        className="relative z-20 w-full max-w-xl mx-auto px-4 pb-16 sm:pb-16 flex flex-col items-center"
+        style={{ paddingBottom: 'max(3.75rem, calc(env(safe-area-inset-bottom, 1rem) + 2.75rem))' }}
       >
+        {/* Access Denied Toast Alert when clicking a restricted profile */}
+        {accessDeniedAlert && (
+          <div className="w-full max-w-md mb-4 px-3.5 py-2.5 rounded-2xl bg-rose-950/90 border border-rose-400/60 backdrop-blur-md shadow-[0_8px_30px_rgba(225,29,72,0.45)] flex items-start gap-2.5 animate-fadeIn">
+            <AlertTriangle className="w-4 h-4 text-rose-300 shrink-0 mt-0.5" />
+            <div className="flex-1 text-left">
+              <div className="text-xs font-extrabold text-rose-200">
+                🔒 [{accessDeniedAlert.profileName}] 프로필 접근 제한
+              </div>
+              <p className="text-[11px] text-rose-100/90 leading-snug mt-0.5">
+                {accessDeniedAlert.reason}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAccessDeniedAlert(null)}
+              className="text-rose-300 hover:text-white p-0.5 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* "프로필을 선택하세요" Header Text */}
-        <h2 className="text-base sm:text-lg font-medium text-white/95 tracking-tight mb-5 sm:mb-6 text-center drop-shadow-md">
+        <h2 className="text-base sm:text-lg font-medium text-white/95 tracking-tight mb-4 sm:mb-6 text-center drop-shadow-md">
           프로필을 선택하세요
         </h2>
 
         {/* 4 Profile Buttons in a Row */}
-        <div className="flex items-center justify-center gap-3.5 sm:gap-6 w-full">
+        <div className="flex items-start justify-center gap-3.5 sm:gap-6 w-full">
           {effectiveMembers.map((member) => {
             const isPressed = selectedId === member.id;
             const charAvatar = getCharacterAvatarById(member.avatarId, member.id);
             const roleMeta = PROFILE_ROLE_META[member.id];
+            const accessCheck = checkProfileDeviceAccess(member.id, deviceInfo);
+            const isAllowed = accessCheck.allowed;
+
             const roleText =
               member.avatarId !==
               (member.id === 'kakao_hyunwoo_mom'
@@ -392,15 +493,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               <button
                 key={member.id}
                 type="button"
-                onClick={() => handleSelectProfile(member.id)}
-                className="group flex flex-col items-center cursor-pointer transition-all duration-150 outline-none active:scale-95"
+                onClick={() => handleSelectProfile(member.id, member.nickname)}
+                className={`group flex flex-col items-center cursor-pointer transition-all duration-150 outline-none ${
+                  isAllowed ? 'active:scale-95' : 'opacity-65 hover:opacity-85'
+                }`}
               >
                 {/* Netflix Squircle Avatar Card */}
                 <div
                   className={`relative w-16 h-16 sm:w-22 sm:h-22 rounded-2xl sm:rounded-3xl bg-gradient-to-br ${
                     charAvatar.bgGradient
                   } p-0 transition-all duration-200 overflow-hidden flex items-center justify-center border-2 ${
-                    isPressed
+                    !isAllowed
+                      ? 'border-rose-400/50 grayscale-[45%]'
+                      : isPressed
                       ? 'border-yellow-300 ring-4 ring-yellow-400/60 scale-105 shadow-[0_0_25px_rgba(250,204,21,0.7)]'
                       : `${charAvatar.cardBorder} group-hover:border-yellow-300 group-hover:scale-105 group-hover:shadow-[0_0_22px_rgba(250,204,21,0.45)]`
                   }`}
@@ -421,12 +526,23 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
                   {/* Inner bevel overlay with subtle golden rim */}
                   <div className="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-t from-black/25 via-transparent to-yellow-400/10 pointer-events-none" />
+
+                  {/* Lock overlay if restricted on current smartphone model */}
+                  {!isAllowed && (
+                    <div className="absolute inset-0 bg-black/55 backdrop-blur-[1px] flex flex-col items-center justify-center p-1">
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-rose-600/90 border border-rose-300/70 flex items-center justify-center shadow-md">
+                        <Lock className="w-3.5 h-3.5 text-white" />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Profile Name Text below avatar */}
                 <span
                   className={`mt-2 text-xs sm:text-sm font-semibold tracking-tight text-center transition-colors duration-150 ${
-                    isPressed
+                    !isAllowed
+                      ? 'text-white/60'
+                      : isPressed
                       ? 'text-yellow-300 font-bold'
                       : 'text-white/95 group-hover:text-yellow-200'
                   }`}
@@ -434,19 +550,247 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   {member.nickname}
                 </span>
 
-                {/* Character distinct role tag */}
-                <span
-                  className={`text-[10px] sm:text-[11px] font-medium ${
-                    roleMeta?.roleBadge || charAvatar.badgeColor
-                  } mt-0.5 whitespace-nowrap`}
-                >
-                  {roleText}
-                </span>
+                {/* Character distinct role tag or device restriction tag */}
+                {isAllowed ? (
+                  <span
+                    className={`text-[10px] sm:text-[11px] font-medium ${
+                      roleMeta?.roleBadge || charAvatar.badgeColor
+                    } mt-0.5 whitespace-nowrap`}
+                  >
+                    {roleText}
+                  </span>
+                ) : (
+                  <span className="text-[9px] sm:text-[10px] font-bold text-rose-300/95 bg-rose-950/70 border border-rose-500/40 px-1.5 py-0.5 rounded-md mt-0.5 whitespace-nowrap">
+                    🔒 {member.id === 'kakao_hyunwoo_mom' ? '갤럭시폴드8 전용' : '기종 제한'}
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
       </div>
+
+      {/* 4. Bottom-Right Connected Device Model Badge (우측 하단 접속 기종 표시) */}
+      <div
+        className="fixed right-3 sm:right-5 z-30 flex items-center"
+        style={{
+          bottom: 'max(0.65rem, env(safe-area-inset-bottom, 0.65rem))'
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => {
+            setIsDeviceModalOpen(true);
+            setPinError('');
+          }}
+          title="접속 기종 및 프로필 접근 권한 확인"
+          className={`group flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-md border text-left transition-all cursor-pointer shadow-lg ${
+            isFullAccessDevice
+              ? 'bg-emerald-950/80 border-emerald-400/50 hover:border-emerald-300 text-emerald-100'
+              : isFold8Device
+              ? 'bg-amber-950/80 border-amber-400/50 hover:border-amber-300 text-amber-100'
+              : 'bg-slate-900/85 border-rose-400/50 hover:border-rose-300 text-rose-100'
+          }`}
+        >
+          {deviceInfo.type === 'desktop' ? (
+            <Monitor className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+          ) : (
+            <Smartphone
+              className={`w-3.5 h-3.5 shrink-0 ${
+                isFullAccessDevice
+                  ? 'text-emerald-300'
+                  : isFold8Device
+                  ? 'text-amber-300'
+                  : 'text-rose-300'
+              }`}
+            />
+          )}
+          <div className="flex items-center gap-1.5 text-[11px] sm:text-xs leading-none">
+            <span className="text-white/70 font-medium">접속 기종:</span>
+            <span className="font-extrabold text-white tracking-tight">
+              {deviceInfo.name}
+            </span>
+            <span
+              className={`hidden sm:inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                isFullAccessDevice
+                  ? 'bg-emerald-500/25 text-emerald-200'
+                  : isFold8Device
+                  ? 'bg-amber-500/25 text-amber-200'
+                  : 'bg-rose-500/25 text-rose-200'
+              }`}
+            >
+              {deviceInfo.modelId === 'iphone_12_pro_max'
+                ? '전체관리자'
+                : deviceInfo.modelId === 'galaxy_fold_8'
+                ? '현우맘 전용'
+                : deviceInfo.modelId === 'pc_desktop'
+                ? 'PC 전체허용'
+                : '제한 기기'}
+            </span>
+          </div>
+        </button>
+      </div>
+
+      {/* 5. Device Model Info & Admin Device Binding Modal */}
+      {isDeviceModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setIsDeviceModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl bg-slate-900 border border-white/15 p-5 text-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-yellow-400" />
+                <h3 className="text-sm font-extrabold tracking-tight">
+                  접속 기종 및 프로필 접근 권한
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsDeviceModalOpen(false)}
+                className="p-1 rounded-full text-white/60 hover:text-white hover:bg-white/10 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Current Connected Device Summary */}
+            <div className="mt-3.5 p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-white/60">현재 접속 기종</span>
+                <span className="font-extrabold text-yellow-300 text-sm">
+                  {deviceInfo.name}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-white/60">권한 등급</span>
+                <span className="font-bold text-emerald-300">
+                  {deviceInfo.accessRoleLabel}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-white/60">OS / 브라우저</span>
+                <span className="text-white/85 font-medium">
+                  {deviceInfo.os} · {deviceInfo.browser}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-white/60">화면 해상도</span>
+                <span className="text-white/75 font-mono text-[11px]">
+                  {deviceInfo.screenResolution}
+                </span>
+              </div>
+            </div>
+
+            {/* Active Policy Rules */}
+            <div className="mt-3.5 space-y-1.5 text-[11px]">
+              <div className="font-bold text-white/80 mb-1">
+                📌 기종별 프로필 접근 제한 규칙
+              </div>
+              <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-400/25">
+                <span className="font-bold text-amber-200">👑 현우맘 프로필</span>
+                <span className="text-amber-100 font-semibold">갤럭시 폴드8 만 가능</span>
+              </div>
+              <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-400/25">
+                <span className="font-bold text-emerald-200">📱 전체관리자</span>
+                <span className="text-emerald-100 font-semibold">
+                  아이폰 12 프로 맥스 (전체 가능)
+                </span>
+              </div>
+              <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-sky-500/10 border border-sky-400/25">
+                <span className="font-bold text-sky-200">💻 PC / 데스크톱</span>
+                <span className="text-sky-100 font-semibold">전체 모두 가능</span>
+              </div>
+            </div>
+
+            {/* Optional Admin Device Registration (if browser masks model name) */}
+            <div className="mt-4 pt-3 border-t border-white/10">
+              {!isAdminPinVerified ? (
+                <form onSubmit={handleVerifyAdminPin} className="space-y-2">
+                  <div className="flex items-center gap-1.5 text-[11px] text-white/70">
+                    <KeyRound className="w-3.5 h-3.5 text-yellow-400" />
+                    <span>브라우저 보안으로 기종명이 가려질 때 기종 수동 인증</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      value={adminPinInput}
+                      onChange={(e) => setAdminPinInput(e.target.value)}
+                      placeholder="관리자 암호 입력"
+                      className="flex-1 px-3 py-1.5 rounded-xl bg-black/50 border border-white/20 text-xs text-white placeholder-white/40 focus:outline-none focus:border-yellow-400"
+                    />
+                    <button
+                      type="submit"
+                      className="px-3 py-1.5 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-xs cursor-pointer"
+                    >
+                      확인
+                    </button>
+                  </div>
+                  {pinError && (
+                    <p className="text-[11px] text-rose-400 font-semibold">{pinError}</p>
+                  )}
+                </form>
+              ) : (
+                <div className="space-y-2">
+                  <div className="text-[11px] font-bold text-yellow-300">
+                    ✅ 관리자 인증됨 — 현재 기기의 기종을 지정할 수 있습니다
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => handleApplyDeviceOverride(null)}
+                      className={`px-2.5 py-2 rounded-xl border font-bold cursor-pointer ${
+                        overrideModel === null
+                          ? 'bg-yellow-400 text-black border-yellow-300'
+                          : 'bg-white/5 text-white/80 border-white/15 hover:bg-white/10'
+                      }`}
+                    >
+                      자동 감지 (기본)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyDeviceOverride('iphone_12_pro_max')}
+                      className={`px-2.5 py-2 rounded-xl border font-bold cursor-pointer ${
+                        overrideModel === 'iphone_12_pro_max'
+                          ? 'bg-emerald-500 text-black border-emerald-300'
+                          : 'bg-white/5 text-white/80 border-white/15 hover:bg-white/10'
+                      }`}
+                    >
+                      아이폰 12 프로 맥스
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyDeviceOverride('galaxy_fold_8')}
+                      className={`px-2.5 py-2 rounded-xl border font-bold cursor-pointer ${
+                        overrideModel === 'galaxy_fold_8'
+                          ? 'bg-amber-400 text-black border-amber-300'
+                          : 'bg-white/5 text-white/80 border-white/15 hover:bg-white/10'
+                      }`}
+                    >
+                      갤럭시 폴드8
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyDeviceOverride('pc_desktop')}
+                      className={`px-2.5 py-2 rounded-xl border font-bold cursor-pointer ${
+                        overrideModel === 'pc_desktop'
+                          ? 'bg-sky-400 text-black border-sky-300'
+                          : 'bg-white/5 text-white/80 border-white/15 hover:bg-white/10'
+                      }`}
+                    >
+                      PC / 데스크톱
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

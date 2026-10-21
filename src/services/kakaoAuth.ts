@@ -8,13 +8,20 @@ import {
   setDoc,
   where
 } from 'firebase/firestore';
-import { KakaoAuthUser, DeviceInfo, DeviceCategory, KakaoUserRole } from '../types/auth';
+import {
+  KakaoAuthUser,
+  DeviceInfo,
+  DeviceCategory,
+  KakaoUserRole,
+  RecognizedDeviceModelId
+} from '../types/auth';
 import { setStoredBudgetPasscode } from './budgetAuth';
 import { db, handleFirestoreError, OperationType } from './firebase';
 
 const KAKAO_USER_STORAGE_KEY = 'tokyo_trip_kakao_user';
 const KAKAO_APP_KEY_STORAGE = 'tokyo_trip_kakao_app_key';
 const PROFILE_OVERRIDES_STORAGE_KEY = 'tokyo_trip_profile_overrides';
+const DEVICE_MODEL_OVERRIDE_STORAGE_KEY = 'tokyo_trip_device_model_override';
 
 // Blueprint validation constants (synced verbatim with firebase-blueprint.json & firestore.rules)
 export const ALLOWED_MEMBER_IDS = [
@@ -53,22 +60,84 @@ try {
   profileBroadcastChannel = null;
 }
 
-// Real-time device and platform detection for smartphone/tablet/desktop identification
+// High-Entropy Client Hints cache for Android Chrome / Samsung / Edge model identification
+let cachedClientHintModel = '';
+let clientHintsRequested = false;
+
+export function requestHighEntropyDeviceModel(onResolved?: (model: string) => void): void {
+  if (typeof window === 'undefined') return;
+  const nav = navigator as any;
+  if (nav.userAgentData && typeof nav.userAgentData.getHighEntropyValues === 'function') {
+    if (!clientHintsRequested || onResolved) {
+      clientHintsRequested = true;
+      nav.userAgentData
+        .getHighEntropyValues(['model', 'platform', 'platformVersion'])
+        .then((values: any) => {
+          if (values && typeof values.model === 'string' && values.model.trim()) {
+            cachedClientHintModel = values.model.trim();
+            if (onResolved) onResolved(cachedClientHintModel);
+            notifyProfileChange();
+          }
+        })
+        .catch(() => {});
+    }
+  }
+}
+
+export function getStoredDeviceModelOverride(): RecognizedDeviceModelId | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const val = localStorage.getItem(DEVICE_MODEL_OVERRIDE_STORAGE_KEY);
+    if (
+      val === 'pc_desktop' ||
+      val === 'iphone_12_pro_max' ||
+      val === 'galaxy_fold_8' ||
+      val === 'other_mobile'
+    ) {
+      return val;
+    }
+  } catch {}
+  return null;
+}
+
+export function setStoredDeviceModelOverride(modelId: RecognizedDeviceModelId | null): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (!modelId) {
+      localStorage.removeItem(DEVICE_MODEL_OVERRIDE_STORAGE_KEY);
+    } else {
+      localStorage.setItem(DEVICE_MODEL_OVERRIDE_STORAGE_KEY, modelId);
+    }
+    notifyProfileChange();
+  } catch {}
+}
+
+// Real-time device and smartphone model detection (갤럭시 폴드8, 아이폰 12 프로 맥스, PC 등 식별)
 export function detectDeviceInfo(): DeviceInfo {
   if (typeof window === 'undefined') {
     return {
       type: 'desktop',
       name: 'PC / 데스크톱',
+      modelId: 'pc_desktop',
+      rawModelCode: 'Desktop',
+      accessRoleLabel: 'PC · 전체 모두 접근 가능',
       browser: '서버 렌더링',
       os: 'Unknown',
       screenResolution: '1920x1080'
     };
   }
 
+  requestHighEntropyDeviceModel();
+
   const ua = navigator.userAgent || '';
   const width = window.innerWidth;
   const height = window.innerHeight;
-  const resolution = `${window.screen?.width || width}x${window.screen?.height || height}`;
+  const sw = window.screen?.width || width;
+  const sh = window.screen?.height || height;
+  const minDim = Math.min(sw, sh);
+  const maxDim = Math.max(sw, sh);
+  const dpr = window.devicePixelRatio || 1;
+  const resolution = `${sw}x${sh}`;
 
   let os = '기타 OS';
   if (/iPhone|iPad|iPod/i.test(ua)) os = 'iOS';
@@ -78,44 +147,230 @@ export function detectDeviceInfo(): DeviceInfo {
   else if (/Linux/i.test(ua)) os = 'Linux';
 
   let browser = '웹 브라우저';
-  if (/KAKAOTALK/i.test(ua)) browser = '카카오톡 인앱 브라우저';
+  if (/KAKAOTALK/i.test(ua)) browser = '카카오톡 인앱';
   else if (/SamsungBrowser/i.test(ua)) browser = '삼성 인터넷';
-  else if (/Chrome/i.test(ua) && !/Edg/i.test(ua)) browser = 'Chrome 브라우저';
-  else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) browser = 'Safari 브라우저';
-  else if (/Edg/i.test(ua)) browser = 'Edge 브라우저';
+  else if (/Chrome/i.test(ua) && !/Edg/i.test(ua)) browser = 'Chrome';
+  else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) browser = 'Safari';
+  else if (/Edg/i.test(ua)) browser = 'Edge';
   else if (/Whale/i.test(ua)) browser = '네이버 웨일';
 
-  // Tablet classification (iPad or Android tablet or touch-enabled medium screen)
+  const combinedModelSource = `${ua} ${cachedClientHintModel}`.trim();
+
+  // Check if Samsung Galaxy Z Fold series (SM-F9xx, Fold8, Fold, or Android foldable screen aspect ratio)
+  const isGalaxyFoldByString =
+    /SM-F9\d\d|Fold\s*8|Galaxy\s*Z?\s*Fold/i.test(combinedModelSource);
+  const isGalaxyFoldUnfoldedScreen =
+    os === 'Android' &&
+    minDim >= 560 &&
+    minDim <= 920 &&
+    maxDim >= 650 &&
+    maxDim <= 980 &&
+    maxDim / Math.max(1, minDim) <= 1.42;
+  const isGalaxyFoldCoverScreen =
+    os === 'Android' &&
+    minDim >= 320 &&
+    minDim <= 405 &&
+    maxDim / Math.max(1, minDim) >= 2.28;
+
+  const isGalaxyFold =
+    isGalaxyFoldByString || isGalaxyFoldUnfoldedScreen || isGalaxyFoldCoverScreen;
+
+  // Tablet classification (excluding Galaxy Fold which is a foldable smartphone)
   const isTablet =
-    /iPad/i.test(ua) ||
-    (/Android/i.test(ua) && !/Mobile/i.test(ua)) ||
-    (navigator.maxTouchPoints > 1 && width >= 768 && width <= 1024);
+    !isGalaxyFold &&
+    (/iPad/i.test(ua) ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua)) ||
+      (navigator.maxTouchPoints > 1 && width >= 768 && width <= 1024 && os === 'macOS'));
 
   // Mobile smartphone classification
   const isMobile =
-    !isTablet &&
-    (/Mobile|iP(hone|od)|Android|BlackBerry|IEMobile|Kindle|NetFront|Silk-Accelerated|(hpw|web)OS|Fennec|Minimo|Opera M(obi|ini)|Blazer/i.test(
-      ua
-    ) ||
-      (width < 768 && navigator.maxTouchPoints > 0));
+    isGalaxyFold ||
+    (!isTablet &&
+      (/Mobile|iP(hone|od)|Android|BlackBerry|IEMobile|Kindle|NetFront|Silk-Accelerated|(hpw|web)OS|Fennec|Minimo|Opera M(obi|ini)|Blazer/i.test(
+        ua
+      ) ||
+        (width < 768 && navigator.maxTouchPoints > 0)));
 
   let type: DeviceCategory = 'desktop';
-  let name = 'PC / 노트북';
+  let name =
+    os === 'macOS'
+      ? 'PC (Mac)'
+      : os === 'Windows'
+      ? 'PC (Windows)'
+      : 'PC / 데스크톱';
+  let modelId: RecognizedDeviceModelId = 'pc_desktop';
+  let rawModelCode = cachedClientHintModel || 'Desktop';
+  let accessRoleLabel = 'PC · 전체 모두 접근 가능';
 
-  if (isTablet) {
-    type = 'tablet';
-    name = os === 'iOS' ? 'iPad 태블릿' : '갤럭시 탭 / 안드로이드 태블릿';
-  } else if (isMobile) {
-    type = 'mobile';
-    name = os === 'iOS' ? 'iPhone 스마트폰' : '갤럭시 / 안드로이드 스마트폰';
+  if (isMobile || isTablet) {
+    type = isTablet ? 'tablet' : 'mobile';
+
+    if (isGalaxyFold) {
+      modelId = 'galaxy_fold_8';
+      name = '갤럭시 폴드8';
+      const matchedFoldCode = combinedModelSource.match(/SM-F9[0-9A-Z]+/i)?.[0];
+      rawModelCode = matchedFoldCode || cachedClientHintModel || `SM-F976N (${resolution})`;
+      accessRoleLabel = '현우맘 전용 허용 기기';
+    } else if (os === 'iOS' && /iPhone/i.test(ua)) {
+      // iPhone 12 Pro Max detection:
+      // Native logical resolution is 428x926 (3x DPR), or 375x812 (3x DPR in iOS Display Zoom mode), or explicit UA match
+      const isIPhone12ProMax =
+        (minDim === 428 && maxDim === 926) ||
+        (minDim === 375 && maxDim === 812 && dpr >= 3) ||
+        /iPhone13,4|12\s*Pro\s*Max/i.test(combinedModelSource);
+
+      if (isIPhone12ProMax) {
+        modelId = 'iphone_12_pro_max';
+        name = '아이폰 12 프로 맥스';
+        rawModelCode = `iPhone 12 Pro Max (${resolution})`;
+        accessRoleLabel = '전체관리자 · 전체 모두 접근 가능';
+      } else {
+        modelId = 'other_mobile';
+        if (minDim === 440 && maxDim === 956) name = '아이폰 16 프로 맥스';
+        else if (minDim === 430 && maxDim === 932) name = '아이폰 14/15 프로 맥스';
+        else if (minDim === 393 && maxDim === 852) name = '아이폰 15 / 16 Pro';
+        else if (minDim === 390 && maxDim === 844) name = '아이폰 12 / 13 / 14';
+        else if (minDim === 414 && maxDim === 896) name = '아이폰 11 / XR / XS Max';
+        else if (minDim === 375 && maxDim === 667) name = '아이폰 SE';
+        else name = `아이폰 (${resolution})`;
+        rawModelCode = `iPhone (${resolution})`;
+        accessRoleLabel = '접근 제한 기종';
+      }
+    } else if (os === 'Android') {
+      modelId = 'other_mobile';
+      const smMatch = combinedModelSource.match(/SM-[A-Z0-9]+/i)?.[0]?.toUpperCase();
+      if (smMatch) {
+        if (smMatch.startsWith('SM-S948')) name = '갤럭시 S26 울트라';
+        else if (smMatch.startsWith('SM-S94')) name = '갤럭시 S26';
+        else if (smMatch.startsWith('SM-S938')) name = '갤럭시 S25 울트라';
+        else if (smMatch.startsWith('SM-S93')) name = '갤럭시 S25';
+        else if (smMatch.startsWith('SM-S928')) name = '갤럭시 S24 울트라';
+        else if (smMatch.startsWith('SM-S92')) name = '갤럭시 S24';
+        else if (smMatch.startsWith('SM-S918')) name = '갤럭시 S23 울트라';
+        else if (smMatch.startsWith('SM-S91')) name = '갤럭시 S23';
+        else if (smMatch.startsWith('SM-F7')) name = '갤럭시 Z 플립';
+        else name = `갤럭시 (${smMatch})`;
+        rawModelCode = smMatch;
+      } else if (cachedClientHintModel) {
+        name = `안드로이드 (${cachedClientHintModel})`;
+        rawModelCode = cachedClientHintModel;
+      } else {
+        name = isTablet ? `갤럭시 탭 (${resolution})` : `안드로이드 스마트폰 (${resolution})`;
+        rawModelCode = `Android (${resolution})`;
+      }
+      accessRoleLabel = '접근 제한 기종';
+    } else {
+      modelId = 'other_mobile';
+      name = isTablet ? `iPad / 태블릿 (${resolution})` : `모바일 기기 (${resolution})`;
+      rawModelCode = `${os} (${resolution})`;
+      accessRoleLabel = '접근 제한 기종';
+    }
+  }
+
+  // Apply manual device model override if configured by administrator
+  const overrideModelId = getStoredDeviceModelOverride();
+  if (overrideModelId) {
+    modelId = overrideModelId;
+    if (overrideModelId === 'iphone_12_pro_max') {
+      type = 'mobile';
+      name = '아이폰 12 프로 맥스';
+      accessRoleLabel = '전체관리자 · 전체 모두 접근 가능';
+    } else if (overrideModelId === 'galaxy_fold_8') {
+      type = 'mobile';
+      name = '갤럭시 폴드8';
+      accessRoleLabel = '현우맘 전용 허용 기기';
+    } else if (overrideModelId === 'pc_desktop') {
+      type = 'desktop';
+      name = 'PC / 데스크톱';
+      accessRoleLabel = 'PC · 전체 모두 접근 가능';
+    } else if (overrideModelId === 'other_mobile') {
+      type = 'mobile';
+      if (name.startsWith('PC') || name === '아이폰 12 프로 맥스' || name === '갤럭시 폴드8') {
+        name = `일반 스마트폰 (${resolution})`;
+      }
+      accessRoleLabel = '접근 제한 기종';
+    }
   }
 
   return {
     type,
     name,
+    modelId,
+    rawModelCode,
+    accessRoleLabel,
     browser,
     os,
     screenResolution: resolution
+  };
+}
+
+export interface ProfileDeviceAccessResult {
+  allowed: boolean;
+  badgeText: string;
+  reason: string;
+}
+
+/**
+ * 기종별 프로필 접근 제한 정책:
+ * 1) PC (pc_desktop): 전체 프로필 모두 접근 가능
+ * 2) 전체관리자 (iphone_12_pro_max - 아이폰 12 프로 맥스): 전체 프로필 모두 접근 가능
+ * 3) 현우맘 (kakao_hyunwoo_mom): 스마트폰에서는 갤럭시 폴드8 (또는 전체관리자 아이폰 12 프로 맥스)만 접근 가능
+ * 4) 그 외 스마트폰 기종 / 프로필: 현재 제한 ("일단 이렇게만 해줘")
+ */
+export function checkProfileDeviceAccess(
+  profileId: string,
+  deviceInput?: DeviceInfo
+): ProfileDeviceAccessResult {
+  const device = deviceInput || detectDeviceInfo();
+  const modelId = device.modelId || (device.type === 'desktop' ? 'pc_desktop' : 'other_mobile');
+
+  // 1. PC는 전체 모두 가능
+  if (modelId === 'pc_desktop' || device.type === 'desktop') {
+    return {
+      allowed: true,
+      badgeText: 'PC 접속 가능',
+      reason: 'PC에서는 모든 프로필에 접근할 수 있습니다.'
+    };
+  }
+
+  // 2. 전체관리자 (아이폰 12 프로 맥스)는 전체 모두 접근 가능
+  if (modelId === 'iphone_12_pro_max') {
+    return {
+      allowed: true,
+      badgeText: '전체관리자 허용',
+      reason: '전체관리자 기기(아이폰 12 프로 맥스)는 모든 프로필에 접근할 수 있습니다.'
+    };
+  }
+
+  // 3. 갤럭시 폴드8은 현우맘 프로필만 접근 가능
+  if (modelId === 'galaxy_fold_8') {
+    if (profileId === 'kakao_hyunwoo_mom') {
+      return {
+        allowed: true,
+        badgeText: '갤럭시폴드8 인증됨',
+        reason: '현우맘 전용 기기(갤럭시 폴드8)로 접속 가능합니다.'
+      };
+    }
+    return {
+      allowed: false,
+      badgeText: '접근 제한 (현우맘 전용폰)',
+      reason: `현재 접속 기종(${device.name})에서는 [현우맘] 프로필만 접속할 수 있습니다. (전체 접근: 아이폰 12 프로 맥스 / PC)`
+    };
+  }
+
+  // 4. 기타 스마트폰 기종
+  if (profileId === 'kakao_hyunwoo_mom') {
+    return {
+      allowed: false,
+      badgeText: '갤럭시폴드8 전용',
+      reason: `[현우맘] 프로필은 갤럭시 폴드8, 아이폰 12 프로 맥스(전체관리자), 또는 PC에서만 접근할 수 있습니다. (현재 기종: ${device.name})`
+    };
+  }
+
+  return {
+    allowed: false,
+    badgeText: '접근 제한 기종',
+    reason: `현재 접속 기종(${device.name})은 프로필 접근이 제한되어 있습니다. (아이폰 12 프로 맥스 전체관리자 또는 PC에서만 접근 가능)`
   };
 }
 
