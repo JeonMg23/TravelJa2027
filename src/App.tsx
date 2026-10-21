@@ -67,8 +67,16 @@ import {
   loadSavedScheduleTheme,
   saveScheduleTheme
 } from './data/scheduleThemes';
-import { KakaoAuthUser } from './types/auth';
-import { getStoredKakaoUser, clearKakaoUser, fetchServerProfiles, subscribeToProfiles, getEffectivePresetMembers } from './services/kakaoAuth';
+import { KakaoAuthUser, DeviceInfo } from './types/auth';
+import {
+  getStoredKakaoUser,
+  clearKakaoUser,
+  fetchServerProfiles,
+  subscribeToProfiles,
+  getEffectivePresetMembers,
+  detectDeviceInfo,
+  requestHighEntropyDeviceModel
+} from './services/kakaoAuth';
 import {
   fetchBudgetFromDB,
   addBudgetItemToDB,
@@ -202,9 +210,40 @@ export default function App() {
 
   // Kakao Talk Login & User session state (식별된 스마트폰/태블릿 접속자)
   const [currentUser, setCurrentUser] = useState<KakaoAuthUser | null>(() => getStoredKakaoUser());
+  const [detectedDevice, setDetectedDevice] = useState<DeviceInfo>(() => detectDeviceInfo());
   const [isFoodGuideOpen, setIsFoodGuideOpen] = useState(false);
   const [foodGuideCategory, setFoodGuideCategory] = useState<TokyoFoodCategoryId>('ALL');
   const [foodGuideTargetFoodId, setFoodGuideTargetFoodId] = useState<string | null>(null);
+
+  useEffect(() => {
+    requestHighEntropyDeviceModel(() => {
+      setDetectedDevice(detectDeviceInfo());
+    });
+    const handleDeviceResize = () => {
+      setDetectedDevice(detectDeviceInfo());
+    };
+    window.addEventListener('resize', handleDeviceResize);
+    return () => window.removeEventListener('resize', handleDeviceResize);
+  }, []);
+
+  const activeDevice = useMemo<DeviceInfo>(
+    () => currentUser?.device || detectedDevice,
+    [currentUser, detectedDevice]
+  );
+  const isGalaxyFold = useMemo(
+    () =>
+      activeDevice.modelId === 'galaxy_fold_8' ||
+      /갤럭시 폴드|Fold/i.test(activeDevice.name || ''),
+    [activeDevice]
+  );
+  const isIPhone = useMemo(
+    () =>
+      activeDevice.os === 'iOS' ||
+      activeDevice.modelId === 'iphone_12_pro_max' ||
+      activeDevice.modelId === 'iphone_16_pro_max' ||
+      /아이폰|iPhone/i.test(activeDevice.name || ''),
+    [activeDevice]
+  );
 
   const handleOpenFoodGuide = (category: TokyoFoodCategoryId = 'ALL', foodId?: string) => {
     setFoodGuideCategory(category);
@@ -1358,7 +1397,11 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-screen flex flex-col font-sans pb-20 md:pb-0 w-full max-w-full overflow-x-clip relative transition-colors duration-300 ${currentScheduleTheme.pageBg}`}
+      className={`min-h-screen flex flex-col font-sans ${
+        isIPhone ? 'iphone-page-safe-pb md:pb-0' : 'pb-20 md:pb-0'
+      } w-full max-w-full overflow-x-clip relative transition-colors duration-300 ${
+        currentScheduleTheme.pageBg
+      }`}
     >
       {/* Ambient Backdrop for Intro / Tokyo Night / Cyber / Sakura Dark Themes */}
       <ScheduleAmbientBackdrop themeId={scheduleThemeId} />
@@ -1399,9 +1442,13 @@ export default function App() {
 
       {/* Main View Area */}
       <main
-        className={`flex-1 max-w-7xl w-full mx-auto relative z-10 transition-all duration-300 ${
+        className={`flex-1 w-full mx-auto relative z-10 transition-all duration-300 ${
+          isGalaxyFold ? 'fold-layout-container' : 'max-w-7xl'
+        } ${
           mobileView === 'split'
-            ? 'p-2 sm:p-3 md:p-4'
+            ? isGalaxyFold
+              ? 'p-2.5 sm:p-4 fold:px-5'
+              : 'p-2 sm:p-3 md:p-4'
             : mobileView === 'map'
             ? 'p-2 sm:p-3 max-w-6xl'
             : 'p-2 sm:p-4 md:p-6 lg:p-8'
@@ -1474,9 +1521,13 @@ export default function App() {
           <div
             className={`space-y-4 ${
               mobileView === 'timeline'
-                ? 'col-span-12 max-w-4xl mx-auto w-full block'
+                ? isGalaxyFold
+                  ? 'col-span-12 max-w-5xl mx-auto w-full block'
+                  : 'col-span-12 max-w-4xl mx-auto w-full block'
                 : mobileView === 'map'
                 ? 'hidden'
+                : isGalaxyFold
+                ? 'col-span-12 fold:col-span-6 md:col-span-6 lg:col-span-6 block h-[calc(100dvh-13.5rem)] overflow-y-auto pr-2 sm:pr-3 overscroll-contain scroll-smooth'
                 : 'col-span-12 md:col-span-6 lg:col-span-7 block h-[calc(100dvh-13.5rem)] overflow-y-auto pr-1.5 sm:pr-2.5 overscroll-contain scroll-smooth'
             }`}
           >
@@ -1674,11 +1725,13 @@ export default function App() {
             )}
           </div>
 
-          {/* Right Column: Interactive Leaflet Route Map (Fixed & Stationary in Split View) */}
+          {/* Right Column: Interactive Leaflet Route Map / Sidebar (Wider on Galaxy Fold) */}
           <div
             className={`isolate z-10 ${
               mobileView === 'split'
-                ? 'col-span-12 md:col-span-6 lg:col-span-5 block sticky top-14 sm:top-18 self-start h-[calc(100dvh-13.5rem)] flex flex-col justify-start'
+                ? isGalaxyFold
+                  ? 'col-span-12 fold:col-span-6 md:col-span-6 lg:col-span-6 fold-sidebar-panel block sticky top-14 sm:top-18 self-start h-[calc(100dvh-13.5rem)] flex flex-col justify-start'
+                  : 'col-span-12 md:col-span-6 lg:col-span-5 block sticky top-14 sm:top-18 self-start h-[calc(100dvh-13.5rem)] flex flex-col justify-start'
                 : mobileView === 'timeline'
                 ? 'hidden'
                 : 'col-span-12 max-w-6xl mx-auto w-full block'
@@ -1790,6 +1843,7 @@ export default function App() {
         }}
         currentUser={currentUser}
         onOpenLogin={() => setIsLoginPageOpen(true)}
+        deviceInfo={activeDevice}
       />
 
       {/* Modals & Drawers */}

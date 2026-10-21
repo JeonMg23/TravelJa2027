@@ -91,6 +91,7 @@ export function getStoredDeviceModelOverride(): RecognizedDeviceModelId | null {
     if (
       val === 'pc_desktop' ||
       val === 'iphone_12_pro_max' ||
+      val === 'iphone_16_pro_max' ||
       val === 'galaxy_fold_8' ||
       val === 'other_mobile'
     ) {
@@ -112,7 +113,7 @@ export function setStoredDeviceModelOverride(modelId: RecognizedDeviceModelId | 
   } catch {}
 }
 
-// Real-time device and smartphone model detection (갤럭시 폴드8, 아이폰 12 프로 맥스, PC 등 식별)
+// Real-time device and smartphone model detection (갤럭시 폴드8, 아이폰 12 프로 맥스, 아이폰 16 프로 맥스, PC 등 식별)
 export function detectDeviceInfo(): DeviceInfo {
   if (typeof window === 'undefined') {
     return {
@@ -219,16 +220,26 @@ export function detectDeviceInfo(): DeviceInfo {
         (minDim === 375 && maxDim === 812 && dpr >= 3) ||
         /iPhone13,4|12\s*Pro\s*Max/i.test(combinedModelSource);
 
+      // iPhone 16 Pro Max detection:
+      // Native logical resolution is 440x956 (3x DPR), or 430x932 (Pro Max display zoom), or explicit UA match
+      const isIPhone16ProMax =
+        (minDim === 440 && maxDim === 956) ||
+        (minDim === 430 && maxDim === 932 && dpr >= 3) ||
+        /iPhone17,2|16\s*Pro\s*Max/i.test(combinedModelSource);
+
       if (isIPhone12ProMax) {
         modelId = 'iphone_12_pro_max';
         name = '아이폰 12 프로 맥스';
         rawModelCode = `iPhone 12 Pro Max (${resolution})`;
         accessRoleLabel = '전체관리자 · 전체 모두 접근 가능';
+      } else if (isIPhone16ProMax) {
+        modelId = 'iphone_16_pro_max';
+        name = '아이폰 16 프로 맥스';
+        rawModelCode = `iPhone 16 Pro Max (${resolution})`;
+        accessRoleLabel = '현우 전용 허용 기기';
       } else {
         modelId = 'other_mobile';
-        if (minDim === 440 && maxDim === 956) name = '아이폰 16 프로 맥스';
-        else if (minDim === 430 && maxDim === 932) name = '아이폰 14/15 프로 맥스';
-        else if (minDim === 393 && maxDim === 852) name = '아이폰 15 / 16 Pro';
+        if (minDim === 393 && maxDim === 852) name = '아이폰 15 / 16 Pro';
         else if (minDim === 390 && maxDim === 844) name = '아이폰 12 / 13 / 14';
         else if (minDim === 414 && maxDim === 896) name = '아이폰 11 / XR / XS Max';
         else if (minDim === 375 && maxDim === 667) name = '아이폰 SE';
@@ -275,6 +286,10 @@ export function detectDeviceInfo(): DeviceInfo {
       type = 'mobile';
       name = '아이폰 12 프로 맥스';
       accessRoleLabel = '전체관리자 · 전체 모두 접근 가능';
+    } else if (overrideModelId === 'iphone_16_pro_max') {
+      type = 'mobile';
+      name = '아이폰 16 프로 맥스';
+      accessRoleLabel = '현우 전용 허용 기기';
     } else if (overrideModelId === 'galaxy_fold_8') {
       type = 'mobile';
       name = '갤럭시 폴드8';
@@ -285,7 +300,12 @@ export function detectDeviceInfo(): DeviceInfo {
       accessRoleLabel = 'PC · 전체 모두 접근 가능';
     } else if (overrideModelId === 'other_mobile') {
       type = 'mobile';
-      if (name.startsWith('PC') || name === '아이폰 12 프로 맥스' || name === '갤럭시 폴드8') {
+      if (
+        name.startsWith('PC') ||
+        name === '아이폰 12 프로 맥스' ||
+        name === '아이폰 16 프로 맥스' ||
+        name === '갤럭시 폴드8'
+      ) {
         name = `일반 스마트폰 (${resolution})`;
       }
       accessRoleLabel = '접근 제한 기종';
@@ -314,8 +334,9 @@ export interface ProfileDeviceAccessResult {
  * 기종별 프로필 접근 제한 정책:
  * 1) PC (pc_desktop): 전체 프로필 모두 접근 가능
  * 2) 전체관리자 (iphone_12_pro_max - 아이폰 12 프로 맥스): 전체 프로필 모두 접근 가능
- * 3) 현우맘 (kakao_hyunwoo_mom): 스마트폰에서는 갤럭시 폴드8 (또는 전체관리자 아이폰 12 프로 맥스)만 접근 가능
- * 4) 그 외 스마트폰 기종 / 프로필: 현재 제한 ("일단 이렇게만 해줘")
+ * 3) 현우맘 (kakao_hyunwoo_mom): 스마트폰에서는 갤럭시 폴드8 만 접근 가능 (+ 전체관리자/PC)
+ * 4) 현우 (kakao_hyunwoo): 스마트폰에서는 아이폰 16 프로 맥스 만 접근 가능 (+ 전체관리자/PC)
+ * 5) 세현맘 (kakao_sehyun_mom), 세현 (kakao_sehyun): 추후 기종 추가 예정 (현재 전체관리자/PC만 가능)
  */
 export function checkProfileDeviceAccess(
   profileId: string,
@@ -329,7 +350,7 @@ export function checkProfileDeviceAccess(
     return {
       allowed: true,
       badgeText: 'PC 접속 가능',
-      reason: 'PC에서는 모든 프로필에 접근할 수 있습니다.'
+      reason: ''
     };
   }
 
@@ -338,7 +359,7 @@ export function checkProfileDeviceAccess(
     return {
       allowed: true,
       badgeText: '전체관리자 허용',
-      reason: '전체관리자 기기(아이폰 12 프로 맥스)는 모든 프로필에 접근할 수 있습니다.'
+      reason: ''
     };
   }
 
@@ -348,29 +369,37 @@ export function checkProfileDeviceAccess(
       return {
         allowed: true,
         badgeText: '갤럭시폴드8 인증됨',
-        reason: '현우맘 전용 기기(갤럭시 폴드8)로 접속 가능합니다.'
+        reason: ''
       };
     }
     return {
       allowed: false,
-      badgeText: '접근 제한 (현우맘 전용폰)',
-      reason: `현재 접속 기종(${device.name})에서는 [현우맘] 프로필만 접속할 수 있습니다. (전체 접근: 아이폰 12 프로 맥스 / PC)`
+      badgeText: '접근 제한',
+      reason: ''
     };
   }
 
-  // 4. 기타 스마트폰 기종
-  if (profileId === 'kakao_hyunwoo_mom') {
+  // 4. 아이폰 16 프로 맥스는 현우 프로필만 접근 가능
+  if (modelId === 'iphone_16_pro_max') {
+    if (profileId === 'kakao_hyunwoo') {
+      return {
+        allowed: true,
+        badgeText: '아이폰16프로맥스 인증됨',
+        reason: ''
+      };
+    }
     return {
       allowed: false,
-      badgeText: '갤럭시폴드8 전용',
-      reason: `[현우맘] 프로필은 갤럭시 폴드8, 아이폰 12 프로 맥스(전체관리자), 또는 PC에서만 접근할 수 있습니다. (현재 기종: ${device.name})`
+      badgeText: '접근 제한',
+      reason: ''
     };
   }
 
+  // 5. 기타 스마트폰 기종 및 아직 기종 미등록 프로필(세현맘, 세현)
   return {
     allowed: false,
-    badgeText: '접근 제한 기종',
-    reason: `현재 접속 기종(${device.name})은 프로필 접근이 제한되어 있습니다. (아이폰 12 프로 맥스 전체관리자 또는 PC에서만 접근 가능)`
+    badgeText: '접근 제한',
+    reason: ''
   };
 }
 

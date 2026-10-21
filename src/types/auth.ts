@@ -3,6 +3,7 @@ export type DeviceCategory = 'mobile' | 'tablet' | 'desktop';
 export type RecognizedDeviceModelId =
   | 'pc_desktop'
   | 'iphone_12_pro_max'
+  | 'iphone_16_pro_max'
   | 'galaxy_fold_8'
   | 'other_mobile';
 

@@ -1,1 +1,58 @@
 @import "tailwindcss";
+
+@theme {
+  /* 기기별 맞춤형 반응형 브레이크포인트 (아이폰 / 갤럭시 폴드 커버 및 메인 펼침 화면) */
+  --breakpoint-iphone: 375px;
+  --breakpoint-iphone-max: 428px;
+  --breakpoint-fold: 580px;
+  --breakpoint-fold-wide: 720px;
+
+  /* 갤럭시 폴드 사이드바/분할 영역 확장 너비 및 아이폰 하단 네비게이션 간격 토큰 */
+  --spacing-fold-sidebar: 30rem;
+  --spacing-fold-drawer: 34rem;
+  --spacing-iphone-nav-x: 0.75rem;
+  --spacing-iphone-nav-y: 0.375rem;
+  --spacing-iphone-nav-gap: 0.375rem;
+}
+
+/* 갤럭시 폴드 접속 시 사이드바 및 좌우 분할 영역 확장 스타일 */
+@layer utilities {
+  .fold-layout-container {
+    max-width: 92rem;
+    padding-left: 0.875rem;
+    padding-right: 0.875rem;
+  }
+
+  .fold-sidebar-panel {
+    width: 100%;
+  }
+
+  @media (min-width: 580px) {
+    .fold-sidebar-panel {
+      min-width: 22rem;
+    }
+  }
+
+  .fold-drawer-expanded {
+    max-width: var(--spacing-fold-drawer);
+    width: 100%;
+  }
+
+  /* 아이폰 접속 시 하단 네비게이션바 미세 간격 및 홈 인디케이터 Safe Area 최적화 */
+  .iphone-bottom-nav {
+    padding-left: var(--spacing-iphone-nav-x);
+    padding-right: var(--spacing-iphone-nav-x);
+    padding-top: var(--spacing-iphone-nav-y);
+    padding-bottom: max(0.625rem, env(safe-area-inset-bottom, 0.625rem));
+  }
+
+  .iphone-bottom-nav-grid {
+    gap: var(--spacing-iphone-nav-gap);
+    height: 3.75rem;
+  }
+
+  .iphone-page-safe-pb {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0.75rem));
+  }
+}
+

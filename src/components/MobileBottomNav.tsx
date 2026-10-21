@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, Compass, Wallet, Columns2 } from 'lucide-react';
-import { KakaoAuthUser } from '../types/auth';
+import { KakaoAuthUser, DeviceInfo } from '../types/auth';
+import { detectDeviceInfo } from '../services/kakaoAuth';
 import { getCharacterAvatarById } from '../data/characterAvatars';
 import { ScheduleThemeId, SCHEDULE_THEMES } from '../data/scheduleThemes';
 
@@ -13,6 +14,7 @@ interface MobileBottomNavProps {
   currentUser?: KakaoAuthUser | null;
   onOpenLogin?: () => void;
   scheduleThemeId?: ScheduleThemeId;
+  deviceInfo?: DeviceInfo;
 }
 
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
@@ -21,25 +23,51 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   onOpenBudget,
   currentUser,
   onOpenLogin,
-  scheduleThemeId = 'classic-light'
+  scheduleThemeId = 'classic-light',
+  deviceInfo
 }) => {
   const currentAvatar = getCharacterAvatarById(currentUser?.avatarId, currentUser?.id);
   const theme = SCHEDULE_THEMES[scheduleThemeId] || SCHEDULE_THEMES['classic-light'];
   const isDark = theme.isDark;
 
+  const activeDevice = deviceInfo || currentUser?.device || detectDeviceInfo();
+  const isIPhone =
+    activeDevice.os === 'iOS' ||
+    activeDevice.modelId === 'iphone_12_pro_max' ||
+    activeDevice.modelId === 'iphone_16_pro_max' ||
+    /아이폰|iPhone/i.test(activeDevice.name);
+  const isGalaxyFold =
+    activeDevice.modelId === 'galaxy_fold_8' || /갤럭시 폴드|Fold/i.test(activeDevice.name);
+
   return (
     <nav
-      className={`md:hidden fixed bottom-0 left-0 right-0 z-40 px-1 py-1 shadow-lg transition-colors duration-300 ${
+      className={`md:hidden fixed bottom-0 left-0 right-0 z-40 shadow-lg transition-all duration-300 ${
+        isIPhone
+          ? 'iphone-bottom-nav px-3 pt-1.5'
+          : isGalaxyFold
+          ? 'px-3 py-1.5 fold:px-6'
+          : 'px-1 py-1'
+      } ${
         isDark
           ? 'bg-[#070A16]/95 backdrop-blur-xl border-t border-white/15'
           : 'bg-white/95 backdrop-blur-md border-t border-slate-200'
       }`}
     >
-      <div className="grid grid-cols-5 items-center h-14">
+      <div
+        className={`grid grid-cols-5 items-center ${
+          isIPhone
+            ? 'iphone-bottom-nav-grid gap-1.5 iphone-max:gap-2.5 h-15'
+            : isGalaxyFold
+            ? 'gap-2 fold:gap-4 h-15'
+            : 'h-14'
+        }`}
+      >
         {/* Tab 1: Timeline */}
         <button
           onClick={() => onSelectView('timeline')}
           className={`flex flex-col items-center justify-center min-h-[44px] transition-colors cursor-pointer ${
+            isIPhone ? 'gap-0.5 py-0.5' : ''
+          } ${
             currentView === 'timeline'
               ? isDark
                 ? `${theme.accentText} font-bold`
@@ -50,7 +78,9 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           }`}
         >
           <Calendar className="w-5 h-5" />
-          <span className="text-[10px] tracking-tight mt-1">일정</span>
+          <span className={`text-[10px] tracking-tight ${isIPhone ? 'mt-0.5' : 'mt-1'}`}>
+            일정
+          </span>
         </button>
 
         {/* Tab 2: Map */}

@@ -45,9 +45,17 @@ export const CollaborationDrawer: React.FC<CollaborationDrawerProps> = ({
     setCommentText('');
   };
 
+  const isGalaxyFold =
+    currentUser?.device?.modelId === 'galaxy_fold_8' ||
+    /갤럭시 폴드|Fold/i.test(currentUser?.device?.name || '');
+
   return (
     <div className="fixed inset-0 z-[1200] flex justify-end bg-black/40 backdrop-blur-2xs animate-in fade-in duration-150">
-      <div className="bg-white w-full max-w-md h-full shadow-2xl flex flex-col border-l border-slate-200 animate-in slide-in-from-right duration-200">
+      <div
+        className={`bg-white w-full ${
+          isGalaxyFold ? 'fold-drawer-expanded max-w-xl' : 'max-w-md'
+        } h-full shadow-2xl flex flex-col border-l border-slate-200 animate-in slide-in-from-right duration-200`}
+      >
         {/* Drawer Header */}
         <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-2">
