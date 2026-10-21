@@ -4,6 +4,7 @@ export type TokyoFoodCategoryId =
   | 'STREET_SNACK'
   | 'DESSERT_SWEETS'
   | 'THEME_PARK'
+  | 'IZAKAYA_PUB'
   | 'KONBINI';
 
 export interface TokyoFoodCategoryMeta {
@@ -53,9 +54,9 @@ export interface TokyoFoodItem {
 export const TOKYO_FOOD_CATEGORIES: TokyoFoodCategoryMeta[] = [
   {
     id: 'ALL',
-    label: '전체 먹거리 (34선)',
+    label: '전체 먹거리 (40선)',
     shortLabel: '전체 보기',
-    subtitle: '중복 없이 엄선한 도쿄 5박 6일 평점·추천 베스트 대표 음식·간식·디저트 34선',
+    subtitle: '중복 없이 엄선한 도쿄 5박 6일 평점·추천 베스트 대표 음식·간식·디저트·선술집 40선',
     countBadgeColor: 'bg-amber-400 text-slate-950'
   },
   {
@@ -85,6 +86,13 @@ export const TOKYO_FOOD_CATEGORIES: TokyoFoodCategoryMeta[] = [
     shortLabel: '디즈니·해리포터',
     subtitle: '해리포터 버터맥주 & 로스트비프, 디즈니씨 리틀 그린맨 모찌, 스모크 터키레그, 미키 츄러스',
     countBadgeColor: 'bg-sky-500 text-white'
+  },
+  {
+    id: 'IZAKAYA_PUB',
+    label: '일정 추천 선술집 · 밤맥주 안주 (6선)',
+    shortLabel: '추천 선술집·이자카야',
+    subtitle: '일정에 추가된 긴시초 숙소 도보 1~3분 추천 선술집! 토리키조쿠, 하카타 게키죠, 쿠시카츠 다나카, 카라쿠, 텟펜, 텟짱',
+    countBadgeColor: 'bg-amber-500 text-slate-950'
   },
   {
     id: 'KONBINI',
@@ -1192,5 +1200,211 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
     kidFavoriteScore: '현우·세현 선호도 ★★★★★ (대왕 유부 홀릭!)',
     momFavoriteScore: '엄마들 선호도 ★★★★★',
     googleMapsQuery: 'Seven Eleven Tokyo'
+  },
+
+  // ==========================================
+  // 6. 일정 추천 선술집 · 밤맥주 안주 (IZAKAYA_PUB - 6선)
+  // ==========================================
+  {
+    id: 'izakaya_torikizoku_kinshicho',
+    name: '[일정 추천 선술집] 토리키조쿠 700ml 메가 생맥주 & 대왕 숯불 타레 닭꼬치',
+    japaneseName: '鳥貴族 錦糸町南口店 (もも貴族焼・メガ金麦)',
+    pronunciation: '토리키조쿠 모모키조쿠야키 타레 & 메가 나마비루',
+    category: 'IZAKAYA_PUB',
+    categoryLabel: '추천 선술집 · 가성비 이자카야',
+    dayNumber: 1,
+    areaTag: '긴시초 숙소 도보 2분 (Day 1 · Day 5 일정 포함)',
+    famousShop: '토리키조쿠 긴시초남쪽출구점 (호텔 도보 2분)',
+    priceJpy: '전 메뉴 균일 ¥370 (1인 약 ¥1,500 ~ ¥2,200)',
+    priceKrwApprox: '한 접시 약 3,400원 (가성비 최강)',
+    imageUrl: '/foods/izakaya_torikizoku.jpg',
+    fallbackGradient: 'from-amber-900 via-yellow-950 to-stone-950',
+    ratingScore: '★ 4.8',
+    recommendBadge: '일정 Day 1·5 숙소 앞 추천 선술집',
+    summary:
+      'Day 1 첫날 밤과 Day 5 마지막 밤 총결산 뒤풀이 일정에 포함된 일본 국민 가성비 이자카야! 전 메뉴 370엔 균일가로 700ml 초대형 메가 생맥주와 큼직한 숯불 닭다리살 대파 꼬치(모모키조쿠야키)를 부담 없이 즐길 수 있습니다.',
+    tastePoints: [
+      '일반 꼬치의 2배 크기인 시그니처 "모모키조쿠야키(타레/소금)"의 진한 숯불 향과 육즙',
+      '참기름 간장 소스가 뿌려진 아삭한 양배추 샐러드(캬베츠모리)는 1회 주문 시 무료 무한 리필!',
+      '아이들을 위한 달콤한 치즈 츠쿠네, 감자튀김, 닭육수 라멘·가마메시(솥밥), 소프트드링크도 370엔 균일가'
+    ],
+    orderTip: '테이블 태블릿(한국어 지원)으로 주문하며, "캬베츠모리(양배추)"를 먼저 시켜 무료 리필로 곁들이세요!',
+    kidFavoriteScore: '현우·세현 선호도 ★★★★★ (대형 닭꼬치·감자튀김)',
+    momFavoriteScore: '엄마들 선호도 ★★★★★ (700ml 메가 생맥주 370엔!)',
+    googleMapsQuery: 'Torikizoku Kinshicho South Exit',
+    eggAllergyInfo: {
+      hasDirectEgg: true,
+      eggTypeLabel: '츠쿠네 날계란 노른자 및 감자샐러드 반숙란 주의',
+      defaultMode: 'REMOVE',
+      hyunwooTip:
+        '기본 닭다리살 대파 꼬치(모모키조쿠야키)와 가라아게는 계란 없이 안전하지만, 츠쿠네(닭완자)나 감자샐러드에는 계란이 올라가니 현우 몫은 모모키조쿠야키(타레/소금)로 주문하세요!',
+      customRemoveJp: 'つくねやサラダの卵（生卵・半熟卵）は抜いてください。焼き鳥（もも貴族焼）はそのままお願いします。',
+      customRemovePronunciation: '츠쿠네야 사라다노 타마고(나마타마고·한쥬쿠타마고)와 누이테 구다사이',
+      customSeparateJp: '卵（生卵・半熟卵）は料理に乗せず、別の小皿（別皿）でお願いします。',
+      customSeparatePronunciation: '타마고와 료리니 노세즈, 베츠자라데 오네가이시마스'
+    }
+  },
+  {
+    id: 'izakaya_hakata_gekijo_kinshicho',
+    name: '[일정 추천 선술집] 하카타 게키죠 철판 한입 테츠나베 교자 & 1리터 얼음장 메가 생맥주',
+    japaneseName: '屋台屋 博多劇場 錦糸町店 (鉄鍋餃子・どでかジョッキ)',
+    pronunciation: '테츠나베 교자 & 도데카 조끼 나마비루',
+    category: 'IZAKAYA_PUB',
+    categoryLabel: '추천 선술집 · 야타이 포장마차 주점',
+    dayNumber: 2,
+    areaTag: '긴시초 숙소 도보 2분 (Day 2 · Day 5 일정 포함)',
+    famousShop: '야타이야 하카타 게키죠 긴시초점 (호텔 도보 2분)',
+    priceJpy: '교자 1인분 ¥380 ~ / 1L 메가맥주 ¥980',
+    priceKrwApprox: '약 16,000원 ~ 24,000원 (1인 평균)',
+    imageUrl: '/foods/izakaya_hakata_gyoza.jpg',
+    fallbackGradient: 'from-orange-900 via-red-950 to-stone-950',
+    ratingScore: '★ 4.9',
+    recommendBadge: '일정 Day 2 디즈니 피로회복 선술집',
+    summary:
+      'Day 2 디즈니씨 2만 보 행군 후 숙소 복귀 일정에 추가된 활기찬 후쿠오카 포장마차(야타이) 컨셉 선술집! 뜨겁게 달군 무쇠 철판에 둥글게 구워 나오는 바삭한 한입 교자와 팔뚝만 한 1리터 얼음장 메가 생맥주의 조합이 예술입니다.',
+    tastePoints: [
+      '겉은 과자처럼 바삭하고 속은 고기 육즙이 가득한 하카타 명물 "철판 한입 테츠나베 교자"',
+      '하루 종일 걸어 타는 갈증을 단숨에 날려버리는 1리터 초대형 "도데카 메가 조끼 생맥주·하이볼"',
+      '고소한 명란 모츠나베와 달콤짭조름한 하카타 닭껍질 꼬치(카와쿠시)도 인기 안주!'
+    ],
+    orderTip: '철판 교자는 굽는 데 10분 정도 걸리니 자리에 앉자마자 인원수대로 먼저 주문하세요!',
+    kidFavoriteScore: '현우·세현 선호도 ★★★★★ (바삭한 한입 군만두!)',
+    momFavoriteScore: '엄마들 선호도 ★★★★★ (1리터 얼음장 생맥주!)',
+    googleMapsQuery: 'Yataiya Hakata Gekijo Kinshicho'
+  },
+  {
+    id: 'izakaya_kushikatsu_tanaka_kinshicho',
+    name: '[일정 추천 선술집] 쿠시카츠 다나카 오사카식 수제 꼬치튀김 8종 & 친치로 하이볼',
+    japaneseName: '串カツ田中 錦糸町店 (串カツ盛り合わせ・チンチロリン)',
+    pronunciation: '쿠시카츠 모리아와세 & 나마비루',
+    category: 'IZAKAYA_PUB',
+    categoryLabel: '추천 선술집 · 꼬치튀김 이자카야',
+    dayNumber: 2,
+    areaTag: '긴시초 숙소 도보 3분 (Day 2 일정 포함)',
+    famousShop: '쿠시카츠 다나카 긴시초점 (호텔 도보 3분)',
+    priceJpy: '꼬치 개당 ¥130 ~ ¥260 / 8종 세트 ¥1,480',
+    priceKrwApprox: '약 15,000원 ~ 23,000원 (1인 평균)',
+    imageUrl: '/foods/izakaya_kushikatsu.jpg',
+    fallbackGradient: 'from-amber-800 via-orange-950 to-stone-950',
+    ratingScore: '★ 4.8',
+    recommendBadge: '일정 Day 2 가족 친화형 인기 선술집',
+    summary:
+      'Day 2 숙소 복귀 일정에 포함된 오사카 전통 꼬치튀김 전문 선술집! 소고기, 새우, 연근, 아스파라거스, 치즈 등 갓 튀겨 바삭바삭한 쿠시카츠를 특제 간장 우스터 소스에 푹 찍어 살얼음 기린 생맥주와 함께 즐깁니다.',
+    tastePoints: [
+      '주사위 2개를 굴려 짝수가 나오면 반값, 같은 숫자(조로메)가 나오면 무료가 되는 "친치로린 하이볼·음료" 게임!',
+      '어린이·청소년 고객에게는 직접 만들어 먹는 타코야키나 소프트아이스크림, 가위바위보 음료 무료 이벤트가 있어 가족 방문 만족도 최고',
+      '바삭한 쿠시카츠 후식으로 초코 바나나 꼬치튀김이나 쿠키앤크림 꼬치튀김도 별미'
+    ],
+    orderTip: '인기 부위만 모은 "쿠시카츠 8종 모둠(하치텐 모리)"을 기본으로 시키고 먹고 싶은 꼬치를 추가하세요!',
+    kidFavoriteScore: '현우·세현 선호도 ★★★★★ (가위바위보 음료 게임 & 튀김!)',
+    momFavoriteScore: '엄마들 선호도 ★★★★★ (바삭한 튀김 + 생맥주)',
+    googleMapsQuery: 'Kushikatsu Tanaka Kinshicho',
+    eggAllergyInfo: {
+      hasDirectEgg: true,
+      eggTypeLabel: '메추리알 꼬치튀김 (우즈라 · うずら) 제외 요청',
+      defaultMode: 'REMOVE',
+      hyunwooTip:
+        '모둠 꼬치튀김 세트에 "메추리알 꼬치(우즈라)"나 " 반숙 계란 튀김"이 포함될 수 있으니, 현우는 소고기·돼지고기·새우·치즈·연근 꼬치만 골라 먹도록 해주세요!',
+      customRemoveJp: '串カツ盛り合わせから「うずらの卵（卵の串）」を抜いて、お肉やエビに変えていただけますか？',
+      customRemovePronunciation: '쿠시카츠 모리아와세카라 우즈라노 타마고오 누이테, 오니쿠야 에비니 카에테 이타다케마스카?',
+      customSeparateJp: '「うずらの卵（卵の串）」は別皿に分けて出してください。',
+      customSeparatePronunciation: '우즈라노 타마고와 베츠자라니 와케테 다시테 구다사이'
+    }
+  },
+  {
+    id: 'izakaya_karaku_kinshicho_sashimi',
+    name: '[일정 추천 선술집] 우마이몬야 카라쿠 제철 모둠 사시미 5종 & 바지락 버터 술찜 & 에비스 생맥주',
+    japaneseName: 'うまいもんや 嘉楽 (刺盛り5点・あさり酒蒸し・ヱビス生)',
+    pronunciation: '사시미 모리아와세 & 아사리 사카무시 & 에비스 나마',
+    category: 'IZAKAYA_PUB',
+    categoryLabel: '추천 선술집 · 신선 해산물 주점',
+    dayNumber: 3,
+    areaTag: '긴시초 숙소 도보 2분 (Day 3 일정 포함)',
+    famousShop: '우마이몬야 카라쿠 긴시초 (호텔 도보 2분)',
+    priceJpy: '¥2,200 ~ ¥3,500 (1인 평균)',
+    priceKrwApprox: '약 20,000원 ~ 32,000원',
+    imageUrl: '/foods/izakaya_karaku_sashimi.jpg',
+    fallbackGradient: 'from-rose-950 via-slate-900 to-black',
+    ratingScore: '★ 4.8',
+    recommendBadge: '일정 Day 3 후지산 복귀 해산물 선술집',
+    summary:
+      'Day 3 후지산 버스 투어 및 도쿄역 야경 관람 후 숙소 복귀 일정에 등록된 로컬 해산물 명가 선술집! 매일 아침 도요스·쓰키지 시장에서 공수한 두툼한 제철 사시미 5종 모둠과 국물이 끝내주는 바지락 버터 술찜에 부드러운 프리미엄 에비스 생맥주를 곁들입니다.',
+    tastePoints: [
+      '입안에서 녹는 생참치·연어·방어 등 제철 활어를 두툼하게 썰어낸 고품격 모둠 사시미',
+      '고소한 버터 향과 감칠맛이 우러난 따끈한 "바지락 버터 술찜(아사리 바타)"은 국물까지 숟가락으로 떠먹게 되는 맛',
+      '크리미한 엔젤링 거품이 살아있는 프리미엄 에비스 생맥주 및 일본 지역 사케 완비'
+    ],
+    orderTip: '"오늘의 추천 사시미 모둠(혼지츠노 사시모리)"과 "바지락 버터 술찜" 조합을 강력 추천합니다!',
+    kidFavoriteScore: '현우·세현 선호도 ★★★★☆ (연어회·가라아게·감자튀김)',
+    momFavoriteScore: '엄마들 선호도 ★★★★★ (엄마들 원픽 고급 안주!)',
+    googleMapsQuery: 'Kinshicho Izakaya Sashimi Yebisu'
+  },
+  {
+    id: 'izakaya_teppen_hinata_kinshicho',
+    name: '[일정 추천 선술집] 긴시초 텟펜·히나타 비장탄 숯불 야키토리 & 1인 하카타 모츠나베',
+    japaneseName: '炭火串焼 てっぺん / 日向 錦糸町 (博多もつ鍋・炭火焼鳥)',
+    pronunciation: '스미비 야키토리 & 하카타 모츠나베 & 삿포로 나마',
+    category: 'IZAKAYA_PUB',
+    categoryLabel: '추천 선술집 · 비장탄 숯불구이 & 전골',
+    dayNumber: 4,
+    areaTag: '긴시초 숙소 도보 2~3분 (Day 4 일정 포함)',
+    famousShop: '긴시초 텟펜 (てっぺん) / 스미비 야키토리 히나타 (호텔 도보 2~3분)',
+    priceJpy: '¥1,800 ~ ¥3,200 (1인 평균)',
+    priceKrwApprox: '약 16,500원 ~ 29,500원',
+    imageUrl: '/foods/izakaya_teppen_motsunabe.jpg',
+    fallbackGradient: 'from-red-950 via-amber-950 to-stone-950',
+    ratingScore: '★ 4.9',
+    recommendBadge: '일정 Day 4 시부야 복귀 후 심야 선술집',
+    summary:
+      'Day 4 해리포터 스튜디오와 시부야 스카이 야경 후 한조몬선으로 숙소에 복귀해 들르는 비장탄 숯불 야키토리 & 모츠나베 전문 선술집! 꽁꽁 얼린 얼음잔 삿포로 블랙라벨 생맥주와 콜라겐 가득한 뜨끈한 소곱창 전골(모츠나베), 육즙 터지는 숯불 꼬치 모둠이 일품입니다.',
+    tastePoints: [
+      '1월 겨울밤 추위를 단숨에 녹여주는 깊고 진한 국물의 1인~2인 하카타 모츠나베(소곱창 전골)',
+      '비장탄 참숯에 구워 불향이 살아있는 수제 츠쿠네와 바삭한 닭날개 구이(테바사키)',
+      '전골 국물에 마지막으로 쫄깃한 짬뽕 면(챤폰멘)을 넣어 끓여 먹으면 완벽한 마무리!'
+    ],
+    orderTip: '모츠나베 육수는 한국인 입맛에 가장 잘 맞는 "간장(쇼유)" 또는 "된장(미소)" 베이스를 선택하세요!',
+    kidFavoriteScore: '현우·세현 선호도 ★★★★★ (바삭한 닭날개·숯불꼬치)',
+    momFavoriteScore: '엄마들 선호도 ★★★★★ (얼음잔 생맥주 + 뜨끈한 모츠나베!)',
+    googleMapsQuery: 'Kinshicho Teppen Yakitori Motsunabe',
+    eggAllergyInfo: {
+      hasDirectEgg: true,
+      eggTypeLabel: '츠쿠네 찍어 먹는 날계란 노른자 (月見つくね)',
+      defaultMode: 'SEPARATE',
+      hyunwooTip:
+        '모츠나베 전골과 일반 숯불 꼬치는 계란이 없지만, 수제 츠쿠네(닭완자)에 날계란 노른자 소스가 함께 나오니 노른자는 따로 받거나 빼달라고 요청하세요!',
+      customRemoveJp: 'つくねの生卵（卵黄）は抜いてください（タレのみでお願いします）。',
+      customRemovePronunciation: '츠쿠네노 나마타마고(란오)와 누이테 구다사이 (타레노미데 오네가이시마스)',
+      customSeparateJp: 'つくねの生卵（卵黄）は別の小皿（別皿）に分けてお願いします。',
+      customSeparatePronunciation: '츠쿠네노 나마타마고(란오)와 베츠노 코자라니 와케테 오네가이시마스'
+    }
+  },
+  {
+    id: 'izakaya_tetchan_kinshicho_nikomi',
+    name: '[일정 추천 선술집] 대중주점 텟짱 소힘줄 미소 조림(규스지 니코미) & 바삭 햄카츠 & 살얼음 생맥주',
+    japaneseName: '大衆酒場 てっちゃん 錦糸町店 (牛すじ煮込み・ハムカツ・生ビール)',
+    pronunciation: '규스지 니코미 & 하무카츠 & 사포로 나마비루',
+    category: 'IZAKAYA_PUB',
+    categoryLabel: '추천 선술집 · 레트로 쇼와 대중주점',
+    dayNumber: 1,
+    areaTag: '긴시초 숙소 도보 1분 (Day 1 · Day 3 일정 포함)',
+    famousShop: '대중주점 텟짱 긴시초점 (호텔 도보 1분)',
+    priceJpy: '안주 ¥350 ~ ¥580 / 살얼음 생맥주 ¥450',
+    priceKrwApprox: '약 13,000원 ~ 20,000원 (1인 평균)',
+    imageUrl: '/foods/izakaya_tetchan_nikomi.jpg',
+    fallbackGradient: 'from-stone-900 via-amber-950 to-zinc-950',
+    ratingScore: '★ 4.8',
+    recommendBadge: '일정 Day 1·3 호텔 1분 컷 로컬 노포',
+    summary:
+      'Day 1과 Day 3 숙소 복귀 일정에 포함된 롯데시티호텔 도보 1분 거리의 정겨운 쇼와풍 레트로 대중주점! 가마솥에서 푹 고아내 입안에서 사르르 녹는 소힘줄 된장 조림(규스지 니코미)과 두툼하고 바삭한 추억의 햄카츠, 살얼음 낀 삿포로 생맥주를 착한 가격에 맛볼 수 있습니다.',
+    tastePoints: [
+      '일본 드라마 <고독한 미식가>와 <심야식당>에 나올 법한 진짜 도쿄 로컬 직장인들의 아지트 감성',
+      '진한 미소 국물이 쏙 밴 부드러운 소힘줄 조림(니코미)과 곤약, 두부 위에 송송 썬 대파의 조화',
+      '호텔 엘리베이터에서 내려 1분이면 도착해 부담 없이 한잔하고 바로 올라가 자기 최고의 위치!'
+    ],
+    orderTip: '자리 앉자마자 3초 만에 나오는 명물 "규스지 니코미(소힘줄 조림)"와 "아츠기리 하무카츠(두툼한 햄카츠)"를 함께 주문하세요!',
+    kidFavoriteScore: '현우·세현 선호도 ★★★★☆ (바삭한 햄카츠·가라아게)',
+    momFavoriteScore: '엄마들 선호도 ★★★★★ (도쿄 로컬 노포 감성 최고!)',
+    googleMapsQuery: 'Taishu Sakaba Tetchan Kinshicho'
   }
 ];
+

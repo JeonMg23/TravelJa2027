@@ -683,13 +683,13 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-5">
             <div>
               <div className={`inline-block font-bold text-xs px-3.5 py-1 rounded-full mb-2.5 border ${landingTheme.dailySectionBadge}`}>
-                TOKYO GOURMET & DESSERT GUIDE
+                TOKYO GOURMET & IZAKAYA GUIDE
               </div>
               <h2 className={`text-2xl sm:text-3xl font-black ${landingTheme.dailySectionTitle}`}>
-                도쿄 대표 음식 · 길거리 간식 · 디저트 도감
+                도쿄 대표 음식 · 길거리 간식 · 디저트 · 추천 선술집 도감
               </h2>
               <p className={`text-xs sm:text-sm font-medium ${landingTheme.dailySectionSubtitle} mt-1`}>
-                실제 사진을 바탕으로 라멘·규카츠부터 아사쿠사 메론빵, 생딸기 모찌, 버터맥주, 편의점 야식까지 카테고리별로 한눈에 확인하세요!
+                실제 사진을 바탕으로 라멘·규카츠부터 아사쿠사 메론빵, 생딸기 모찌, 버터맥주, 그리고 일정에 추가된 숙소 주변 추천 선술집(이자카야)까지 한눈에 확인하세요!
               </p>
             </div>
 
@@ -700,7 +700,7 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
                 className={`inline-flex items-center gap-2 px-5 py-3 font-black text-xs sm:text-sm rounded-xl transition-all self-start md:self-auto cursor-pointer shrink-0 ${landingTheme.primaryBtn}`}
               >
                 <UtensilsCrossed className="w-4 h-4" />
-                <span>먹거리 · 디저트 전체 상세 & 일본어 주문카드 열기</span>
+                <span>먹거리 · 선술집 전체 상세 & 일본어 주문카드 열기</span>
                 <ChevronRight className="w-4 h-4 stroke-[3]" />
               </button>
             )}
@@ -725,7 +725,7 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
                 <div>
                   <div className="text-xs sm:text-sm font-black flex items-center gap-2 flex-wrap">
                     <span>
-                      도쿄 대표 음식 · 디저트 사진 및 정보 {isFoodShowcaseExpanded ? '접기 (닫기)' : '펼쳐보기'}
+                      도쿄 대표 음식 · 디저트 · 추천 선술집 사진 및 정보 {isFoodShowcaseExpanded ? '접기 (닫기)' : '펼쳐보기'}
                     </span>
                     <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-400 text-slate-950">
                       총 {TOKYO_FOOD_ITEMS.length}선
@@ -734,7 +734,7 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
                   <p className={`text-[11px] sm:text-xs font-medium mt-0.5 ${landingTheme.dailySectionSubtitle}`}>
                     {isFoodShowcaseExpanded
                       ? '화면을 간결하게 보려면 버튼을 눌러 대표 음식 카드 목록을 닫을 수 있습니다.'
-                      : '클릭하면 카테고리별(식사·길거리간식·디저트·테마파크·편의점) 대표 음식 사진과 맛집 정보가 펼쳐집니다.'}
+                      : '클릭하면 카테고리별(식사·길거리간식·디저트·테마파크·일정 추천 선술집·편의점) 대표 음식 실제 사진과 맛집 정보가 펼쳐집니다.'}
                   </p>
                 </div>
               </div>

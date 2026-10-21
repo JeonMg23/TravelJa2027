@@ -141,6 +141,7 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
       STREET_SNACK: 0,
       DESSERT_SWEETS: 0,
       THEME_PARK: 0,
+      IZAKAYA_PUB: 0,
       KONBINI: 0
     };
     TOKYO_FOOD_ITEMS.forEach((item) => {
