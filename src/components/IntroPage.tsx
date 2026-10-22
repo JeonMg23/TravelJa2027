@@ -69,8 +69,6 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
   const [revealedSubtitle, setRevealedSubtitle] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isOutro, setIsOutro] = useState<boolean>(false);
-  const [hasAudioUnlocked, setHasAudioUnlocked] = useState<boolean>(false);
-  const [melodyPlayCount, setMelodyPlayCount] = useState<number>(0);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const letterRefs = useRef<(HTMLSpanElement | null)[]>([]);
@@ -78,150 +76,12 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
   const audioContextRef = useRef<AudioContext | null>(null);
   const hasFinishedRef = useRef<boolean>(false);
   const isMutedRef = useRef<boolean>(false);
-  const hasAudioUnlockedRef = useRef<boolean>(false);
-  const lastGestureTimeRef = useRef<number>(0);
   const animStartTimeRef = useRef<number>(0);
   const minEndTimeRef = useRef<number>(5800);
-  const fullMelodyWavUrlRef = useRef<string | null>(null);
-  const stepWavUrlsRef = useRef<string[]>([]);
-  const activeHtmlAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     isMutedRef.current = isMuted;
-    if (isMuted && activeHtmlAudioRef.current) {
-      try {
-        activeHtmlAudioRef.current.pause();
-      } catch {}
-    }
   }, [isMuted]);
-
-  // Build in-memory 16-bit PCM WAV data URLs so mobile browsers (iOS Safari, KakaoTalk, Android Chrome)
-  // play crisp, loud melodies over the native Media Audio channel on any screen touch
-  useEffect(() => {
-    const sampleRate = 22050;
-
-    const buildWavUrl = (
-      notes: { freq: number; start: number; duration: number; amp: number }[],
-      totalDuration: number
-    ): string => {
-      const numSamples = Math.floor(sampleRate * totalDuration);
-      const buffer = new ArrayBuffer(44 + numSamples * 2);
-      const view = new DataView(buffer);
-
-      const writeStr = (offset: number, str: string) => {
-        for (let i = 0; i < str.length; i++) {
-          view.setUint8(offset + i, str.charCodeAt(i));
-        }
-      };
-
-      writeStr(0, 'RIFF');
-      view.setUint32(4, 36 + numSamples * 2, true);
-      writeStr(8, 'WAVE');
-      writeStr(12, 'fmt ');
-      view.setUint32(16, 16, true); // PCM chunk size
-      view.setUint16(20, 1, true); // PCM format
-      view.setUint16(22, 1, true); // Mono
-      view.setUint32(24, sampleRate, true);
-      view.setUint32(28, sampleRate * 2, true);
-      view.setUint16(32, 2, true);
-      view.setUint16(34, 16, true);
-      writeStr(36, 'data');
-      view.setUint32(40, numSamples * 2, true);
-
-      const samples = new Float32Array(numSamples);
-
-      for (const note of notes) {
-        const startIdx = Math.max(0, Math.floor(note.start * sampleRate));
-        const endIdx = Math.min(numSamples, Math.floor((note.start + note.duration) * sampleRate));
-        const attackSamples = Math.max(1, Math.floor(0.008 * sampleRate));
-        const noteLen = Math.max(1, endIdx - startIdx);
-
-        for (let i = startIdx; i < endIdx; i++) {
-          const localIdx = i - startIdx;
-          const t = localIdx / sampleRate;
-          const envAttack = localIdx < attackSamples ? localIdx / attackSamples : 1;
-          const envDecay = Math.exp((-3.8 * localIdx) / noteLen);
-          const env = envAttack * envDecay;
-
-          // Bright bell + warm triangle overtone blend audible on all phone speakers
-          const fundamental = Math.sin(2 * Math.PI * note.freq * t);
-          const harmonic2 = 0.42 * Math.sin(2 * Math.PI * note.freq * 2 * t);
-          const harmonic3 = 0.18 * Math.sin(2 * Math.PI * note.freq * 3 * t);
-          samples[i] += (fundamental + harmonic2 + harmonic3) * note.amp * env;
-        }
-      }
-
-      // Soft limiter and 16-bit PCM encoding
-      for (let i = 0; i < numSamples; i++) {
-        const clamped = Math.max(-0.98, Math.min(0.98, Math.tanh(samples[i] * 1.35)));
-        view.setInt16(44 + i * 2, clamped * 32767, true);
-      }
-
-      const blob = new Blob([buffer], { type: 'audio/wav' });
-      return URL.createObjectURL(blob);
-    };
-
-    // 1) Full Sparkling "도-쿄-원-정-대 ⚡" Intro Melody Fanfare (plays immediately on mobile screen touch)
-    const fanfareNotes = [
-      // 도 (C5 + E5 + G5)
-      { freq: 523.25, start: 0.0, duration: 0.36, amp: 0.42 },
-      { freq: 659.25, start: 0.03, duration: 0.34, amp: 0.32 },
-      { freq: 1046.5, start: 0.06, duration: 0.32, amp: 0.24 },
-      // 쿄 (D5 + F#5 + A5)
-      { freq: 587.33, start: 0.15, duration: 0.36, amp: 0.42 },
-      { freq: 739.99, start: 0.18, duration: 0.34, amp: 0.32 },
-      { freq: 1174.66, start: 0.21, duration: 0.32, amp: 0.24 },
-      // 원 (E5 + G#5 + B5)
-      { freq: 659.25, start: 0.3, duration: 0.36, amp: 0.44 },
-      { freq: 830.61, start: 0.33, duration: 0.34, amp: 0.34 },
-      { freq: 1318.51, start: 0.36, duration: 0.32, amp: 0.26 },
-      // 정 (G5 + B5 + D6)
-      { freq: 783.99, start: 0.45, duration: 0.38, amp: 0.46 },
-      { freq: 987.77, start: 0.48, duration: 0.36, amp: 0.36 },
-      { freq: 1567.98, start: 0.51, duration: 0.34, amp: 0.28 },
-      // 대 (A5 + C#6 + E6)
-      { freq: 880.0, start: 0.6, duration: 0.42, amp: 0.48 },
-      { freq: 1108.73, start: 0.63, duration: 0.4, amp: 0.38 },
-      { freq: 1760.0, start: 0.66, duration: 0.38, amp: 0.3 },
-      // ⚡ 번개 클라이맥스 팬파레 (C5 -> G5 -> C6 -> E6 -> G6 -> C7 Grand Golden Chord)
-      { freq: 523.25, start: 0.78, duration: 1.15, amp: 0.38 },
-      { freq: 783.99, start: 0.81, duration: 1.12, amp: 0.38 },
-      { freq: 1046.5, start: 0.85, duration: 1.1, amp: 0.46 },
-      { freq: 1318.51, start: 0.9, duration: 1.05, amp: 0.46 },
-      { freq: 1567.98, start: 0.95, duration: 1.0, amp: 0.48 },
-      { freq: 2093.0, start: 1.01, duration: 0.98, amp: 0.52 },
-      { freq: 2637.02, start: 1.07, duration: 0.92, amp: 0.38 }
-    ];
-    fullMelodyWavUrlRef.current = buildWavUrl(fanfareNotes, 2.05);
-
-    // 2) Individual Step Chimes (0..5)
-    const stepGroups: number[][] = [
-      [523.25, 659.25, 783.99, 1046.5], // 도
-      [587.33, 739.99, 880.0, 1174.66], // 쿄
-      [659.25, 830.61, 987.77, 1318.51], // 원
-      [783.99, 987.77, 1174.66, 1567.98], // 정
-      [880.0, 1108.73, 1318.51, 1760.0], // 대
-      [523.25, 783.99, 1046.5, 1318.51, 1567.98, 2093.0, 2637.02] // ⚡ 번개
-    ];
-
-    stepWavUrlsRef.current = stepGroups.map((freqs, sIdx) => {
-      const isFinal = sIdx === 5;
-      const notes = freqs.map((freq, idx) => ({
-        freq,
-        start: idx * 0.042,
-        duration: isFinal ? 1.15 : 0.65,
-        amp: isFinal ? 0.45 : 0.42
-      }));
-      return buildWavUrl(notes, isFinal ? 1.45 : 0.85);
-    });
-
-    return () => {
-      if (fullMelodyWavUrlRef.current) {
-        URL.revokeObjectURL(fullMelodyWavUrlRef.current);
-      }
-      stepWavUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
-    };
-  }, []);
 
   // Ensure AudioContext exists and is resumed inside user gesture
   const ensureAudioContext = useCallback((): AudioContext | null => {
@@ -303,16 +163,6 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
     (stepIndex: number) => {
       if (isMutedRef.current) return;
 
-      // 1) If unlocked on mobile, play the step WAV via HTML5 Audio for guaranteed mobile speaker output
-      if (hasAudioUnlockedRef.current && stepWavUrlsRef.current[stepIndex]) {
-        try {
-          const stepAudio = new Audio(stepWavUrlsRef.current[stepIndex]);
-          stepAudio.volume = 0.9;
-          stepAudio.play().catch(() => {});
-        } catch {}
-      }
-
-      // 2) Also play via Web Audio API if context is running
       try {
         const ctx = ensureAudioContext();
         if (!ctx) return;
@@ -344,75 +194,11 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
     [ensureAudioContext, scheduleWebAudioNotes]
   );
 
-  // Play the full sparkling "도-쿄-원-정-대 ⚡" melody fanfare immediately on user touch/click
-  const playFullIntroMelodyOnTouch = useCallback(() => {
-    if (isMutedRef.current) return;
-
-    hasAudioUnlockedRef.current = true;
-    setHasAudioUnlocked(true);
-    setMelodyPlayCount((c) => c + 1);
-
-    // 1) Play HTML5 WAV Fanfare immediately inside the user touch gesture (100% reliable on iOS & Android)
-    if (fullMelodyWavUrlRef.current) {
-      try {
-        if (activeHtmlAudioRef.current) {
-          activeHtmlAudioRef.current.pause();
-          activeHtmlAudioRef.current.currentTime = 0;
-        }
-        const audio = new Audio(fullMelodyWavUrlRef.current);
-        audio.volume = 1.0;
-        activeHtmlAudioRef.current = audio;
-        audio.play().catch(() => {});
-      } catch {}
-    }
-
-    // 2) Also unlock & play Web Audio API melody notes (handles both running and newly resumed states)
-    try {
-      const ctx = ensureAudioContext();
-      if (!ctx) return;
-
-      const melodySequence = [
-        { freq: 523.25, delay: 0.0, duration: 0.38, peakGain: 0.26 }, // 도
-        { freq: 659.25, delay: 0.04, duration: 0.35, peakGain: 0.2 },
-        { freq: 587.33, delay: 0.15, duration: 0.38, peakGain: 0.26 }, // 쿄
-        { freq: 739.99, delay: 0.19, duration: 0.35, peakGain: 0.2 },
-        { freq: 659.25, delay: 0.3, duration: 0.38, peakGain: 0.28 }, // 원
-        { freq: 830.61, delay: 0.34, duration: 0.35, peakGain: 0.22 },
-        { freq: 783.99, delay: 0.45, duration: 0.4, peakGain: 0.3 }, // 정
-        { freq: 987.77, delay: 0.49, duration: 0.36, peakGain: 0.24 },
-        { freq: 880.0, delay: 0.6, duration: 0.42, peakGain: 0.32 }, // 대
-        { freq: 1108.73, delay: 0.64, duration: 0.38, peakGain: 0.25 },
-        // ⚡ Grand Golden Climax Arpeggio
-        { freq: 1046.5, delay: 0.78, duration: 1.15, peakGain: 0.32 },
-        { freq: 1318.51, delay: 0.84, duration: 1.1, peakGain: 0.32 },
-        { freq: 1567.98, delay: 0.9, duration: 1.05, peakGain: 0.34 },
-        { freq: 2093.0, delay: 0.96, duration: 1.05, peakGain: 0.36 },
-        { freq: 2637.02, delay: 1.02, duration: 0.95, peakGain: 0.28 }
-      ];
-
-      if (ctx.state === 'running') {
-        scheduleWebAudioNotes(ctx, melodySequence);
-      } else {
-        ctx
-          .resume()
-          .then(() => {
-            scheduleWebAudioNotes(ctx, melodySequence);
-          })
-          .catch(() => {});
-      }
-    } catch {}
-  }, [ensureAudioContext, scheduleWebAudioNotes]);
-
   const handleSkip = useCallback(
     (e?: React.MouseEvent | React.TouchEvent) => {
       if (e) e.stopPropagation();
       if (hasFinishedRef.current) return;
       hasFinishedRef.current = true;
-      if (activeHtmlAudioRef.current) {
-        try {
-          activeHtmlAudioRef.current.pause();
-        } catch {}
-      }
       setIsOutro(true);
       setTimeout(() => {
         onComplete();
@@ -968,11 +754,6 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
   // Clean up audio context
   useEffect(() => {
     return () => {
-      if (activeHtmlAudioRef.current) {
-        try {
-          activeHtmlAudioRef.current.pause();
-        } catch {}
-      }
       if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
         try {
           audioContextRef.current.close();
@@ -981,26 +762,11 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
     };
   }, []);
 
-  const handleScreenInteraction = useCallback(() => {
-    const now = performance.now();
-    // Prevent duplicate firing when mobile fires both onTouchStart and onClick for the same tap
-    if (now - lastGestureTimeRef.current < 280) return;
-    lastGestureTimeRef.current = now;
-
-    // Ensure intro stays visible long enough for the 2.0s melody fanfare to finish playing
-    const elapsedSinceStart = now - (animStartTimeRef.current || now);
-    minEndTimeRef.current = Math.max(minEndTimeRef.current, elapsedSinceStart + 2150);
-
-    playFullIntroMelodyOnTouch();
-  }, [playFullIntroMelodyOnTouch]);
-
   const letters = ['도', '쿄', '원', '정', '대'];
 
   return (
     <div
-      onClick={handleScreenInteraction}
-      onTouchStart={handleScreenInteraction}
-      className={`fixed inset-0 z-[10000] w-full min-h-screen bg-black text-white overflow-hidden flex flex-col items-center justify-center select-none font-sans transition-all duration-700 cursor-pointer ${
+      className={`fixed inset-0 z-[10000] w-full min-h-screen bg-black text-white overflow-hidden flex flex-col items-center justify-center select-none font-sans transition-all duration-700 ${
         isOutro ? 'opacity-0 scale-105 pointer-events-none' : 'opacity-100 scale-100'
       }`}
       style={{
@@ -1028,9 +794,6 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
             const nextMuted = !isMuted;
             isMutedRef.current = nextMuted;
             setIsMuted(nextMuted);
-            if (!nextMuted) {
-              playFullIntroMelodyOnTouch();
-            }
           }}
           onTouchStart={(e) => {
             e.stopPropagation();
@@ -1183,34 +946,6 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
           <span className="w-6 sm:w-10 h-px bg-gradient-to-l from-transparent to-yellow-400/80" />
         </div>
       </div>
-
-      {/* 4. Mobile Sound Unlock & Melody Trigger Button */}
-      {!isMuted && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleScreenInteraction();
-          }}
-          onTouchStart={(e) => {
-            e.stopPropagation();
-            handleScreenInteraction();
-          }}
-          className={`absolute bottom-6 sm:bottom-8 z-30 flex items-center gap-2 px-4 py-2.5 rounded-full border backdrop-blur-md cursor-pointer active:scale-95 transition-all text-xs font-semibold shadow-[0_4px_24px_rgba(0,0,0,0.6)] ${
-            hasAudioUnlocked
-              ? 'bg-amber-400/20 border-amber-400/50 text-amber-200'
-              : 'bg-white/15 hover:bg-white/25 border-white/25 text-white animate-pulse'
-          }`}
-          style={{ marginBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0.5rem))' }}
-        >
-          <Volume2 className="w-4 h-4 text-yellow-400 shrink-0" />
-          <span>
-            {hasAudioUnlocked
-              ? `인트로 멜로디 재생됨 ♪ (터치하면 다시 재생${melodyPlayCount > 1 ? ` · ${melodyPlayCount}회` : ''})`
-              : '화면을 터치하면 인트로 멜로디가 울립니다 🎵'}
-          </span>
-        </button>
-      )}
     </div>
   );
 };
