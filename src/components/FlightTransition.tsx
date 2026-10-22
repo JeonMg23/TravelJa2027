@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { Plane, Sparkles, Navigation, Cloud, MapPin, FastForward, Compass } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Plane, FastForward, Sparkles } from 'lucide-react';
+import { getEffectivePresetMembers } from '../services/kakaoAuth';
+import { getCharacterAvatarById } from '../data/characterAvatars';
 
 interface FlightTransitionProps {
   onComplete: () => void;
@@ -12,24 +14,27 @@ export const FlightTransition: React.FC<FlightTransitionProps> = ({
   targetDayNumber = 1,
   targetView = 'timeline'
 }) => {
-  // progress goes from 0% to 100%
   const [progress, setProgress] = useState(0);
-  const [stageText, setStageText] = useState('대한민국 인천국제공항(ICN) 탑승 수속 및 이륙 준비 중...');
-  const [statusBadge, setStatusBadge] = useState('출발 준비 🛫');
+  const [stageText, setStageText] = useState(
+    '🇰🇷 대한민국 인천국제공항(ICN) 활주로 이륙! 도쿄 원정대 출발!'
+  );
+  const [statusBadge, setStatusBadge] = useState('인천 이륙 🛫');
   const [isFadingOut, setIsFadingOut] = useState(false);
 
-  // Store callbacks and target props in refs so re-renders NEVER reset the flight midway
-  const onCompleteRef = React.useRef(onComplete);
+  const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
-  const targetDayNumberRef = React.useRef(targetDayNumber);
+
+  const targetDayNumberRef = useRef(targetDayNumber);
   targetDayNumberRef.current = targetDayNumber;
-  const targetViewRef = React.useRef(targetView);
+
+  const targetViewRef = useRef(targetView);
   targetViewRef.current = targetView;
 
+  const members = getEffectivePresetMembers();
+
   useEffect(() => {
-    // 1.8 seconds total smooth flight journey
     const startTime = performance.now();
-    const duration = 1800;
+    const duration = 2200; // 2.2 seconds smooth cinematic flight
     let animFrameId: number;
     let isFinished = false;
 
@@ -37,29 +42,31 @@ export const FlightTransition: React.FC<FlightTransitionProps> = ({
       if (isFinished) return;
       const elapsed = now - startTime;
       const pct = Math.min(100, (elapsed / duration) * 100);
-      setProgress(Math.round(pct * 10) / 10);
+      const roundedPct = Math.round(pct * 10) / 10;
+
+      setProgress(roundedPct);
 
       const targetDay = targetDayNumberRef.current;
       const view = targetViewRef.current;
 
-      if (pct < 20) {
+      if (pct < 22) {
         setStatusBadge('인천 이륙 🛫');
-        setStageText('🇰🇷 대한민국 인천국제공항(ICN) 활주로 이륙! 개구쟁이 원정대 출발!');
-      } else if (pct < 45) {
+        setStageText('🇰🇷 대한민국 인천국제공항(ICN) 활주로 이륙! 도쿄 원정대 출발!');
+      } else if (pct < 50) {
         setStatusBadge('동해 상공 순항 ☁️');
-        setStageText('동해 상공 10,000m 고도 순항 중! 울릉도·독도 상공 통과!');
-      } else if (pct < 70) {
-        setStatusBadge('일본 열도 진입 🗻');
-        setStageText('🇯🇵 일본 열도 진입! 후지산 설경 감상 및 나리타 착륙 하강 시작!');
-      } else if (pct < 95) {
+        setStageText('동해 상공 10,500m 성층권 순항 중! 최고 속도 892km/h!');
+      } else if (pct < 78) {
+        setStatusBadge('후지산 상공 통과 🗻');
+        setStageText('🇯🇵 일본 열도 진입! 만년설 후지산 절경 감상 및 하강 시작!');
+      } else if (pct < 96) {
         setStatusBadge('나리타 착륙 🛬');
-        setStageText('도쿄 나리타 국제공항(NRT) 활주로 안전 착륙 완료! 도쿄 원정 개시!');
+        setStageText('도쿄 나리타 국제공항(NRT) 활주로 안전 착륙 완료!');
       } else {
         setStatusBadge('도쿄 도착 완료! 🎉');
         if (view === 'map') {
-          setStageText('개구쟁이들의 도쿄 대모험 구글 동선 지도 화면으로 진입합니다! 🗺️');
+          setStageText('도쿄 원정대 2027 구글 동선 지도 화면으로 진입합니다! 🗺️');
         } else {
-          setStageText(`개구쟁이들의 도쿄 대모험 Day ${targetDay} 화면으로 진입합니다!`);
+          setStageText(`도쿄 원정대 2027 Day ${targetDay} 일정 화면으로 진입합니다!`);
         }
       }
 
@@ -68,7 +75,7 @@ export const FlightTransition: React.FC<FlightTransitionProps> = ({
         setIsFadingOut(true);
         setTimeout(() => {
           onCompleteRef.current();
-        }, 280);
+        }, 260);
         return;
       }
 
@@ -81,7 +88,7 @@ export const FlightTransition: React.FC<FlightTransitionProps> = ({
       isFinished = true;
       if (animFrameId) cancelAnimationFrame(animFrameId);
     };
-  }, []); // Run exactly once on mount so parent re-renders can never interrupt or reset the animation
+  }, []);
 
   const handleSkip = () => {
     setIsFadingOut(true);
@@ -90,683 +97,298 @@ export const FlightTransition: React.FC<FlightTransitionProps> = ({
     }, 180);
   };
 
-  // Precise Coordinates matching the High-Fidelity East Asia Aeronautical Map:
-  // ViewBox: 0 0 1000 520
-  // Incheon Airport (ICN): X = 158, Y = 230 (in %: X = 15.8%, Y = 44.23%)
-  // Narita Airport (NRT): X = 770, Y = 275 (in %: X = 77.0%, Y = 52.88%)
-  const startX = 15.8;
-  const startY = 44.23;
-  const endX = 77.0;
-  const endY = 52.88;
-
-  // Exact Quadratic Bézier Curve (matching SVG: M 158 230 Q 460 40 770 275)
-  // Control point P1 is (460, 40)
-  const P0x = 158;
-  const P0y = 230;
-  const P1x = 460;
-  const P1y = 40;
-  const P2x = 770;
-  const P2y = 275;
-
+  // Bezier flight curve calculation along the 3D stratosphere arc
   const t = Math.max(0, Math.min(1, progress / 100));
+  const P0x = 140;
+  const P0y = 285;
+  const P1x = 500;
+  const P1y = 55;
+  const P2x = 860;
+  const P2y = 285;
 
-  // Exact Bézier position in 1000 x 520 coordinate system
   const bx = (1 - t) * (1 - t) * P0x + 2 * (1 - t) * t * P1x + t * t * P2x;
   const by = (1 - t) * (1 - t) * P0y + 2 * (1 - t) * t * P1y + t * t * P2y;
-
-  // Percentage position relative to map container (0% to 100%)
   const currentX = (bx / 1000) * 100;
-  const currentY = (by / 520) * 100;
+  const currentY = (by / 420) * 100;
 
-  // Derivative vector B'(t) for exact tangent flight angle along the curve
   const dx = 2 * (1 - t) * (P1x - P0x) + 2 * t * (P2x - P1x);
   const dy = 2 * (1 - t) * (P1y - P0y) + 2 * t * (P2y - P1y);
-  // Tangent angle in degrees: smoothly curves from -32° (climbing) -> 0° (peak) -> +37° (descending)
   const planeAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+  const altitudeMeters = Math.round(
+    t < 0.2
+      ? (t / 0.2) * 10500
+      : t > 0.8
+      ? ((1 - t) / 0.2) * 10500
+      : 10500
+  );
+  const speedKmh = Math.round(
+    t < 0.15 ? 280 + (t / 0.15) * 612 : t > 0.88 ? 260 + ((1 - t) / 0.12) * 632 : 892
+  );
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-between overflow-hidden bg-gradient-to-b from-[#060b17] via-[#0b1329] to-[#040813] text-white transition-opacity duration-500 selection:bg-amber-400 selection:text-black ${
+      className={`fixed inset-0 z-[9999] flex flex-col justify-center items-center overflow-hidden bg-gradient-to-b from-[#030714] via-[#06122c] to-[#02050d] text-white transition-all duration-300 select-none px-4 sm:px-6 py-6 ${
         isFadingOut ? 'opacity-0 scale-105 pointer-events-none' : 'opacity-100 scale-100'
       }`}
     >
-      {/* Background Atmosphere: Twinkling Stars & Ambient Floating Clouds */}
+      {/* Ambient Starlight & 3D Night Globe Horizon Glow */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Twinkling Stars */}
-        <div className="absolute top-6 left-[8%] w-1.5 h-1.5 bg-sky-200 rounded-full animate-ping opacity-60" />
-        <div className="absolute top-14 left-[42%] w-2 h-2 bg-amber-200 rounded-full animate-pulse opacity-40" />
-        <div className="absolute top-10 right-[22%] w-1.5 h-1.5 bg-rose-200 rounded-full animate-ping opacity-50" />
-        <div className="absolute top-24 right-[8%] w-2 h-2 bg-yellow-200 rounded-full opacity-40" />
-
-        {/* Ambient Drifting Clouds */}
         <div
-          className="absolute top-1/4 -left-16 text-white/5 transition-transform duration-1000 ease-linear"
-          style={{ transform: `translateX(${progress * 4}px)` }}
-        >
-          <Cloud className="w-52 h-52 fill-white/5" />
-        </div>
-        <div
-          className="absolute top-1/2 -right-20 text-white/5 transition-transform duration-1000 ease-linear"
-          style={{ transform: `translateX(-${progress * 4}px)` }}
-        >
-          <Cloud className="w-64 h-64 fill-white/5" />
-        </div>
-
-        {/* Radial Vignette Lighting */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-950/40 via-transparent to-black/80" />
+          className="absolute inset-0 opacity-35"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 18% 22%, rgba(255,255,255,0.85) 1px, transparent 1.5px), radial-gradient(circle at 76% 16%, rgba(250,204,21,0.85) 1.5px, transparent 2px), radial-gradient(circle at 48% 32%, rgba(56,189,248,0.85) 1px, transparent 1.5px), radial-gradient(circle at 84% 58%, rgba(255,255,255,0.7) 1px, transparent 1.5px), radial-gradient(circle at 26% 68%, rgba(255,255,255,0.6) 1px, transparent 1.5px)',
+            backgroundSize: '180px 180px'
+          }}
+        />
+        <div className="absolute -bottom-52 left-1/2 -translate-x-1/2 w-[140%] h-[420px] rounded-[100%] bg-gradient-to-t from-sky-500/30 via-blue-600/15 to-transparent blur-3xl" />
+        <div className="absolute -bottom-64 left-1/2 -translate-x-1/2 w-[130%] h-[390px] rounded-[100%] border-t-2 border-cyan-300/60 shadow-[0_-20px_60px_rgba(56,189,248,0.45)] bg-[#020611]/95" />
       </div>
 
-      {/* Top Header Bar */}
-      <header className="relative z-10 w-full max-w-6xl px-4 sm:px-6 pt-4 sm:pt-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-400 text-black border-2 border-white flex items-center justify-center font-black text-xl sm:text-2xl shadow-[0_0_20px_rgba(251,191,36,0.6)] -rotate-6">
-            ✈️
+      {/* Main Content Container */}
+      <div className="relative z-10 w-full max-w-5xl mx-auto flex flex-col justify-between gap-4">
+        {/* Top Header Bar & Skip Button */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-400/15 border border-amber-400/40 text-amber-300 text-xs sm:text-sm font-black backdrop-blur-md shadow-[0_0_20px_rgba(250,204,21,0.2)]">
+            <Sparkles className="w-4 h-4 fill-current" />
+            <span>TOKYO EXPEDITION 2027 · FIRST CLASS BOARDING</span>
           </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-black text-base sm:text-xl tracking-tight text-white drop-shadow-md">
-                개구쟁이 도쿄 급행 에어라인
-              </span>
-              <span className="bg-red-500 text-white text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-full border border-white shadow-xs">
-                BOYS-777편
-              </span>
-            </div>
-            <p className="text-xs sm:text-sm text-slate-300 font-medium">
-              대한민국 인천(ICN) ✈ 일본 도쿄 나리타(NRT) 직항 비행
-            </p>
-          </div>
+
+          <button
+            type="button"
+            onClick={handleSkip}
+            className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs sm:text-sm font-bold text-slate-200 hover:text-white flex items-center gap-1.5 backdrop-blur-md transition-all cursor-pointer active:scale-95"
+          >
+            <span>스킵하고 바로 이동</span>
+            <FastForward className="w-4 h-4 text-amber-400" />
+          </button>
         </div>
 
-        {/* Skip Button */}
-        <button
-          onClick={handleSkip}
-          className="flex items-center gap-1.5 px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-slate-200 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full transition-all cursor-pointer backdrop-blur-md hover:scale-105 active:scale-95 shadow-lg"
-        >
-          <span>스킵</span>
-          <FastForward className="w-3.5 h-3.5" />
-        </button>
-      </header>
-
-      {/* Main Map Visualizer with Distinct, Recognizable Korea and Japan Maps */}
-      <div className="relative z-10 w-full max-w-6xl px-3 sm:px-6 flex-1 flex flex-col justify-center my-2 sm:my-3">
-        {/* Radar Map Card Container */}
-        <div className="relative w-full h-[370px] sm:h-[430px] md:h-[470px] rounded-3xl bg-[#070e1c]/95 border-2 border-cyan-500/35 backdrop-blur-xl overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.85)]">
-          
-          {/* Detailed Nautical Navigation Grid & Latitude/Longitude Lines */}
-          <div className="absolute inset-0 opacity-20 bg-[linear-gradient(to_right,#38bdf825_1px,transparent_1px),linear-gradient(to_bottom,#38bdf825_1px,transparent_1px)] bg-[size:36px_36px]" />
-
-          {/* Compass Rose in Corner */}
-          <div className="absolute top-4 right-4 text-cyan-400/40 flex flex-col items-center pointer-events-none">
-            <Compass className="w-8 h-8 animate-[spin_30s_linear_infinite]" />
-            <span className="text-[9px] font-mono font-bold mt-0.5">N 37° E 135°</span>
+        {/* =========================================================================
+            DESIGN 1: FIRST-CLASS GOLD BOARDING PASS & 3D STRATOSPHERE NIGHT GLOBE
+           ========================================================================= */}
+        <div className="relative w-full rounded-3xl bg-gradient-to-b from-[#04091a]/90 via-[#071430]/90 to-[#02050d]/95 border-2 border-amber-400/45 shadow-[0_25px_70px_rgba(0,0,0,0.9)] overflow-hidden p-4 sm:p-6 flex flex-col justify-between min-h-[430px] sm:min-h-[490px] backdrop-blur-xl">
+          {/* Inner 3D Earth Curvature Glow */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute -bottom-48 left-1/2 -translate-x-1/2 w-[130%] h-[360px] rounded-[100%] bg-gradient-to-t from-sky-500/30 via-blue-600/15 to-transparent blur-2xl" />
+            <div className="absolute -bottom-56 left-1/2 -translate-x-1/2 w-[125%] h-[340px] rounded-[100%] border-t-2 border-cyan-300/60 shadow-[0_-15px_50px_rgba(56,189,248,0.45)] bg-[#030712]/95" />
           </div>
 
-          {/* Ocean Water Depths & East Sea Sea Water Label */}
-          <div className="absolute left-[45%] top-[48%] -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none opacity-60">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-950/70 border border-blue-400/30">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-              <span className="text-[11px] sm:text-xs font-black tracking-widest text-cyan-200 font-mono">
-                동해 (EAST SEA) 상공
-              </span>
+          {/* 1) First-Class Gold Boarding Pass Card */}
+          <div className="relative z-20 w-full bg-gradient-to-r from-slate-900/95 via-slate-900/90 to-amber-950/40 border border-amber-400/50 rounded-2xl p-4 sm:p-5 shadow-2xl backdrop-blur-xl">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              {/* Left: Route ICN -> NRT */}
+              <div className="flex items-center justify-between md:justify-start gap-4 sm:gap-8 flex-1">
+                <div>
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-amber-300 font-bold block">
+                    DEPARTURE · KOREA
+                  </span>
+                  <div className="text-2xl sm:text-4xl font-black font-mono text-white tracking-tight">
+                    ICN
+                  </div>
+                  <span className="text-xs text-slate-300 font-semibold">
+                    인천국제공항 T1
+                  </span>
+                </div>
+
+                <div className="flex flex-col items-center flex-1 max-w-[200px]">
+                  <span className="text-[10px] font-mono text-amber-300 font-bold mb-1">
+                    FIRST CLASS · 2h 25m
+                  </span>
+                  <div className="w-full flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_8px_#38bdf8]" />
+                    <div className="flex-1 h-0.5 border-b-2 border-dashed border-amber-400/60 relative">
+                      <Plane
+                        className="w-5 h-5 text-amber-300 fill-amber-300 rotate-45 absolute -top-2.5 -translate-x-1/2 transition-all duration-75"
+                        style={{ left: `${progress}%` }}
+                      />
+                    </div>
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-400 shadow-[0_0_8px_#fb7185]" />
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-mono mt-1">
+                    FLIGHT TOKYO-2027
+                  </span>
+                </div>
+
+                <div className="text-right md:text-left">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-rose-300 font-bold block">
+                    ARRIVAL · JAPAN
+                  </span>
+                  <div className="text-2xl sm:text-4xl font-black font-mono text-amber-300 tracking-tight">
+                    NRT
+                  </div>
+                  <span className="text-xs text-slate-300 font-semibold">
+                    도쿄 나리타 국제공항
+                  </span>
+                </div>
+              </div>
+
+              {/* Perforated Divider */}
+              <div className="hidden md:block h-16 border-l-2 border-dashed border-amber-400/30 mx-2" />
+
+              {/* Right: 4 Expedition Crew Avatars & Gate Info */}
+              <div className="flex items-center justify-between md:justify-end gap-4 pt-2 md:pt-0 border-t md:border-t-0 border-white/10">
+                <div>
+                  <span className="text-[10px] font-mono text-slate-400 block">
+                    PASSENGERS (4 VIPs)
+                  </span>
+                  <div className="flex items-center -space-x-2 mt-1">
+                    {members.map((m) => {
+                      const av = getCharacterAvatarById(m.avatarId, m.id);
+                      return (
+                        <div
+                          key={m.id}
+                          className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br ${av.bgGradient} border-2 border-amber-300 overflow-hidden flex items-center justify-center shadow-md`}
+                          title={m.nickname}
+                        >
+                          {m.profileImageUrl ? (
+                            <img
+                              src={m.profileImageUrl}
+                              alt={m.nickname}
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            av.renderSvg('w-full h-full')
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="text-right font-mono">
+                  <span className="px-2.5 py-0.5 rounded bg-amber-400 text-slate-950 text-[10px] font-black">
+                    GATE 27 · BOARDING
+                  </span>
+                  <div className="text-xs font-bold text-white mt-1">
+                    2027.01.13 09:00
+                  </div>
+                </div>
+              </div>
             </div>
-            <span className="text-[10px] text-sky-400/80 block mt-1 font-mono">
-              순항 고도 10,000M · 속도 890 km/h
-            </span>
           </div>
 
-          {/* West Sea (서해 / 황해) Label */}
-          <div className="absolute left-[7%] top-[50%] -translate-y-1/2 text-center pointer-events-none opacity-40">
-            <span className="text-[10px] sm:text-xs font-extrabold text-sky-300 font-mono tracking-wider block">
-              서해 (WEST SEA)
-            </span>
-          </div>
+          {/* 2) 3D Stratosphere Curved Earth Horizon & Golden Jet Arc */}
+          <div className="relative z-10 flex-1 my-2 min-h-[250px] sm:min-h-[300px]">
+            <svg
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              viewBox="0 0 1000 420"
+              preserveAspectRatio="none"
+            >
+              <defs>
+                <linearGradient id="d1ArcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#38bdf8" />
+                  <stop offset="50%" stopColor="#facc15" />
+                  <stop offset="100%" stopColor="#f43f5e" />
+                </linearGradient>
+                <filter id="d1Glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="6" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+              </defs>
 
-          {/* South Sea (남해) Label */}
-          <div className="absolute left-[20%] top-[82%] -translate-x-1/2 text-center pointer-events-none opacity-40">
-            <span className="text-[9px] sm:text-[10px] font-extrabold text-sky-300 font-mono tracking-wider block">
-              남해 (SOUTH SEA)
-            </span>
-          </div>
-
-          {/* =========================================================================
-              HIGH-FIDELITY SVG MAP: AUTHENTIC KOREAN PENINSULA & JAPAN ARCHIPELAGO
-              Geographically calibrated contours with iconic natural landmarks:
-              - Baekdu Mountain & Yalu/Tumen rivers
-              - Gangwon East Coast & Pohang Homigot (Tiger's tail)
-              - Busan & South Coast rias down to Haenam Ttangkkeut
-              - Chungnam Taean Peninsula (prominent westward jutting)
-              - Gyeonggi Bay & Incheon Airport (Yeongjongdo Island)
-              - Hwanghae Jangsangot & Ongjin Peninsula
-              - Jeju Island (with Mt. Halla) & Ulleungdo / Dokdo
-             ========================================================================= */}
-          <svg
-            className="absolute inset-0 w-full h-full pointer-events-none"
-            viewBox="0 0 1000 520"
-            preserveAspectRatio="none"
-          >
-            <defs>
-              {/* Vibrant Grad for Korea (Deep Rich Navy to Luminous Electric Cyan-Blue) */}
-              <linearGradient id="koreaFill" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#0284c7" stopOpacity="0.85" />
-                <stop offset="45%" stopColor="#0369a1" stopOpacity="0.9" />
-                <stop offset="100%" stopColor="#075985" stopOpacity="0.95" />
-              </linearGradient>
-
-              {/* South Korea (대한민국) territorial highlight */}
-              <linearGradient id="southKoreaHighlight" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="#0284c7" stopOpacity="0.4" />
-              </linearGradient>
-
-              {/* Vibrant Grad for Japan (Rich Crimson / Cherry Red with Rose Outline) */}
-              <linearGradient id="japanFill" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#be123c" stopOpacity="0.9" />
-                <stop offset="50%" stopColor="#e11d48" stopOpacity="0.92" />
-                <stop offset="100%" stopColor="#9f1239" stopOpacity="0.95" />
-              </linearGradient>
-
-              {/* Flight Neon Jet Beam Gradient */}
-              <linearGradient id="flightJetGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#38bdf8" />
-                <stop offset="50%" stopColor="#facc15" />
-                <stop offset="100%" stopColor="#fb7185" />
-              </linearGradient>
-
-              {/* Glow Filters */}
-              <filter id="neonGlowBlue" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="4" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
-              <filter id="neonGlowRed" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="4" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
-              <filter id="routeGlow" x="-30%" y="-30%" width="160%" height="160%">
-                <feGaussianBlur stdDeviation="5" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
-            </defs>
-
-            {/* -------------------------------------------------------------
-                1. KOREA MAP: AUTHENTIC, ANGULAR & ICONIC KOREAN PENINSULA (각진 형태의 정밀 한반도)
-               ------------------------------------------------------------- */}
-            <g id="korea-authentic-peninsula">
-              {/* Mainland Korean Peninsula Crisp Angular Contour (한반도 각진 고유 지형 실루엣):
-                  - Mt. Baekdu sharp apex (백두산 정점)
-                  - Duman River northeast border to Tumen mouth (두만강 하구 나진·선봉)
-                  - Hamgyong east coast slanting to Wonsan Bay waist indent (원산만 개미허리)
-                  - Gangwon East Coast straight Taebaek spine (태백산맥 동해안)
-                  - Pohang Homigot (호미곶 - 각지게 튀어나온 호랑이 꼬리!)
-                  - Busan southeast corner (동남단 부산)
-                  - South Coast rias to Haenam Ttangkkeut (남해안 각진 땅끝마을 모서리)
-                  - West coast to Taean Peninsula (서쪽으로 뚜렷하게 각지게 튀어나온 태안반도!)
-                  - Gyeonggi Bay indent at Incheon (인천 경기만)
-                  - Hwanghae Jangsangot beak (장산곶 각진 돌출부)
-                  - Seohan Bay to Sinuiju Amnok River mouth (신의주 압록강 하구)
-                  - Amnok River ascending northeast back to Mt. Baekdu
-              */}
+              {/* Curved 3D Globe Latitude / Longitude Grid Lines */}
               <path
-                d="
-                  M 218 38
-                  L 252 50
-                  L 278 60
-                  L 296 70
-                  L 282 92
-                  L 264 120
-                  L 245 148
-                  L 226 172
-                  L 238 196
-                  L 248 220
-                  L 256 244
-                  L 264 270
-                  L 272 290
-                  L 276 298
-                  L 302 298
-                  L 298 308
-                  L 278 312
-                  L 274 330
-                  L 265 352
-                  L 248 358
-                  L 230 365
-                  L 212 368
-                  L 192 372
-                  L 172 376
-                  L 154 384
-                  L 148 365
-                  L 144 340
-                  L 142 315
-                  L 140 292
-                  L 144 276
-                  L 128 274
-                  L 110 268
-                  L 112 254
-                  L 132 250
-                  L 148 244
-                  L 155 234
-                  L 154 220
-                  L 136 212
-                  L 116 206
-                  L 96 194
-                  L 104 180
-                  L 122 165
-                  L 128 145
-                  L 118 126
-                  L 106 108
-                  L 130 92
-                  L 156 74
-                  L 184 56
-                  Z
-                "
-                fill="url(#koreaFill)"
-                stroke="#38bdf8"
-                strokeWidth="3.5"
-                strokeLinejoin="miter"
-                strokeMiterlimit="4"
-                filter="url(#neonGlowBlue)"
-              />
-
-              {/* South Korea (대한민국) territory highlight layer (South of DMZ) */}
-              <path
-                d="
-                  M 148 214
-                  L 154 220
-                  L 155 234
-                  L 148 244
-                  L 132 250
-                  L 112 254
-                  L 110 268
-                  L 128 274
-                  L 144 276
-                  L 140 292
-                  L 142 315
-                  L 144 340
-                  L 148 365
-                  L 154 384
-                  L 172 376
-                  L 192 372
-                  L 212 368
-                  L 230 365
-                  L 248 358
-                  L 265 352
-                  L 274 330
-                  L 278 312
-                  L 298 308
-                  L 302 298
-                  L 276 298
-                  L 272 290
-                  L 264 270
-                  L 256 244
-                  L 248 220
-                  L 238 196
-                  L 192 205
-                  Z
-                "
-                fill="url(#southKoreaHighlight)"
-                stroke="#67e8f9"
-                strokeWidth="1.6"
-                opacity="0.85"
-              />
-
-              {/* Military Demarcation Line (DMZ / 휴전선) */}
-              <path
-                d="M 148 214 L 192 205 L 238 196"
+                d="M 40 360 Q 500 200 960 360"
                 fill="none"
-                stroke="#facc15"
-                strokeWidth="2.4"
-                strokeDasharray="5 3"
-                opacity="0.9"
+                stroke="#38bdf840"
+                strokeWidth="2"
               />
-              <text x="195" y="198" textAnchor="middle" fill="#fef08a" fontSize="7.5" fontWeight="bold">
-                DMZ (휴전선 38°선)
-              </text>
-
-              {/* Taebaek Mountain Spine (태백산맥) sharp stylized ridge */}
               <path
-                d="M 238 196 L 246 225 L 254 260 L 260 286 L 262 330"
+                d="M 0 400 Q 500 240 1000 400"
                 fill="none"
-                stroke="#38bdf8"
-                strokeWidth="1.8"
-                strokeDasharray="3 3"
-                opacity="0.6"
+                stroke="#38bdf825"
+                strokeWidth="1.5"
+                strokeDasharray="6 6"
               />
 
-              {/* Sobaek Mountain Spine (소백산맥 지리산맥) */}
+              {/* City Night Lights Clusters on the Globe Horizon */}
+              <circle cx="140" cy="285" r="18" fill="#38bdf830" />
+              <circle cx="140" cy="285" r="6" fill="#38bdf8" />
+              <circle cx="860" cy="285" r="22" fill="#f43f5e30" />
+              <circle cx="860" cy="285" r="7" fill="#f43f5e" />
+
+              {/* Flight Guide Dashed Curve */}
               <path
-                d="M 252 255 L 235 285 L 216 320 L 202 350"
+                d="M 140 285 Q 500 55 860 285"
                 fill="none"
-                stroke="#38bdf8"
-                strokeWidth="1.2"
-                strokeDasharray="2 3"
-                opacity="0.4"
-              />
-
-              {/* Geographic feature markers & callouts for Korea */}
-              {/* Baekdu Mountain (백두산) */}
-              <g id="baekdusan-marker">
-                <circle cx="218" cy="38" r="3.5" fill="#ffffff" stroke="#38bdf8" strokeWidth="1.2" />
-                <text x="218" y="28" textAnchor="middle" fill="#bae6fd" fontSize="8" fontWeight="extrabold">
-                  백두산 (2,744m)
-                </text>
-              </g>
-
-              {/* Homigot Tiger Tail (호미곶 - 각진 호랑이 꼬리 강조!) */}
-              <g id="homigot-marker">
-                <circle cx="302" cy="298" r="3" fill="#facc15" stroke="#ffffff" strokeWidth="1" />
-                <path d="M 302 298 L 314 290" stroke="#facc15" strokeWidth="1.2" />
-                <rect x="314" y="280" width="76" height="18" rx="4" fill="#0f172a" stroke="#facc15" strokeWidth="1" opacity="0.9" />
-                <text x="352" y="293" textAnchor="middle" fill="#fef08a" fontSize="7.5" fontWeight="black">
-                  호미곶 (호랑이 꼬리)
-                </text>
-              </g>
-
-              {/* Taean Peninsula (태안반도 - 각진 서해 돌출부 강조!) */}
-              <g id="taean-marker">
-                <circle cx="110" cy="268" r="3" fill="#38bdf8" stroke="#ffffff" strokeWidth="1" />
-                <path d="M 110 268 L 96 268" stroke="#38bdf8" strokeWidth="1" />
-                <rect x="52" y="258" width="44" height="18" rx="4" fill="#0f172a" stroke="#38bdf8" strokeWidth="1" opacity="0.9" />
-                <text x="74" y="271" textAnchor="middle" fill="#7dd3fc" fontSize="7.5" fontWeight="bold">
-                  태안반도
-                </text>
-              </g>
-
-              {/* Haenam Ttangkkeut (땅끝마을) */}
-              <g id="haenam-marker">
-                <circle cx="154" cy="384" r="2.8" fill="#38bdf8" stroke="#ffffff" strokeWidth="0.8" />
-                <text x="154" y="396" textAnchor="middle" fill="#7dd3fc" fontSize="7.5" fontWeight="bold">
-                  해남(땅끝마을)
-                </text>
-              </g>
-
-              {/* Seoul Capital (서울) */}
-              <g id="seoul-city">
-                <circle cx="178" cy="222" r="3.8" fill="#facc15" stroke="#ffffff" strokeWidth="1.2" />
-                <text x="187" y="220" textAnchor="start" fill="#fef08a" fontSize="8.5" fontWeight="900">
-                  ★ 서울 (Seoul)
-                </text>
-              </g>
-
-              {/* Busan City (부산) */}
-              <g id="busan-city">
-                <circle cx="265" cy="350" r="2.8" fill="#38bdf8" stroke="#ffffff" strokeWidth="1" />
-                <text x="258" y="346" textAnchor="end" fill="#e0f2fe" fontSize="7.5" fontWeight="bold">
-                  부산
-                </text>
-              </g>
-
-              {/* Gangneung (강릉) */}
-              <circle cx="256" cy="244" r="2.2" fill="#7dd3fc" />
-              <text x="252" y="247" textAnchor="end" fill="#bae6fd" fontSize="7" fontWeight="medium">
-                강릉
-              </text>
-
-              {/* -------------------------------------------------------------
-                  KOREAN ISLANDS: JEJU, ULLEUNGDO, DOKDO, GANGHWA, GEOJE
-                 ------------------------------------------------------------- */}
-              {/* Jeju Island (제주도 - 한라산 포함) */}
-              <g id="jeju-island">
-                <ellipse
-                  cx="165"
-                  cy="432"
-                  rx="26"
-                  ry="14"
-                  transform="rotate(-5 165 432)"
-                  fill="url(#koreaFill)"
-                  stroke="#38bdf8"
-                  strokeWidth="2.5"
-                  filter="url(#neonGlowBlue)"
-                />
-                {/* Mt. Halla Peak (한라산 1,947m) */}
-                <circle cx="165" cy="432" r="3.5" fill="#facc15" stroke="#ffffff" strokeWidth="1" />
-                <text x="165" y="444" textAnchor="middle" fill="#e0f2fe" fontSize="8.5" fontWeight="900">
-                  제주도 (한라산)
-                </text>
-              </g>
-
-              {/* Ulleungdo (울릉도) */}
-              <ellipse
-                cx="322"
-                cy="245"
-                rx="6"
-                ry="5"
-                fill="url(#koreaFill)"
-                stroke="#38bdf8"
-                strokeWidth="1.8"
-                filter="url(#neonGlowBlue)"
-              />
-              <text x="322" y="238" textAnchor="middle" fill="#7dd3fc" fontSize="8" fontWeight="bold">
-                울릉도
-              </text>
-
-              {/* Dokdo (독도 - 동도, 서도) */}
-              <g id="dokdo-islands">
-                <ellipse cx="346" cy="254" rx="3.5" ry="3" fill="#38bdf8" stroke="#ffffff" strokeWidth="1" />
-                <ellipse cx="352" cy="252" rx="3.8" ry="3.2" fill="#38bdf8" stroke="#ffffff" strokeWidth="1" />
-                <text x="350" y="244" textAnchor="middle" fill="#38bdf8" fontSize="8.5" fontWeight="900">
-                  독도 🇰🇷
-                </text>
-                <text x="350" y="264" textAnchor="middle" fill="#bae6fd" fontSize="6.5" fontWeight="bold">
-                  (우리 땅 독도)
-                </text>
-              </g>
-
-              {/* Geoje Island (거제도) */}
-              <ellipse cx="248" cy="368" rx="8" ry="6" fill="#0284c7" stroke="#38bdf8" strokeWidth="1.2" />
-
-              {/* Ganghwa Island (강화도) & Yeongjong Island (인천공항 섬) */}
-              <ellipse cx="152" cy="216" rx="6" ry="7" fill="#0284c7" stroke="#38bdf8" strokeWidth="1.2" />
-              <ellipse cx="158" cy="230" rx="7" ry="5" fill="#38bdf8" stroke="#ffffff" strokeWidth="1.5" />
-
-              {/* Distinct Korea Map Header Title Tag */}
-              <g id="korea-country-badge">
-                <rect x="95" y="16" width="135" height="26" rx="8" fill="#0b1528" stroke="#38bdf8" strokeWidth="2" opacity="0.95" />
-                <text x="162" y="33" textAnchor="middle" fill="#38bdf8" fontSize="11" fontWeight="900" letterSpacing="0.8">
-                  🇰🇷 대한민국 (한반도)
-                </text>
-              </g>
-            </g>
-
-            {/* -------------------------------------------------------------
-                2. JAPAN MAP (Japanese Archipelago: Hokkaido, Honshu, Shikoku, Kyushu)
-               ------------------------------------------------------------- */}
-            <g id="japan-clear-map">
-              {/* Hokkaido (홋카이도) */}
-              <path
-                d="
-                  M 830 55
-                  C 845 42, 870 35, 895 38
-                  C 920 42, 945 52, 960 70
-                  C 955 88, 940 102, 915 118
-                  C 885 130, 860 135, 842 125
-                  C 830 115, 820 95, 818 78
-                  Z
-                "
-                fill="url(#japanFill)"
-                stroke="#fb7185"
-                strokeWidth="2.5"
-                strokeLinejoin="round"
-                filter="url(#neonGlowRed)"
-              />
-              <text x="885" y="85" textAnchor="middle" fill="#ffe4e6" fontSize="11" fontWeight="extrabold">
-                홋카이도
-              </text>
-
-              {/* Honshu (혼슈 - Tokyo, Narita, Mt. Fuji, Osaka, Kyoto) */}
-              <path
-                d="
-                  M 845 145
-                  C 865 170, 878 200, 872 230
-                  C 866 260, 845 285, 810 305
-                  C 775 325, 730 345, 685 360
-                  C 645 372, 615 378, 585 370
-                  C 595 352, 625 342, 665 328
-                  C 705 312, 742 292, 768 268
-                  C 790 244, 804 205, 822 165
-                  Z
-                "
-                fill="url(#japanFill)"
-                stroke="#fb7185"
+                stroke="#ffffff25"
                 strokeWidth="3"
-                strokeLinejoin="round"
-                filter="url(#neonGlowRed)"
+                strokeDasharray="8 8"
               />
 
-              {/* Shikoku (시코쿠) */}
+              {/* Active Golden Starlight Trajectory */}
               <path
-                d="M 640 380 C 675 370, 705 376, 700 398 C 685 412, 648 406, 640 380 Z"
-                fill="url(#japanFill)"
-                stroke="#fb7185"
-                strokeWidth="2.5"
-                strokeLinejoin="round"
-                filter="url(#neonGlowRed)"
+                d="M 140 285 Q 500 55 860 285"
+                fill="none"
+                stroke="url(#d1ArcGrad)"
+                strokeWidth="6"
+                strokeDasharray="950"
+                strokeDashoffset={950 - (progress / 100) * 950}
+                strokeLinecap="round"
+                filter="url(#d1Glow)"
               />
-              <text x="670" y="394" textAnchor="middle" fill="#ffe4e6" fontSize="8" fontWeight="bold">
-                시코쿠
-              </text>
+            </svg>
 
-              {/* Kyushu (규슈 - Fukuoka, Nagasaki) */}
-              <path
-                d="M 575 375 C 600 370, 612 392, 604 422 C 594 445, 568 438, 560 412 C 555 392, 565 380, 575 375 Z"
-                fill="url(#japanFill)"
-                stroke="#fb7185"
-                strokeWidth="2.5"
-                strokeLinejoin="round"
-                filter="url(#neonGlowRed)"
-              />
-              <text x="582" y="408" textAnchor="middle" fill="#ffe4e6" fontSize="8" fontWeight="bold">
-                규슈
-              </text>
+            {/* Departure City Pin (Seoul / Incheon) */}
+            <div
+              className="absolute -translate-x-1/2 -translate-y-1/2 text-center"
+              style={{ left: '14%', top: '68%' }}
+            >
+              <div className="px-3 py-1 rounded-full bg-sky-500/20 border border-sky-400 text-sky-200 text-xs font-black backdrop-blur-md shadow-[0_0_20px_rgba(56,189,248,0.5)]">
+                🇰🇷 SEOUL · ICN
+              </div>
+              <span className="text-[10px] text-sky-300/80 font-mono mt-1 block">
+                09:00 AM 이륙
+              </span>
+            </div>
 
-              {/* Tsushima Island (대마도) */}
-              <ellipse cx="535" cy="358" rx="4.5" ry="9" transform="rotate(25 535 358)" fill="#e11d48" stroke="#fb7185" strokeWidth="1" />
-              <text x="535" y="344" textAnchor="middle" fill="#fda4af" fontSize="6.5" fontWeight="bold">
-                대마도
-              </text>
-
-              {/* Map Title Tag for Japan */}
-              <rect x="830" y="165" width="70" height="24" rx="6" fill="#0f172a" stroke="#fb7185" strokeWidth="1.5" opacity="0.9" />
-              <text x="865" y="181" textAnchor="middle" fill="#fb7185" fontSize="12" fontWeight="900" letterSpacing="1">
-                🇯🇵 일본
-              </text>
-            </g>
-
-            {/* -------------------------------------------------------------
-                3. FLIGHT TRAJECTORY ARCH (From Korea Incheon 158,230 to Narita 770,275)
-               ------------------------------------------------------------- */}
-            {/* Background dashed corridor */}
-            <path
-              d="M 158 230 Q 460 40 770 275"
-              fill="none"
-              stroke="#ffffff25"
-              strokeWidth="4"
-              strokeDasharray="9 9"
-            />
-
-            {/* Bright Neon Active Flight Arc with glow */}
-            <path
-              d="M 158 230 Q 460 40 770 275"
-              fill="none"
-              stroke="url(#flightJetGradient)"
-              strokeWidth="5.5"
-              strokeDasharray="1150"
-              strokeDashoffset={1150 - (progress / 100) * 1150}
-              strokeLinecap="round"
-              filter="url(#routeGlow)"
-            />
-          </svg>
-
-          {/* =========================================================================
-              AIRPORT PIN 1: INCHEON AIRPORT (ICN) ON KOREA MAP
-             ========================================================================= */}
-          <div
-            className="absolute z-20 flex flex-col items-center -translate-x-1/2 -translate-y-1/2"
-            style={{ left: `${startX}%`, top: `${startY}%` }}
-          >
-            {/* Pulsing Radar Ring & Airport Badge */}
-            <div className="relative flex items-center justify-center">
-              <div className="absolute w-16 h-16 bg-sky-400/30 rounded-full animate-ping" />
-              <div className="relative px-3 py-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 border-2 border-white text-white shadow-[0_0_20px_rgba(56,189,248,0.9)] flex items-center gap-1.5">
-                <img src="/korea-flag.svg" alt="대한민국 국기" className="w-5 h-3.5 object-cover rounded-xs inline-block" />
-                <span className="font-mono font-black text-xs sm:text-sm tracking-wider">ICN</span>
+            {/* Center Stratosphere Telemetry Badge */}
+            <div className="absolute left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+              <div className="px-4 py-1.5 rounded-full bg-slate-950/85 border border-amber-400/40 text-amber-200 text-xs font-mono font-bold shadow-lg">
+                ALT {altitudeMeters.toLocaleString()}m · {speedKmh} km/h
               </div>
             </div>
 
-            {/* Marker Label Box */}
-            <div className="mt-2 bg-slate-950/95 border border-sky-400/60 rounded-lg px-2.5 py-1 shadow-lg text-center backdrop-blur-md whitespace-nowrap">
-              <span className="text-xs font-black text-sky-200 block">한국 지도 · 인천공항</span>
-              <span className="text-[10px] text-sky-400 font-extrabold">출발지 (이륙 활주로)</span>
-            </div>
-          </div>
-
-          {/* =========================================================================
-              AIRPORT PIN 2: NARITA AIRPORT (NRT) ON JAPAN MAP
-             ========================================================================= */}
-          <div
-            className="absolute z-20 flex flex-col items-center -translate-x-1/2 -translate-y-1/2"
-            style={{ left: `${endX}%`, top: `${endY}%` }}
-          >
-            {/* Animated Target Radar Ring & Airport Badge */}
-            <div className="relative flex items-center justify-center">
-              <div className="absolute w-18 h-18 bg-rose-500/35 rounded-full animate-ping" />
-              <div className="relative px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 border-2 border-white text-white shadow-[0_0_22px_rgba(244,63,94,0.95)] flex items-center gap-1.5 animate-bounce">
-                <span className="text-base sm:text-lg">🇯🇵</span>
-                <span className="font-mono font-black text-xs sm:text-sm tracking-wider">NRT</span>
+            {/* Arrival City Pin (Tokyo / Narita) */}
+            <div
+              className="absolute -translate-x-1/2 -translate-y-1/2 text-center"
+              style={{ left: '86%', top: '68%' }}
+            >
+              <div className="px-3 py-1 rounded-full bg-rose-500/25 border border-rose-400 text-rose-200 text-xs font-black backdrop-blur-md shadow-[0_0_25px_rgba(244,63,94,0.6)] animate-pulse">
+                🇯🇵 TOKYO · NRT
               </div>
+              <span className="text-[10px] text-rose-300/80 font-mono mt-1 block">
+                11:30 AM 착륙
+              </span>
             </div>
 
-            {/* Marker Label Box */}
-            <div className="mt-2 bg-slate-950/95 border border-rose-400/60 rounded-lg px-2.5 py-1 shadow-lg text-center backdrop-blur-md whitespace-nowrap">
-              <span className="text-xs font-black text-rose-200 block">일본 지도 · 나리타공항</span>
-              <span className="text-[10px] text-rose-400 font-extrabold">도착지 (착륙 활주로)</span>
-            </div>
-          </div>
-
-          {/* =========================================================================
-              LANDMARK: MT. FUJI (후지산) ON JAPAN HONSHU
-             ========================================================================= */}
-          <div
-            className="absolute z-10 flex flex-col items-center pointer-events-none -translate-x-1/2 -translate-y-1/2 opacity-90"
-            style={{ left: '72%', top: '60%' }}
-          >
-            <span className="text-2xl sm:text-3xl drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]">🗻</span>
-            <span className="text-[10px] font-extrabold text-amber-200 bg-slate-950/80 px-2 py-0.5 rounded-md border border-white/20 mt-0.5 whitespace-nowrap">
-              후지산 3,776m
-            </span>
-          </div>
-
-          {/* =========================================================================
-              FLYING AIRPLANE JET (Flies seamlessly from Korea ICN to Japan NRT)
-             ========================================================================= */}
-          <div
-            className="absolute z-30 pointer-events-none"
-            style={{
-              left: `${currentX}%`,
-              top: `${currentY}%`,
-              transform: `translate(-50%, -50%) rotate(${planeAngle}deg)`
-            }}
-          >
-            <div className="relative">
-              {/* Jet Vapor Contrail Streams (Stream behind the jet tail) */}
-              <div className="absolute -left-14 sm:-left-20 top-1/2 -translate-y-1/2 w-16 sm:w-24 h-2.5 bg-gradient-to-l from-cyan-400 via-amber-300 to-transparent rounded-full opacity-90 blur-[1px] animate-pulse" />
-              <div className="absolute -left-18 sm:-left-24 top-1/2 -translate-y-1/2 w-20 sm:w-28 h-1.5 bg-white/80 rounded-full blur-[0.5px]" />
-
-              {/* Main Animated Plane Icon (Rotated to point East along tangent trajectory) */}
-              <div className="relative w-15 h-15 sm:w-20 sm:h-20 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 rounded-2xl sm:rounded-3xl border-2 sm:border-3 border-white shadow-[0_0_35px_rgba(251,191,36,1)] flex items-center justify-center shadow-lg">
-                <Plane className="w-9 h-9 sm:w-12 sm:h-12 text-slate-950 fill-slate-950 rotate-45" />
-                <span className="absolute -top-1 -right-1 text-xs sm:text-sm">💨</span>
+            {/* Flying Luxury Golden Jet */}
+            <div
+              className="absolute z-20 pointer-events-none"
+              style={{
+                left: `${currentX}%`,
+                top: `${currentY}%`,
+                transform: `translate(-50%, -50%) rotate(${planeAngle}deg)`
+              }}
+            >
+              <div className="relative flex items-center justify-center">
+                <div className="absolute -left-20 w-24 h-2 bg-gradient-to-l from-amber-300 via-sky-400 to-transparent rounded-full blur-[1px]" />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-500 border-2 border-white shadow-[0_0_35px_rgba(250,204,21,0.95)] flex items-center justify-center">
+                  <Plane className="w-8 h-8 sm:w-9 sm:h-9 text-slate-950 fill-slate-950 rotate-45" />
+                </div>
               </div>
-
-              {/* Ping radar effect around plane */}
-              <div className="absolute -inset-2.5 rounded-full border-2 border-amber-300 animate-ping opacity-45 pointer-events-none" />
             </div>
           </div>
         </div>
 
-        {/* Live Flight Telemetry & Progress Dashboard */}
-        <div className="mt-3 sm:mt-4 bg-[#070e1c]/90 border border-white/20 rounded-2xl p-3.5 sm:p-4 backdrop-blur-md shadow-xl">
-          {/* Status Label & Flight Percentage */}
+        {/* Bottom Progress & Flight Stage Bar */}
+        <div className="bg-slate-900/95 border border-white/15 rounded-2xl p-3.5 sm:p-4 backdrop-blur-md shadow-xl">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2 overflow-hidden">
-              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-black bg-amber-400 text-black shadow-xs shrink-0">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-black bg-amber-400 text-slate-950 shrink-0">
                 {statusBadge}
               </span>
               <span className="text-xs sm:text-sm font-bold text-slate-200 truncate">
@@ -778,38 +400,14 @@ export const FlightTransition: React.FC<FlightTransitionProps> = ({
             </span>
           </div>
 
-          {/* Progress Bar Container */}
-          <div className="w-full h-3 sm:h-3.5 bg-slate-950 rounded-full overflow-hidden border border-white/20 p-0.5">
+          <div className="w-full h-2.5 sm:h-3 bg-slate-950 rounded-full overflow-hidden border border-white/15 p-0.5">
             <div
-              className="h-full bg-gradient-to-r from-cyan-400 via-amber-400 to-rose-500 rounded-full transition-all duration-75 ease-out shadow-[0_0_16px_rgba(251,191,36,0.9)]"
+              className="h-full bg-gradient-to-r from-sky-400 via-amber-400 to-rose-500 rounded-full transition-all duration-75"
               style={{ width: `${progress}%` }}
             />
           </div>
-
-          {/* Flight Details Badges */}
-          <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[10px] sm:text-[11px] text-slate-300">
-            <div className="bg-slate-950/70 rounded-xl py-1.5 px-1.5 sm:px-2 border border-white/10">
-              <span className="text-slate-400 block text-[9px]">지도 항로</span>
-              <span className="font-mono font-bold text-sky-300">🇰🇷 대한민국 ➔ 🇯🇵 일본</span>
-            </div>
-            <div className="bg-slate-950/70 rounded-xl py-1.5 px-1.5 sm:px-2 border border-white/10">
-              <span className="text-slate-400 block text-[9px]">비행 거리</span>
-              <span className="font-mono font-bold text-white">약 1,260 km</span>
-            </div>
-            <div className="bg-slate-950/70 rounded-xl py-1.5 px-1.5 sm:px-2 border border-white/10">
-              <span className="text-slate-400 block text-[9px]">탑승 크루</span>
-              <span className="font-bold text-amber-300">개구쟁이 4총사 ⚡</span>
-            </div>
-          </div>
         </div>
       </div>
-
-      {/* Bottom Footer Tip */}
-      <footer className="relative z-10 w-full max-w-6xl px-4 sm:px-6 pb-4 sm:pb-6 text-center">
-        <p className="text-xs text-slate-400 font-medium">
-          비행 완료 시 개구쟁이들의 일본 도쿄 5박 6일 구글 동선 및 일정표로 자동 전환됩니다. 🧳✨
-        </p>
-      </footer>
     </div>
   );
 };
