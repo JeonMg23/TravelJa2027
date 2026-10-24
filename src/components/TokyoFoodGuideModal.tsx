@@ -52,7 +52,7 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
   const [focusedFoodId, setFocusedFoodId] = useState<string | null>(initialFoodId);
   const [selectedOrderCardItem, setSelectedOrderCardItem] =
     useState<TokyoFoodItem | null>(null);
-  const [eggRequestMode, setEggRequestMode] = useState<'SEPARATE' | 'REMOVE'>('SEPARATE');
+  const [eggRequestMode, setEggRequestMode] = useState<'SEPARATE' | 'REMOVE' | 'RECOMMEND'>('SEPARATE');
   const [showEggAllergyOnOrderCard, setShowEggAllergyOnOrderCard] = useState<boolean>(false);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const scrollBodyRef = useRef<HTMLDivElement | null>(null);
@@ -103,11 +103,14 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
     }
   }, [isOpen, initialCategory, initialFoodId]);
 
-  const handleOpenOrderCard = (item: TokyoFoodItem) => {
+  const handleOpenOrderCard = (
+    item: TokyoFoodItem,
+    initialMode?: 'SEPARATE' | 'REMOVE' | 'RECOMMEND'
+  ) => {
     setSelectedOrderCardItem(item);
     const hasEgg = Boolean(item.eggAllergyInfo?.hasDirectEgg);
-    setShowEggAllergyOnOrderCard(hasEgg);
-    setEggRequestMode(item.eggAllergyInfo?.defaultMode || 'SEPARATE');
+    setShowEggAllergyOnOrderCard(hasEgg || Boolean(initialMode));
+    setEggRequestMode(initialMode || item.eggAllergyInfo?.defaultMode || 'SEPARATE');
   };
 
   const toggleWishlist = (id: string) => {
@@ -562,22 +565,53 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
                             </span>
                           </div>
 
-                          {/* Hyunwoo Egg Allergy Caution Banner on Food Card */}
+                          {/* Hyunwoo Egg Allergy Caution & Egg-Free Menu Recommendation Banner on Food Card */}
                           {item.eggAllergyInfo?.hasDirectEgg && (
                             <div
-                              className={`mt-2 rounded-xl p-2.5 border text-xs space-y-1 ${
+                              className={`mt-2 rounded-xl p-3 border text-xs space-y-2 ${
                                 theme.isDark
                                   ? 'bg-rose-950/40 border-rose-400/50 text-rose-100'
                                   : 'bg-rose-50 border-rose-200 text-rose-900'
                               }`}
                             >
-                              <div className="font-black flex items-center gap-1.5 text-rose-500 dark:text-rose-300">
-                                <span>🥚 현우 계란 알레르기 체크:</span>
-                                <span>{item.eggAllergyInfo.eggTypeLabel}</span>
+                              <div className="font-black flex items-center justify-between gap-1.5 text-rose-500 dark:text-rose-300">
+                                <span className="flex items-center gap-1.5">
+                                  <span>🥚 현우 계란 주의 체크:</span>
+                                  <span>{item.eggAllergyInfo.eggTypeLabel}</span>
+                                </span>
                               </div>
                               <p className="text-[11px] leading-relaxed opacity-90">
                                 {item.eggAllergyInfo.hyunwooTip}
                               </p>
+
+                              {/* Hyunwoo Egg-Free Alternative Recommended Menu at this Restaurant */}
+                              <div
+                                className={`rounded-lg p-2.5 border space-y-1 ${
+                                  theme.isDark
+                                    ? 'bg-emerald-950/55 border-emerald-400/50 text-emerald-100'
+                                    : 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+                                }`}
+                              >
+                                <div className="font-black text-[11px] text-emerald-600 dark:text-emerald-300 flex items-center justify-between gap-1">
+                                  <span>👦 현우를 위한 이 식당 계란 없는 추천 메뉴</span>
+                                  <span className="px-1.5 py-0.5 rounded bg-emerald-500 text-white text-[10px] font-extrabold">
+                                    계란 FREE 추천
+                                  </span>
+                                </div>
+                                <div className="font-extrabold text-xs">
+                                  👉 {item.eggAllergyInfo.eggFreeAlternativeMenu}
+                                </div>
+                                <div className="text-[11px] font-mono opacity-85">
+                                  일본어 주문명: {item.eggAllergyInfo.eggFreeAlternativeJp} [{item.eggAllergyInfo.eggFreeAlternativePronunciation}]
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenOrderCard(item, 'RECOMMEND')}
+                                  className="mt-1 w-full py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                                >
+                                  <span>🙋‍♂️ 직원에게 “계란 없는 음식 추천해 주세요” 일본어 화면 크게 보기</span>
+                                </button>
+                              </div>
                             </div>
                           )}
 
@@ -711,14 +745,14 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
               </div>
 
               {/* =========================================================================
-                  🥚 현우 대원 계란 알레르기 일본어 요청 카드 (계란 포함 음식은 자동 표시, 일반 음식도 1탭 토글)
+                  🥚 현우 대원 계란 알레르기 일본어 요청 & 계란 없는 음식 추천 요청 카드
                  ========================================================================= */}
               {showEggAllergyOnOrderCard ? (
                 <div className="rounded-2xl border-2 border-rose-500 bg-rose-50/90 p-3.5 sm:p-4 text-left space-y-3 shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 text-xs sm:text-sm font-black text-rose-700">
                       <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                      <span>🥚 현우 계란 알레르기 일본어 주문 문구</span>
+                      <span>🥚 현우 계란 알레르기 & 계란 없는 메뉴 추천 요청</span>
                     </div>
                     {selectedOrderCardItem.eggAllergyInfo?.eggTypeLabel && (
                       <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[11px] font-black">
@@ -727,29 +761,40 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
                     )}
                   </div>
 
-                  {/* Mode Selector Tabs: 따로 담아달라 vs 아예 빼달라 */}
-                  <div className="grid grid-cols-2 gap-2">
+                  {/* 3 Mode Selector Tabs: 따로 담아달라 vs 계란 빼달라 vs 계란 없는 음식 추천해달라 */}
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                     <button
                       type="button"
                       onClick={() => setEggRequestMode('SEPARATE')}
-                      className={`py-2 px-2.5 rounded-xl text-xs font-black border transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      className={`py-2 px-2 rounded-xl text-[11px] sm:text-xs font-black border transition-all cursor-pointer flex items-center justify-center gap-1 ${
                         eggRequestMode === 'SEPARATE'
                           ? 'bg-rose-600 text-white border-rose-700 shadow-xs'
                           : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
                       }`}
                     >
-                      <span>🍽️ 계란 따로 담아달라 (別皿)</span>
+                      <span>🍽️ 계란 따로 담기</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setEggRequestMode('REMOVE')}
-                      className={`py-2 px-2.5 rounded-xl text-xs font-black border transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      className={`py-2 px-2 rounded-xl text-[11px] sm:text-xs font-black border transition-all cursor-pointer flex items-center justify-center gap-1 ${
                         eggRequestMode === 'REMOVE'
                           ? 'bg-rose-600 text-white border-rose-700 shadow-xs'
                           : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
                       }`}
                     >
-                      <span>🚫 계란 빼달라 (卵抜き)</span>
+                      <span>🚫 계란 빼달라</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEggRequestMode('RECOMMEND')}
+                      className={`py-2 px-2 rounded-xl text-[11px] sm:text-xs font-black border transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                        eggRequestMode === 'RECOMMEND'
+                          ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                          : 'bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-50'
+                      }`}
+                    >
+                      <span>👍 계란없는 메뉴 추천요청</span>
                     </button>
                   </div>
 
@@ -759,7 +804,7 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
                       店員さんへ（卵アレルギーのお願い）
                     </div>
 
-                    {eggRequestMode === 'SEPARATE' ? (
+                    {eggRequestMode === 'SEPARATE' && (
                       <>
                         <div className="text-base sm:text-lg font-black text-rose-700 leading-snug">
                           ⚠️ 卵（たまご）は別皿（べつざら）でお願いします！
@@ -783,7 +828,9 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
                           뜻: “아이가 계란 알레르기가 있습니다(빵·튀김옷은 괜찮지만 반숙·완숙·계란프라이·계란말이·날계란은 못 먹습니다). 계란은 음식에 넣지 말고 다른 접시에 따로 담아주세요.”
                         </div>
                       </>
-                    ) : (
+                    )}
+
+                    {eggRequestMode === 'REMOVE' && (
                       <>
                         <div className="text-base sm:text-lg font-black text-rose-700 leading-snug">
                           ⚠️ 卵（たまご）を抜いてください！（卵抜き）
@@ -808,6 +855,82 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
                         </div>
                       </>
                     )}
+
+                    {eggRequestMode === 'RECOMMEND' && (
+                      <>
+                        <div className="text-base sm:text-lg font-black text-emerald-700 leading-snug">
+                          🙋‍♂️ 卵（たまご）が入っていない、おすすめのメニューを教えてください！
+                        </div>
+                        <div className="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">
+                          {selectedOrderCardItem.eggAllergyInfo?.customRecommendEggFreeJp ||
+                            'この子は卵アレルギーがあります。卵（半熟卵・ゆで卵・目玉焼き・卵焼き・生卵など）が入っていない、おすすめの料理を教えてください。'}
+                        </div>
+                        <div className="text-xs font-semibold text-slate-700 bg-emerald-50 border border-emerald-200 rounded-lg p-2 leading-relaxed text-left">
+                          子どもは<strong>卵アレルギー</strong>があります（パンや衣のつなぎは大丈夫ですが、
+                          <strong>半熟卵・ゆで卵・目玉焼き・卵焼き・生卵</strong>
+                          などは食べられません）。このお店で<strong>卵が入っていないおすすめのメニュー</strong>はどれですか？
+                        </div>
+                        <div className="text-xs font-bold text-emerald-800 pt-1">
+                          발음: [
+                          {selectedOrderCardItem.eggAllergyInfo?.customRecommendEggFreePronunciation ||
+                            '코노 코와 타마고 아레루기가 아리마스. 타마고가 하잇테 이나이 오스스메노 메뉴오 오시에테 구다사이!'}
+                          ]
+                        </div>
+                        <div className="text-[11px] text-slate-600">
+                          뜻: “이 아이는 계란 알레르기가 있습니다. 계란(반숙·완숙·계란프라이·계란말이·날계란 등)이 들어가지 않은 추천 메뉴를 알려주세요!”
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Always-Visible Box: Staff Recommendation Request & Hyunwoo Egg-Free Menu at this Shop */}
+                  <div className="rounded-xl bg-emerald-50 border-2 border-emerald-400 p-3 space-y-2 text-left">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-black text-emerald-900">
+                        👦 현우 맞춤 계란 없는 추천 메뉴 & 직원에게 추천 부탁하기
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-black">
+                        직원 보여주기용
+                      </span>
+                    </div>
+
+                    {selectedOrderCardItem.eggAllergyInfo?.eggFreeAlternativeMenu && (
+                      <div className="rounded-lg bg-white border border-emerald-300 p-2.5 space-y-1">
+                        <div className="text-[11px] font-bold text-emerald-700">
+                          ✅ 이 식당의 현우 맞춤 계란 없는 추천 메뉴:
+                        </div>
+                        <div className="text-xs sm:text-sm font-black text-slate-900">
+                          {selectedOrderCardItem.eggAllergyInfo.eggFreeAlternativeMenu}
+                        </div>
+                        <div className="text-xs font-extrabold text-emerald-800 font-mono">
+                          👉 「{selectedOrderCardItem.eggAllergyInfo.eggFreeAlternativeJp}」 をお願いします！
+                        </div>
+                        <div className="text-[11px] text-slate-600">
+                          발음: [{selectedOrderCardItem.eggAllergyInfo.eggFreeAlternativePronunciation} 오 오네가이시마스!]
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Staff Message: Please recommend egg-free dishes */}
+                    <div className="rounded-lg bg-white border border-emerald-300 p-2.5 space-y-1 text-center">
+                      <div className="text-[11px] font-black text-emerald-800">
+                        🗣️ 직원에게 “계란 없는 음식 추천해 주세요”라고 물어볼 때 (화면을 보여주세요)
+                      </div>
+                      <div className="text-sm sm:text-base font-black text-slate-950 leading-snug">
+                        🙋‍♂️ すみません、子どもが卵アレルギーなので、卵が入っていないおすすめの料理（メニュー）を教えてください！
+                      </div>
+                      {selectedOrderCardItem.eggAllergyInfo?.customRecommendEggFreeJp && (
+                        <div className="text-xs font-bold text-emerald-800 leading-snug">
+                          ({selectedOrderCardItem.eggAllergyInfo.customRecommendEggFreeJp})
+                        </div>
+                      )}
+                      <div className="text-[11px] font-bold text-rose-700">
+                        발음: [스미마셍, 코도모가 타마고 아레루기나노데, 타마고가 하잇테 이나이 오스스메노 료리(메뉴)오 오시에테 구다사이!]
+                      </div>
+                      <div className="text-[11px] text-slate-600">
+                        뜻: “실례합니다, 아이가 계란 알레르기가 있어서 계란이 들어가지 않은 추천 음식을 알려주세요!”
+                      </div>
+                    </div>
                   </div>
 
                   {selectedOrderCardItem.eggAllergyInfo?.hyunwooTip && (
@@ -817,13 +940,28 @@ export const TokyoFoodGuideModal: React.FC<TokyoFoodGuideModalProps> = ({
                   )}
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowEggAllergyOnOrderCard(true)}
-                  className="w-full py-2.5 px-3 rounded-xl border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-                >
-                  <span>🥚 혹시 이 메뉴에 계란이 나온다면? 현우 계란 알레르기(빼기/따로담기) 일본어 문구 열기</span>
-                </button>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowEggAllergyOnOrderCard(true);
+                      setEggRequestMode('RECOMMEND');
+                    }}
+                    className="w-full py-2.5 px-3 rounded-xl border-2 border-emerald-400 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <span>🙋‍♂️ 직원에게 “현우가 먹을 계란 없는 음식 추천해 주세요” 일본어 문구 열기</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowEggAllergyOnOrderCard(true);
+                      setEggRequestMode('SEPARATE');
+                    }}
+                    className="w-full py-2 px-3 rounded-xl border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <span>🥚 혹시 이 메뉴에 계란이 나온다면? 계란 빼기 / 따로담기 일본어 문구 열기</span>
+                  </button>
+                </div>
               )}
 
               <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-slate-800 text-left">

@@ -842,9 +842,17 @@ export const LandingHeroPage: React.FC<LandingHeroPageProps> = ({
                           <span className="truncate">{food.famousShop}</span>
                         </div>
                         {food.eggAllergyInfo?.hasDirectEgg && (
-                          <div className="px-2 py-1 rounded-lg bg-rose-500/15 border border-rose-400/40 text-rose-500 dark:text-rose-300 text-[11px] font-bold flex items-center gap-1">
-                            <span className="shrink-0">🥚</span>
-                            <span className="truncate">현우 계란 주의: {food.eggAllergyInfo.eggTypeLabel}</span>
+                          <div className="space-y-1">
+                            <div className="px-2 py-1 rounded-lg bg-rose-500/15 border border-rose-400/40 text-rose-500 dark:text-rose-300 text-[11px] font-bold flex items-center gap-1">
+                              <span className="shrink-0">🥚</span>
+                              <span className="truncate">현우 계란 주의: {food.eggAllergyInfo.eggTypeLabel}</span>
+                            </div>
+                            <div className="px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-400/40 text-emerald-600 dark:text-emerald-300 text-[11px] font-bold flex items-start gap-1">
+                              <span className="shrink-0">👦</span>
+                              <span className="line-clamp-2 leading-snug">
+                                현우 추천(계란X): {food.eggAllergyInfo.eggFreeAlternativeMenu}
+                              </span>
+                            </div>
                           </div>
                         )}
                         <p className={`text-xs line-clamp-2 leading-relaxed ${landingTheme.episodeDesc}`}>

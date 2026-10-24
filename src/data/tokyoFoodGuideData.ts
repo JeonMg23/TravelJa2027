@@ -20,10 +20,15 @@ export interface FoodEggAllergyInfo {
   eggTypeLabel: string; // 예: '반숙 계란 (아지타마고)', '반숙 계란 튀김', '계란말이 토핑', '날계란 소스'
   defaultMode: 'SEPARATE' | 'REMOVE';
   hyunwooTip: string;
+  eggFreeAlternativeMenu: string; // 현우를 위한 이 식당의 계란 없는 추천 메뉴 (한국어)
+  eggFreeAlternativeJp: string; // 현우를 위한 계란 없는 추천 메뉴 (일본어 표기)
+  eggFreeAlternativePronunciation: string; // 추천 메뉴 일본어 발음
   customRemoveJp?: string;
   customRemovePronunciation?: string;
   customSeparateJp?: string;
   customSeparatePronunciation?: string;
+  customRecommendEggFreeJp?: string; // 직원에게 계란 없는 메뉴 추천해 달라는 맞춤 일본어 문장
+  customRecommendEggFreePronunciation?: string; // 직원에게 계란 없는 메뉴 추천해 달라는 발음
 }
 
 export interface TokyoFoodItem {
@@ -140,10 +145,15 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
       defaultMode: 'SEPARATE',
       hyunwooTip:
         '현우 라멘에는 반숙 계란(아지타마고)을 넣지 말고 별도 접시에 따로 받거나 빼달라고 요청하세요! (면·국물은 섭취 가능)',
+      eggFreeAlternativeMenu: '반숙란 뺀 기본 돈코츠 라멘 + 차슈(고기) 추가 + 김(노리) 토핑',
+      eggFreeAlternativeJp: '天然とんこつラーメン（卵なし）＋ 追加チャーシュー ＋ のり',
+      eggFreeAlternativePronunciation: '톤코츠 라멘(타마고 나시) + 츠이카 차슈 + 노리',
       customRemoveJp: 'ラーメンに卵（半熟卵・味玉）を入れないでください（卵抜きでお願いします）。',
       customRemovePronunciation: '라멘니 타마고(한쥬쿠타마고·아지타마)오 이레나이데 구다사이 (타마고 누키데 오네가이시마스)',
       customSeparateJp: '卵（半熟卵・味玉）はラーメンに入れず、別の皿（別皿）でお願いします。',
-      customSeparatePronunciation: '타마고(한쥬쿠타마고·아지타마)와 라멘니 이레즈, 베츠자라데 오네가이시마스'
+      customSeparatePronunciation: '타마고(한쥬쿠타마고·아지타마)와 라멘니 이레즈, 베츠자라데 오네가이시마스',
+      customRecommendEggFreeJp: 'この子は卵アレルギーがあります。卵（半熟卵・味玉）が入っていないラーメンや、おすすめのトッピング（追加チャーシュー・のり等）を教えてください。',
+      customRecommendEggFreePronunciation: '코노 코와 타마고 아레루기가 아리마스. 타마고가 하잇테 이나이 라멘야, 오스스메노 톳핑구(츠이카 차슈·노리 토)오 오시에테 구다사이'
     }
   },
   {
@@ -207,10 +217,15 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
       defaultMode: 'REMOVE',
       hyunwooTip:
         '카이센동(해산물 덮밥)이나 스시 세트에 기본으로 올라가는 일본식 계란말이(타마고) 조각을 빼달라거나 다른 접시에 따로 담아달라고 요청하세요!',
+      eggFreeAlternativeMenu: '계란말이(타마고) 없는 생연어·참치 덮밥(사케·마구로동) 또는 연어·새우·참치 초밥 세트',
+      eggFreeAlternativeJp: 'サーモン・まぐろ丼（玉子焼き抜き）または サーモン・エビ・まぐろ握り',
+      eggFreeAlternativePronunciation: '사몬·마구로동(타마고야키 누키) / 사몬·에비·마구로 니기리',
       customRemoveJp: '海鮮丼（お寿司）の上の玉子焼き（卵）を抜いてください。',
       customRemovePronunciation: '카이센동(오스시)노 우에노 타마고야키(타마고)오 누이테 구다사이',
       customSeparateJp: '海鮮丼（お寿司）の玉子焼き（卵）は別の皿（別皿）に分けてください。',
-      customSeparatePronunciation: '카이센동(오스시)노 타마고야키(타마고)와 베츠자라니 와케테 구다사이'
+      customSeparatePronunciation: '카이센동(오스시)노 타마고야키(타마고)와 베츠자라니 와케테 구다사이',
+      customRecommendEggFreeJp: 'この子は卵アレルギーがあります。玉子焼き（卵）が入っていない海鮮丼や、おすすめの握り寿司メニュー（サーモン・まぐろ・エビ等）を教えてください。',
+      customRecommendEggFreePronunciation: '코노 코와 타마고 아레루기가 아리마스. 타마고야키가 하잇테 이나이 카이센동야, 오스스메노 니기리스시 메뉴오 오시에테 구다사이'
     }
   },
   {
@@ -246,10 +261,15 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
       defaultMode: 'SEPARATE',
       hyunwooTip:
         '몬자야키 기본 반죽에는 계란이 없지만, 함께 시키는 야키소바나 오코노미야키에 계란프라이(메다마야키)·날계란이 올라갈 수 있으니 계란을 빼거나 따로 담아달라고 요청하세요!',
+      eggFreeAlternativeMenu: '명란 모찌 치즈 몬자야키(기본 계란 무첨가) & 돼지고기·해산물 철판구이 / 계란 뺀 야키소바',
+      eggFreeAlternativeJp: '明太もちチーズもんじゃ（卵不使用）・豚バラ鉄板焼き・焼きそば（卵抜き）',
+      eggFreeAlternativePronunciation: '멘타이 모찌 치즈 몬자(타마고 후시요) · 부타바라 텟판야키 · 야키소바(타마고 누키)',
       customRemoveJp: 'もんじゃ焼き・焼きそばに卵（生卵・目玉焼き）を入れないでください。',
       customRemovePronunciation: '몬자야키·야키소바니 타마고(나마타마고·메다마야키)오 이레나이데 구다사이',
       customSeparateJp: '卵（生卵・目玉焼き）は鉄板に乗せず、別の皿（別皿）でお願いします。',
-      customSeparatePronunciation: '타마고(메다마야키)와 텟판니 노세즈, 베츠자라데 오네가이시마스'
+      customSeparatePronunciation: '타마고(메다마야키)와 텟판니 노세즈, 베츠자라데 오네가이시마스',
+      customRecommendEggFreeJp: 'この子は卵アレルギーがあります。生卵や目玉焼きが入っていない、おすすめの「もんじゃ焼き」や鉄板焼きメニューを教えてください。',
+      customRecommendEggFreePronunciation: '코노 코와 타마고 아레루기가 아리마스. 나마타마고야 메다마야키가 하잇테 이나이 오스스메노 몬자야키야 텟판야키 메뉴오 오시에테 구다사이'
     }
   },
   {
@@ -341,10 +361,15 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
       defaultMode: 'SEPARATE',
       hyunwooTip:
         '텐동 위에 기본으로 올라가는 "반숙 계란 튀김(半熟玉子天)"을 현우 그릇에는 올리지 말고 따로 접시에 담아달라고 하거나 빼달라고 요청하세요! (일반 튀김옷은 섭취 가능)',
+      eggFreeAlternativeMenu: '반숙 계란 튀김(타마고텐)을 뺀 대왕 새우·오징어 에비 텐동 (또는 계란튀김 대신 새우·생선 튀김 추가)',
+      eggFreeAlternativeJp: '海老天丼（半熟玉子天抜き）＋ 海老・イカの天ぷら',
+      eggFreeAlternativePronunciation: '에비 텐동(한쥬쿠 타마고텐 누키) + 에비·이카노 템푸라',
       customRemoveJp: '天丼の「半熟玉子天（卵の天ぷら）」を抜いてください（衣は大丈夫です）。',
       customRemovePronunciation: '텐동노 한쥬쿠 타마고텐(타마고노 템푸라)오 누이테 구다사이 (코로모와 다이죠부데스)',
       customSeparateJp: '天丼の「半熟玉子天（卵の天ぷら）」は丼に乗せず、別皿に分けてください。',
-      customSeparatePronunciation: '텐동노 한쥬쿠 타마고텐(타마고노 템푸라)와 돈부리니 노세즈, 베츠자라니 와케테 구다사이'
+      customSeparatePronunciation: '텐동노 한쥬쿠 타마고텐(타마고노 템푸라)와 돈부리니 노세즈, 베츠자라니 와케테 구다사이',
+      customRecommendEggFreeJp: 'この子は卵アレルギーがあります（天ぷらの衣は大丈夫ですが、半熟玉子天は食べられません）。玉子天が入っていないおすすめの天丼（海老天丼など）を教えてください。',
+      customRecommendEggFreePronunciation: '코노 코와 타마고 아레루기가 아리마스. 타마고텐가 하잇테 이나이 오스스메노 텐동(에비텐동 나도)오 오시에테 구다사이'
     }
   },
   {
@@ -408,10 +433,15 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
       defaultMode: 'REMOVE',
       hyunwooTip:
         '일부 장어덮밥(히츠마부시) 위에 계란지단(긴시타마고)이 올라가는 경우가 있으니, 현우 덮밥에는 계란 고명을 빼달라거나 따로 담아달라고 요청하세요!',
+      eggFreeAlternativeMenu: '계란지단 고명이 없는 정통 숯불 장어덮밥(우나쥬 · うな重) 또는 장어 꼬치구이',
+      eggFreeAlternativeJp: 'うな重（錦糸卵・玉子なし、鰻とご飯のみ）',
+      eggFreeAlternativePronunciation: '우나쥬 (킨시타마고 나시, 우나기토 고항노미)',
       customRemoveJp: 'うな重（ひつまぶし）の上に卵（錦糸卵・玉子）を乗せないでください。',
       customRemovePronunciation: '우나쥬(히츠마부시)노 우에니 타마고(킨시타마고)오 노세나이데 구다사이',
       customSeparateJp: '卵（錦糸卵・玉子）はご飯に乗せず、別皿に分けてください。',
-      customSeparatePronunciation: '타마고(킨시타마고)와 고항니 노세즈, 베츠자라니 와케테 구다사이'
+      customSeparatePronunciation: '타마고(킨시타마고)와 고항니 노세즈, 베츠자라니 와케테 구다사이',
+      customRecommendEggFreeJp: 'この子は卵アレルギーがあります。錦糸卵や玉子焼きが乗っていない「うな重」など、卵が入っていないおすすめメニューを教えてください。',
+      customRecommendEggFreePronunciation: '코노 코와 타마고 아레루기가 아리마스. 킨시타마고야 타마고야키가 놋테 이나이 우나쥬 나도, 타마고가 하잇테 이나이 오스스메 메뉴오 오시에테 구다사이'
     }
   },
   {
@@ -447,10 +477,15 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
       defaultMode: 'REMOVE',
       hyunwooTip:
         '스키야키는 고기를 찍어 먹는 날계란(生卵)이 나오고 마지막에 계란덮밥을 만듭니다. 현우 몫은 날계란을 빼고, 마무리 밥도 계란 넣기 전에 따로 덜어달라고 요청하세요!',
+      eggFreeAlternativeMenu: '날계란 소스 없이 그대로 먹는 와규 스키야키 / 와규 스테이크 덮밥(스테키동) / 와규 샤브샤브',
+      eggFreeAlternativeJp: 'すき焼き（生卵なし）・和牛ステーキ丼・しゃぶしゃぶ（ポン酢・ごまだれ）',
+      eggFreeAlternativePronunciation: '스키야키(나마타마고 나시) · 와규 스테키동 · 샤부샤부(폰즈·고마다레)',
       customRemoveJp: '子どもは卵アレルギーがあるため、すき焼きの生卵は不要です。締めの食事も卵を入れる前に取り分けてください。',
       customRemovePronunciation: '코도모와 타마고 아레루기가 아루타메, 스키야키노 나마타마고와 후요데스. 시메노 쇼쿠지모 타마고오 이레루 마에니 토리와케테 구다사이',
       customSeparateJp: '生卵は子どもの前には置かず、大人用に別でお願いします。お肉も卵をつけずにそのまま食べます。',
-      customSeparatePronunciation: '나마타마고와 코도모노 마에니와 오카즈, 오토나요니 베츠데 오네가이시마스'
+      customSeparatePronunciation: '나마타마고와 코도모노 마에니와 오카즈, 오토나요니 베츠데 오네가이시마스',
+      customRecommendEggFreeJp: 'この子は卵アレルギーがあります。生卵を使わずに食べられるお肉料理（ステーキ丼・しゃぶしゃぶ・卵なしのすき焼き等）のおすすめを教えてください。',
+      customRecommendEggFreePronunciation: '코노 코와 타마고 아레루기가 아리마스. 나마타마고오 츠카와즈니 타베라레루 오니쿠료리(스테키동·샤부샤부·타마고나시노 스키야키 토)노 오스스메오 오시에테 구다사이'
     }
   },
 
@@ -518,8 +553,13 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
       defaultMode: 'REMOVE',
       hyunwooTip:
         '이 메뉴는 100% 계란말이 꼬치이므로 계란 알레르기가 있는 현우는 먹지 않도록 주의하세요! (세현이와 엄마들만 시식하고 현우는 옆 가게 멘치카츠·딸기모찌 추천)',
+      eggFreeAlternativeMenu: '쓰키지 시장 내 와규 꼬치구이, 참치 꼬치구이(마구로 쿠시), 육즙 멘치카츠, 생딸기 모찌(이치고 다이후쿠)',
+      eggFreeAlternativeJp: '和牛串焼き・まぐろ串・メンチカツ・いちご大福（卵不使用）',
+      eggFreeAlternativePronunciation: '와규 쿠시야키 · 마구로 쿠시 · 멘치카츠 · 이치고 다이후쿠',
       customRemoveJp: '※この商品は100%玉子焼きのため、卵アレルギーのお子様（현우）は召し上がれません。',
-      customRemovePronunciation: '코노 쇼힌와 햐쿠파센토 타마고야키노 타메, 타마고 아레루기노 오코사마와 메시아가레마셍'
+      customRemovePronunciation: '코노 쇼힌와 햐쿠파센토 타마고야키노 타메, 타마고 아레루기노 오코사마와 메시아가레마셍',
+      customRecommendEggFreeJp: 'この子は卵アレルギーがあります。卵（玉子焼き）が入っていない、おすすめの串焼きや食べ歩きメニューを教えてください。',
+      customRecommendEggFreePronunciation: '코노 코와 타마고 아레루기가 아리마스. 타마고가 하잇테 이나이 오스스메노 쿠시야키야 타베아루키 메뉴오 오시에테 구다사이'
     }
   },
   {
@@ -583,10 +623,15 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
       defaultMode: 'REMOVE',
       hyunwooTip:
         '반죽은 괜찮지만 위에 삶은 계란 샐러드가 올라가는 "데리타마" 메뉴는 피하고, 현우 것은 계란 토핑이 없는 기본 오리지널 타코야키로 주문하거나 계란 토핑을 따로 담아달라고 요청하세요!',
+      eggFreeAlternativeMenu: '계란 샐러드 토핑이 없는 기본 "오리지널 타코야키(소스 맛)" 또는 "치즈 명란 타코야키"',
+      eggFreeAlternativeJp: 'ぜったいうまい!! たこ焼（普通のソース味・卵トッピングなし） / チーズ明太子',
+      eggFreeAlternativePronunciation: '후츠노 타코야키(소스 아지 · 타마고 톳핑구 나시) / 치즈 멘타이코',
       customRemoveJp: '卵トッピング（てりたま・ゆで卵サラダ）は乗せないでください。普通のたこ焼きでお願いします。',
       customRemovePronunciation: '타마고 톳핑구(테리타마·유데타마고 사라다)와 노세나이데 구다사이. 후츠노 타코야키데 오네가이시마스',
       customSeparateJp: '上の卵サラダ（たまごトッピング）はたこ焼きに乗せず、別皿に分けてください。',
-      customSeparatePronunciation: '우에노 타마고 사라다와 타코야키니 노세즈, 베츠자라니 와케테 구다사이'
+      customSeparatePronunciation: '우에노 타마고 사라다와 타코야키니 노세즈, 베츠자라니 와케테 구다사이',
+      customRecommendEggFreeJp: 'この子は卵アレルギーがあります。ゆで卵サラダ（てりたま等）が乗っていない、おすすめのたこ焼きメニュー（普通のたこ焼き等）を教えてください。',
+      customRecommendEggFreePronunciation: '코노 코와 타마고 아레루기가 아리마스. 유데타마고 사라다가 놋테 이나이 오스스메노 타코야키 메뉴오 오시에테 구다사이'
     }
   },
   {
@@ -678,10 +723,15 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
       defaultMode: 'SEPARATE',
       hyunwooTip:
         '닭완자 꼬치(츠쿠네) 주문 시 날계란 노른자(츠키미)가 올라가는 메뉴가 있습니다. 현우가 먹을 꼬치에는 계란 노른자를 빼거나 별도 종지에 따로 담아달라고 요청하세요!',
+      eggFreeAlternativeMenu: '날계란 없는 닭다리살 대파 꼬치(네기마 타레/시오), 치즈 츠쿠네(계란 없음), 순살 닭튀김(가라아게)',
+      eggFreeAlternativeJp: 'ねぎま（タレ・塩）・もも貴族焼・チーズつくね（卵黄なし）・唐揚げ',
+      eggFreeAlternativePronunciation: '네기마(타레·시오) · 모모키조쿠야키 · 치즈 츠쿠네(란오 나시) · 카라아게',
       customRemoveJp: 'つくね（焼鳥）に卵（生卵・卵黄）をつけないでください（卵抜きでお願いします）。',
       customRemovePronunciation: '츠쿠네(야키토리)니 타마고(나마타마고·란오)오 츠케나이데 구다사이',
       customSeparateJp: 'つくねの卵（生卵・卵黄）は串に乗せず、別の小皿（別皿）でお願いします。',
-      customSeparatePronunciation: '츠쿠네노 타마고(란오)와 쿠시니 노세즈, 베츠노 코자라(베츠자라)데 오네가이시마스'
+      customSeparatePronunciation: '츠쿠네노 타마고(란오)와 쿠시니 노세즈, 베츠노 코자라(베츠자라)데 오네가이시마스',
+      customRecommendEggFreeJp: 'この子は卵アレルギーがあります。生卵（卵黄）がついていない、おすすめの焼き鳥（ねぎま・もも串・唐揚げなど）を教えてください。',
+      customRecommendEggFreePronunciation: '코노 코와 타마고 아레루기가 아리마스. 나마타마고가 츠이테 이나이 오스스메노 야키토리(네기마·모모쿠시·카라아게 나도)오 오시에테 구다사이'
     }
   },
 
@@ -749,10 +799,15 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
       defaultMode: 'REMOVE',
       hyunwooTip:
         '일반 빵은 괜찮지만 수플레 팬케이크는 계란 머랭 비중이 매우 높은 반숙 식감이므로, 현우는 생과일·생크림 위주로 맛보거나 브런치 메뉴의 계란프라이/스크램블을 빼달라고 요청하세요!',
+      eggFreeAlternativeMenu: '카페 내 소프트아이스크림 · 생과일 파르페 · 감자튀김 사이드 · 과일 에이드/초코 라떼',
+      eggFreeAlternativeJp: 'ソフトクリーム・フルーツパフェ・フライドポテト・フルーツドリンク（卵不使用）',
+      eggFreeAlternativePronunciation: '소후토쿠리무 · 후루츠 파페 · 후라이도 포테토 · 후루츠 도린쿠',
       customRemoveJp: '付け合わせの卵料理（目玉焼き・スクランブルエッグ等）は抜いてください。',
       customRemovePronunciation: '츠케아와세노 타마고 료리(메다마야키·스쿠란부루 엣구 토)와 누이테 구다사이',
       customSeparateJp: '卵（目玉焼き・スクランブルエッグ等）は別皿に分けて出してください。',
-      customSeparatePronunciation: '타마고와 베츠자라니 와케테 다시테 구다사이'
+      customSeparatePronunciation: '타마고와 베츠자라니 와케테 다시테 구다사이',
+      customRecommendEggFreeJp: 'この子は卵アレルギーがあります。卵（特に半熟卵・メレンゲ・スクランブルエッグ等）が入っていない、おすすめのデザートやサイドメニューを教えてください。',
+      customRecommendEggFreePronunciation: '코노 코와 타마고 아레루기가 아리마스. 타마고가 하잇테 이나이 오스스메노 데자토야 사이도메뉴오 오시에테 구다사이'
     }
   },
   {
@@ -1076,8 +1131,13 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
       defaultMode: 'REMOVE',
       hyunwooTip:
         '식빵은 괜찮지만 속재료가 100% 삶은 계란 샐러드입니다! 현우는 타마고산도 대신 바로 옆에 진열된 "돈카츠 샌드위치(카츠산도)"나 "햄·치즈 샌드위치"로 골라주세요!',
+      eggFreeAlternativeMenu: '통등심 돈카츠 샌드위치(카츠산도 · カツサンド), 햄·치즈·양상추 샌드위치, 또는 참치·연어 오니기리',
+      eggFreeAlternativeJp: 'とんかつサンド（カツサンド）・ハムチーズサンド・手巻おにぎり（鮭・ツナ）',
+      eggFreeAlternativePronunciation: '톤카츠 산도(카츠산도) · 하무 치즈 산도 · 테마키 오니기리(사케·츠나)',
       customRemoveJp: '卵サラダが入っていないサンドイッチ（カツサンドやハムサンドなど）はどれですか？',
-      customRemovePronunciation: '타마고 사라다가 하잇테 이나이 산도잇치(카츠산도야 하무산도 나도)와 도레데스카?'
+      customRemovePronunciation: '타마고 사라다가 하잇테 이나이 산도잇치(카츠산도야 하무산도 나도)와 도레데스카?',
+      customRecommendEggFreeJp: 'この子は卵アレルギーがあります。ゆで卵・たまごサラダが入っていない、おすすめのサンドイッチ（カツサンド・ハムチーズサンド等）を教えてください。',
+      customRecommendEggFreePronunciation: '코노 코와 타마고 아레루기가 아리마스. 유데타마고·타마고 사라다가 하잇테 이나이 오스스메노 산도잇치(카츠산도·하무치즈산도 토)오 오시에테 구다사이'
     }
   },
   {
@@ -1113,8 +1173,13 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
       defaultMode: 'REMOVE',
       hyunwooTip:
         '노란색 구운 커스터드 푸딩에는 계란이 많이 들어가므로, 현우는 계란 없이 우유로 만든 하얀색 "오하요 저지 밀크 푸딩(ジャージー牛乳プリン)"으로 골라주세요!',
+      eggFreeAlternativeMenu: '계란 없이 우유로 만든 하얀색 "오하요 저지 밀크 푸딩(ジャージー牛乳プリン)" 또는 생과일 젤리',
+      eggFreeAlternativeJp: 'オハヨー ジャージー牛乳プリン（卵不使用のミルクプリン）・フルーツゼリー',
+      eggFreeAlternativePronunciation: '오하요 쟈지 규뉴 푸린(타마고 후시요노 미루쿠 푸린) · 후루츠 제리',
       customRemoveJp: '卵が入っていない「牛乳プリン（ミルクプリン）」はどれですか？',
-      customRemovePronunciation: '타마고가 하잇테 이나이 규뉴 푸린(미루쿠 푸린)와 도레데스카?'
+      customRemovePronunciation: '타마고가 하잇테 이나이 규뉴 푸린(미루쿠 푸린)와 도레데스카?',
+      customRecommendEggFreeJp: 'この子は卵アレルギーがあります。卵（カスタード）が入っていない、おすすめの牛乳プリン（ミルクプリン）やデザートを教えてください。',
+      customRecommendEggFreePronunciation: '코노 코와 타마고 아레루기가 아리마스. 타마고가 하잇테 이나이 오스스메노 규뉴 푸린(미루쿠 푸린)야 데자토오 오시에테 구다사이'
     }
   },
   {
@@ -1238,10 +1303,15 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
       defaultMode: 'REMOVE',
       hyunwooTip:
         '기본 닭다리살 대파 꼬치(모모키조쿠야키)와 가라아게는 계란 없이 안전하지만, 츠쿠네(닭완자)나 감자샐러드에는 계란이 올라가니 현우 몫은 모모키조쿠야키(타레/소금)로 주문하세요!',
+      eggFreeAlternativeMenu: '모모키조쿠야키(닭다리 대파 숯불꼬치 타레/소금), 토리키 가라아게(순살치킨), 버터 감자튀김, 닭육수 가마메시(솥밥)',
+      eggFreeAlternativeJp: 'もも貴族焼（たれ・塩）・トリキの唐揚・ポテトフライ・とり釜飯（卵なし）',
+      eggFreeAlternativePronunciation: '모모키조쿠야키(타레·시오) · 토리키노 카라아게 · 포테토 후라이 · 토리 카마메시',
       customRemoveJp: 'つくねやサラダの卵（生卵・半熟卵）は抜いてください。焼き鳥（もも貴族焼）はそのままお願いします。',
       customRemovePronunciation: '츠쿠네야 사라다노 타마고(나마타마고·한쥬쿠타마고)와 누이테 구다사이',
       customSeparateJp: '卵（生卵・半熟卵）は料理に乗せず、別の小皿（別皿）でお願いします。',
-      customSeparatePronunciation: '타마고와 료리니 노세즈, 베츠자라데 오네가이시마스'
+      customSeparatePronunciation: '타마고와 료리니 노세즈, 베츠자라데 오네가이시마스',
+      customRecommendEggFreeJp: 'この子は卵アレルギーがあります。生卵や半熟卵が入っていない、おすすめの焼き鳥（もも貴族焼・唐揚げ・ポテト等）を教えてください。',
+      customRecommendEggFreePronunciation: '코노 코와 타마고 아레루기가 아리마스. 나마타마고야 한쥬쿠타마고가 하잇테 이나이 오스스메노 야키토리(모모키조쿠야키·카라아게·포테토 토)오 오시에테 구다사이'
     }
   },
   {
@@ -1304,11 +1374,16 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
       eggTypeLabel: '메추리알 꼬치튀김 (우즈라 · うずら) 제외 요청',
       defaultMode: 'REMOVE',
       hyunwooTip:
-        '모둠 꼬치튀김 세트에 "메추리알 꼬치(우즈라)"나 " 반숙 계란 튀김"이 포함될 수 있으니, 현우는 소고기·돼지고기·새우·치즈·연근 꼬치만 골라 먹도록 해주세요!',
+        '모둠 꼬치튀김 세트에 "메추리알 꼬치(우즈라)"나 "반숙 계란 튀김"이 포함될 수 있으니, 현우는 소고기·돼지고기·새우·치즈·연근 꼬치만 골라 먹도록 해주세요!',
+      eggFreeAlternativeMenu: '소고기(쿠시카츠 규)·돼지고기(부타)·새우(에비)·모짜렐라 치즈·연근·아스파라거스 꼬치튀김 & 주먹밥',
+      eggFreeAlternativeJp: '串カツ牛・串カツ豚・エビ・チーズ・れんこん・アスパラ（うずら卵抜き）',
+      eggFreeAlternativePronunciation: '쿠시카츠 규 · 쿠시카츠 부타 · 에비 · 치즈 · 렌콘 · 아스파라 (우즈라 타마고 누키)',
       customRemoveJp: '串カツ盛り合わせから「うずらの卵（卵の串）」を抜いて、お肉やエビに変えていただけますか？',
       customRemovePronunciation: '쿠시카츠 모리아와세카라 우즈라노 타마고오 누이테, 오니쿠야 에비니 카에테 이타다케마스카?',
       customSeparateJp: '「うずらの卵（卵の串）」は別皿に分けて出してください。',
-      customSeparatePronunciation: '우즈라노 타마고와 베츠자라니 와케테 다시테 구다사이'
+      customSeparatePronunciation: '우즈라노 타마고와 베츠자라니 와케테 다시테 구다사이',
+      customRecommendEggFreeJp: 'この子は卵アレルギーがあります（衣は大丈夫ですが、うずらの卵やゆで卵は食べられません）。卵が入っていないおすすめの串カツ（牛・豚・エビ・チーズ等）を教えてください。',
+      customRecommendEggFreePronunciation: '코노 코와 타마고 아레루기가 아리마스. 타마고가 하잇테 이나이 오스스메노 쿠시카츠(규·부타·에비·치즈 토)오 오시에테 구다사이'
     }
   },
   {
@@ -1372,10 +1447,15 @@ export const TOKYO_FOOD_ITEMS: TokyoFoodItem[] = [
       defaultMode: 'SEPARATE',
       hyunwooTip:
         '모츠나베 전골과 일반 숯불 꼬치는 계란이 없지만, 수제 츠쿠네(닭완자)에 날계란 노른자 소스가 함께 나오니 노른자는 따로 받거나 빼달라고 요청하세요!',
+      eggFreeAlternativeMenu: '하카타 모츠나베(소곱창 전골 & 짬뽕면), 바삭한 닭날개 튀김(테바사키), 비장탄 닭다리살·삼겹살 꼬치(날계란 없는 메뉴)',
+      eggFreeAlternativeJp: '博多もつ鍋・手羽先唐揚げ・炭火もも串・豚バラ串（生卵なし）',
+      eggFreeAlternativePronunciation: '하카타 모츠나베 · 테바사키 카라아게 · 스미비 모모쿠시 · 부타바라쿠시(나마타마고 나시)',
       customRemoveJp: 'つくねの生卵（卵黄）は抜いてください（タレのみでお願いします）。',
       customRemovePronunciation: '츠쿠네노 나마타마고(란오)와 누이테 구다사이 (타레노미데 오네가이시마스)',
       customSeparateJp: 'つくねの生卵（卵黄）は別の小皿（別皿）に分けてお願いします。',
-      customSeparatePronunciation: '츠쿠네노 나마타마고(란오)와 베츠노 코자라니 와케테 오네가이시마스'
+      customSeparatePronunciation: '츠쿠네노 나마타마고(란오)와 베츠노 코자라니 와케테 오네가이시마스',
+      customRecommendEggFreeJp: 'この子は卵アレルギーがあります。生卵（卵黄）が入っていない、おすすめの炭火焼鳥や鍋料理（もつ鍋・手羽先・もも串など）を教えてください。',
+      customRecommendEggFreePronunciation: '코노 코와 타마고 아레루기가 아리마스. 나마타마고가 하잇테 이나이 오스스메노 스미비야키토리야 나베료리(모츠나베·테바사키·모모쿠시 나도)오 오시에테 구다사이'
     }
   },
   {
