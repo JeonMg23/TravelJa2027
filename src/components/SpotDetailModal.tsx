@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { TravelSpot, RecommendedFood } from '../types/travel';
+import { DisneySeaMapGuide } from './DisneySeaMapGuide';
 import {
   X,
   Star,
@@ -77,7 +78,9 @@ export const SpotDetailModal: React.FC<SpotDetailModalProps> = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white w-full max-w-lg rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className={`bg-white w-full ${
+          spot.id === 'spot-2-1' ? 'max-w-3xl' : 'max-w-lg'
+        } rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]`}
       >
         {/* Header */}
         <div className="p-5 border-b border-slate-200 flex items-start justify-between bg-slate-50">
@@ -178,6 +181,13 @@ export const SpotDetailModal: React.FC<SpotDetailModalProps> = ({
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Day 2 Tokyo DisneySea Interactive Full Park Map & Recommended Route Navigator */}
+          {spot.id === 'spot-2-1' && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <DisneySeaMapGuide isDark={false} />
             </div>
           )}
 

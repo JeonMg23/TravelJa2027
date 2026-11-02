@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { TravelSpot, TripDay, TransitInfo, DayWeather, RecommendedFood } from '../types/travel';
 import { WeatherWidget } from './WeatherWidget';
+import { DisneySeaMapGuide } from './DisneySeaMapGuide';
 import { ScheduleThemeId, SCHEDULE_THEMES } from '../data/scheduleThemes';
 import {
   MapPin,
@@ -441,6 +442,11 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                       ))}
                     </ul>
                   </div>
+                )}
+
+                {/* Day 2 Tokyo DisneySea Interactive Full Park Map & Recommended Route Navigator */}
+                {spot.id === 'spot-2-1' && (
+                  <DisneySeaMapGuide isDark={isDark} />
                 )}
 
                 {/* Recommended Foods / Restaurants */}
